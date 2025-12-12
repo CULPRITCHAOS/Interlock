@@ -1,6 +1,6 @@
 import React from 'react';
 import { Law } from '../types';
-import { BookOpen, CheckCircle2, XCircle, AlertTriangle, Clock, GitBranch, FlaskConical, Fingerprint } from 'lucide-react';
+import { BookOpen, CheckCircle2, XCircle, AlertTriangle, Clock, GitBranch, FlaskConical, Fingerprint, Shield, Timer } from 'lucide-react';
 
 interface LawListProps {
   laws: Law[];
@@ -10,6 +10,19 @@ interface LawListProps {
 const formatFingerprint = (fp?: Law['scopeSignature']): string => {
   if (!fp) return 'Global';
   return `${fp.datasetSize}x${fp.dimensions}:${fp.queryPattern}:${fp.targetMetric}@${fp.k}`;
+};
+
+// Helper to format law type
+const formatLawType = (type?: Law['lawType']): { label: string; description: string; color: string } => {
+  switch (type) {
+    case 'structural':
+      return { label: 'Structural', description: 'hard constraint', color: 'text-red-400' };
+    case 'regime-bound':
+      return { label: 'Regime', description: 'valid under drift', color: 'text-amber-400' };
+    case 'soft':
+    default:
+      return { label: 'Soft', description: 'performance gradient', color: 'text-blue-400' };
+  }
 };
 
 // Status badge styling
@@ -102,6 +115,24 @@ const LawList: React.FC<LawListProps> = ({ laws }) => {
                   <span className="font-mono">{formatFingerprint(law.scopeSignature)}</span>
                 </div>
               )}
+              
+              {/* Law Type and Half-Life (Phase II) */}
+              <div className="flex items-center gap-2 mb-1">
+                {/* Law Type Badge */}
+                {law.lawType && (
+                  <div className="flex items-center gap-1 text-[9px] bg-slate-900/50 px-1.5 py-0.5 rounded" title={formatLawType(law.lawType).description}>
+                    <Shield size={9} className={formatLawType(law.lawType).color} />
+                    <span className={formatLawType(law.lawType).color}>{formatLawType(law.lawType).label}</span>
+                  </div>
+                )}
+                {/* Half-Life */}
+                {law.halfLife !== undefined && (
+                  <div className="flex items-center gap-1 text-[9px] text-slate-500 bg-slate-900/50 px-1.5 py-0.5 rounded" title="Law half-life under perturbation">
+                    <Timer size={9} />
+                    <span className="font-mono">{law.halfLife} gens</span>
+                  </div>
+                )}
+              </div>
               
               {/* Trial & Counterexample Stats */}
               <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800">
