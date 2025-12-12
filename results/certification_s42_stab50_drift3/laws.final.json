@@ -1,0 +1,459 @@
+{
+  "generated": "2025-12-12T21:37:07.031Z",
+  "runId": "results/certification_s42_stab50_drift3",
+  "totalLaws": 15,
+  "summary": {
+    "validated": 2,
+    "falsified": 3,
+    "deprecated": 2,
+    "hypothesis": 8
+  },
+  "laws": [
+    {
+      "id": "law-0",
+      "domain": "faiss",
+      "description": "HNSW M > 32 yields diminishing recall returns",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 10,
+        "counterexamples": 1
+      },
+      "status": "hypothesis",
+      "confidence": 0.9285694507579182,
+      "discoveredAt": 0,
+      "lastValidatedAt": 400,
+      "version": 1
+    },
+    {
+      "id": "law-1",
+      "domain": "postgres",
+      "description": "work_mem correlates linearly with hash_agg performance",
+      "scope": {
+        "domain": "postgres",
+        "datasetSize": 100000,
+        "dimensions": 1,
+        "queryPattern": "sequential",
+        "targetMetric": "latency",
+        "k": 1,
+        "constraints": {
+          "maxLatencyMs": 100,
+          "maxMemoryMb": 1024
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 7,
+        "counterexamples": 3
+      },
+      "status": "falsified",
+      "confidence": 0.5339897106079999,
+      "discoveredAt": 0,
+      "lastValidatedAt": 200,
+      "version": 1
+    },
+    {
+      "id": "law-2",
+      "domain": "compression",
+      "description": "Entropy coding switch point at 0.63 redundancy",
+      "scope": {
+        "domain": "compression",
+        "datasetSize": 50000,
+        "dimensions": 256,
+        "queryPattern": "random",
+        "targetMetric": "memory",
+        "k": 1,
+        "constraints": {
+          "maxMemoryMb": 256
+        }
+      },
+      "evidence": {
+        "totalTrials": 8,
+        "successfulTrials": 5,
+        "counterexamples": 3
+      },
+      "status": "falsified",
+      "confidence": 0.45471497839254216,
+      "discoveredAt": 30,
+      "lastValidatedAt": 180,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 173,
+      "churnRate": 0
+    },
+    {
+      "id": "law-3",
+      "domain": "faiss",
+      "description": "Vector quantization optimal at dim > 189 for this workload",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 7,
+        "counterexamples": 3
+      },
+      "status": "falsified",
+      "confidence": 0.5383861794270123,
+      "discoveredAt": 60,
+      "lastValidatedAt": 280,
+      "version": 1,
+      "lawType": "structural",
+      "halfLife": 106,
+      "churnRate": 0
+    },
+    {
+      "id": "law-4",
+      "domain": "compression",
+      "description": "Sliding window 4622 optimal for streaming data",
+      "scope": {
+        "domain": "compression",
+        "datasetSize": 50000,
+        "dimensions": 256,
+        "queryPattern": "random",
+        "targetMetric": "memory",
+        "k": 1,
+        "constraints": {
+          "maxMemoryMb": 256
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 9,
+        "counterexamples": 2
+      },
+      "status": "hypothesis",
+      "confidence": 0.7482640803381075,
+      "discoveredAt": 90,
+      "lastValidatedAt": 400,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 176,
+      "churnRate": 0
+    },
+    {
+      "id": "law-5",
+      "domain": "compression",
+      "description": "Sliding window 2040 optimal for streaming data",
+      "scope": {
+        "domain": "compression",
+        "datasetSize": 50000,
+        "dimensions": 256,
+        "queryPattern": "random",
+        "targetMetric": "memory",
+        "k": 1,
+        "constraints": {
+          "maxMemoryMb": 256
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 10,
+        "counterexamples": 2
+      },
+      "status": "hypothesis",
+      "confidence": 0.8181174704103871,
+      "discoveredAt": 120,
+      "lastValidatedAt": 400,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 100,
+      "churnRate": 0
+    },
+    {
+      "id": "law-6",
+      "domain": "faiss",
+      "description": "HNSW M parameter correlates with recall at threshold 0.83",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 10,
+        "counterexamples": 1
+      },
+      "status": "hypothesis",
+      "confidence": 0.9194257925900806,
+      "discoveredAt": 150,
+      "lastValidatedAt": 400,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 82,
+      "churnRate": 0
+    },
+    {
+      "id": "law-7",
+      "domain": "faiss",
+      "description": "HNSW M parameter correlates with recall at threshold 0.92",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 9,
+        "counterexamples": 1
+      },
+      "status": "hypothesis",
+      "confidence": 0.8331999059968231,
+      "discoveredAt": 180,
+      "lastValidatedAt": 400,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 194,
+      "churnRate": 0
+    },
+    {
+      "id": "law-8",
+      "domain": "faiss",
+      "description": "HNSW M parameter correlates with recall at threshold 0.92",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 10,
+        "counterexamples": 0
+      },
+      "status": "validated",
+      "confidence": 0.9999997907154692,
+      "discoveredAt": 210,
+      "lastValidatedAt": 400,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 54,
+      "churnRate": 0
+    },
+    {
+      "id": "law-9",
+      "domain": "postgres",
+      "description": "Autovacuum frequency optimal at 945 for write-heavy loads",
+      "scope": {
+        "domain": "postgres",
+        "datasetSize": 100000,
+        "dimensions": 1,
+        "queryPattern": "sequential",
+        "targetMetric": "latency",
+        "k": 1,
+        "constraints": {
+          "maxLatencyMs": 100,
+          "maxMemoryMb": 1024
+        }
+      },
+      "evidence": {
+        "totalTrials": 9,
+        "successfulTrials": 8,
+        "counterexamples": 1
+      },
+      "status": "hypothesis",
+      "confidence": 0.8722203695591575,
+      "discoveredAt": 240,
+      "lastValidatedAt": 400,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 60,
+      "churnRate": 0
+    },
+    {
+      "id": "law-10",
+      "domain": "faiss",
+      "description": "HNSW M parameter correlates with recall at threshold 0.93",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 7,
+        "successfulTrials": 6,
+        "counterexamples": 1
+      },
+      "status": "hypothesis",
+      "confidence": 0.7999787890986059,
+      "discoveredAt": 270,
+      "lastValidatedAt": 400,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 161,
+      "churnRate": 0
+    },
+    {
+      "id": "law-11",
+      "domain": "compression",
+      "description": "Sliding window 2710 optimal for streaming data",
+      "scope": {
+        "domain": "compression",
+        "datasetSize": 50000,
+        "dimensions": 256,
+        "queryPattern": "random",
+        "targetMetric": "memory",
+        "k": 1,
+        "constraints": {
+          "maxMemoryMb": 256
+        }
+      },
+      "evidence": {
+        "totalTrials": 6,
+        "successfulTrials": 5,
+        "counterexamples": 1
+      },
+      "status": "hypothesis",
+      "confidence": 0.7451777197431692,
+      "discoveredAt": 300,
+      "lastValidatedAt": 400,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 87,
+      "churnRate": 0
+    },
+    {
+      "id": "law-12",
+      "domain": "compression",
+      "description": "Dictionary size 125KB maximizes compression ratio",
+      "scope": {
+        "domain": "compression",
+        "datasetSize": 50000,
+        "dimensions": 256,
+        "queryPattern": "random",
+        "targetMetric": "memory",
+        "k": 1,
+        "constraints": {
+          "maxMemoryMb": 256
+        }
+      },
+      "evidence": {
+        "totalTrials": 1,
+        "successfulTrials": 0,
+        "counterexamples": 1
+      },
+      "status": "deprecated",
+      "confidence": 0.17599083662079218,
+      "discoveredAt": 330,
+      "lastValidatedAt": 340,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 195,
+      "churnRate": 0
+    },
+    {
+      "id": "law-13",
+      "domain": "faiss",
+      "description": "Index fragmentation inversely proportional to batch size",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 3,
+        "successfulTrials": 3,
+        "counterexamples": 0
+      },
+      "status": "validated",
+      "confidence": 0.9935979335625599,
+      "discoveredAt": 360,
+      "lastValidatedAt": 400,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 109,
+      "churnRate": 0
+    },
+    {
+      "id": "law-14",
+      "domain": "postgres",
+      "description": "Autovacuum frequency optimal at 210 for write-heavy loads",
+      "scope": {
+        "domain": "postgres",
+        "datasetSize": 100000,
+        "dimensions": 1,
+        "queryPattern": "sequential",
+        "targetMetric": "latency",
+        "k": 1,
+        "constraints": {
+          "maxLatencyMs": 100,
+          "maxMemoryMb": 1024
+        }
+      },
+      "evidence": {
+        "totalTrials": 1,
+        "successfulTrials": 0,
+        "counterexamples": 1
+      },
+      "status": "deprecated",
+      "confidence": 0.1786792891042676,
+      "discoveredAt": 390,
+      "lastValidatedAt": 400,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 129,
+      "churnRate": 0
+    }
+  ]
+}

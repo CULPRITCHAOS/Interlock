@@ -1,0 +1,44 @@
+{
+  "generated": "2025-12-12T21:35:47.534Z",
+  "runId": "results/run_s42_g200_t1_d1",
+  "totalBoundaries": 2,
+  "summary": {
+    "highRisk": 1,
+    "mediumRisk": 0,
+    "lowRisk": 1
+  },
+  "boundaries": [
+    {
+      "id": "fb-boundary-compression-99",
+      "domain": "compression",
+      "parameter": "fitness",
+      "parameterRange": [
+        2.6273320192394385,
+        3.265300129523019
+      ],
+      "criticalValue": 2.6787113686744894,
+      "abruptnessScore": 0.7920248596191297,
+      "historicalDropDepth": 0.30078856791908404,
+      "recoverySlope": 0.015039428395954202,
+      "confidence": 0.6,
+      "observedCrossings": 1,
+      "lawsAtRisk": []
+    },
+    {
+      "id": "fb-boundary-postgres-1",
+      "domain": "postgres",
+      "parameter": "fitness",
+      "parameterRange": [
+        1.4180693283684591,
+        2.2314642502940094
+      ],
+      "criticalValue": 2.2314642502940094,
+      "abruptnessScore": 0.36453964480052153,
+      "historicalDropDepth": 0.10936189344015645,
+      "recoverySlope": 0.005468094672007822,
+      "confidence": 0.5,
+      "observedCrossings": 0,
+      "lawsAtRisk": []
+    }
+  ]
+}
