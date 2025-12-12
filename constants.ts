@@ -4,11 +4,17 @@ export const DOMAINS = ['faiss', 'compression', 'postgres', 'prompts'];
 
 // Default workload fingerprint for FAISS domain (our primary measurable target)
 export const DEFAULT_FAISS_FINGERPRINT: WorkloadFingerprint = {
+  domain: 'faiss',
   datasetSize: 10000,
   dimensions: 128,
   queryPattern: 'random',
   targetMetric: 'recall',
-  k: 10
+  k: 10,
+  constraintRegime: {
+    maxLatencyMs: 50,
+    minRecall: 0.8,
+    maxMemoryMb: 512
+  }
 };
 
 // Default benchmark configuration for reproducible runs
@@ -35,7 +41,8 @@ export const INITIAL_LAWS: Law[] = [
       { trialId: 't001', generation: 1, success: true, observedValue: 0.92, expectedRange: [0.85, 0.95] }
     ],
     counterexamples: [],
-    lastValidatedAt: 1
+    lastValidatedAt: 1,
+    evidenceCount: 1
   },
   {
     id: 'law-002',
@@ -46,17 +53,23 @@ export const INITIAL_LAWS: Law[] = [
     version: 1,
     status: 'validated',
     scopeSignature: {
+      domain: 'postgres',
       datasetSize: 100000,
       dimensions: 1,
       queryPattern: 'sequential',
       targetMetric: 'latency',
-      k: 1
+      k: 1,
+      constraintRegime: {
+        maxLatencyMs: 100,
+        maxMemoryMb: 1024
+      }
     },
     trialResults: [
       { trialId: 't002', generation: 3, success: true, observedValue: 0.88, expectedRange: [0.80, 0.95] }
     ],
     counterexamples: [],
-    lastValidatedAt: 3
+    lastValidatedAt: 3,
+    evidenceCount: 1
   }
 ];
 

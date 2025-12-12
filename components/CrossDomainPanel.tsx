@@ -45,15 +45,20 @@ const calculateAverageImprovement = (results: TransferABTestResult[]): string =>
 const CrossDomainPanel: React.FC<CrossDomainPanelProps> = ({ insights, mutationRate, abTestResults = [] }) => {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
            <Network size={16} className="text-pink-400" />
-           <h3 className="text-slate-400 text-xs uppercase font-bold">Cross-Domain Intelligence</h3>
+           <h3 className="text-slate-400 text-xs uppercase font-bold">Cross-Domain Transfer (Experimental)</h3>
         </div>
         <div className="flex items-center gap-2 bg-slate-800 px-2 py-1 rounded text-[10px]">
            <span className="text-slate-400">Global Mutation Rate:</span>
            <span className="text-pink-400 font-mono">{(mutationRate * 100).toFixed(1)}%</span>
         </div>
+      </div>
+
+      {/* Experimental Warning */}
+      <div className="mb-3 p-2 bg-amber-900/20 border border-amber-500/30 rounded text-[10px] text-amber-400">
+        <span className="font-bold">⚠️ Experimental:</span> Transfer is not currently net-positive in aggregate benchmarks (27.4% success rate).
       </div>
 
       {/* A/B Test Results Section */}

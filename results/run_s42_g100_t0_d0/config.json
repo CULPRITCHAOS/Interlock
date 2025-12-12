@@ -1,0 +1,14 @@
+{
+  "runId": "results/run_s42_g100_t0_d0",
+  "seed": 42,
+  "generations": 100,
+  "domains": [
+    "faiss",
+    "compression",
+    "postgres",
+    "prompts"
+  ],
+  "transferEnabled": false,
+  "driftEnabled": false,
+  "timestamp": "2025-12-12T18:46:32.151Z"
+}

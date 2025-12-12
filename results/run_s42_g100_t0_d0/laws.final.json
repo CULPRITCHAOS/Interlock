@@ -1,0 +1,146 @@
+{
+  "generated": "2025-12-12T18:46:32.159Z",
+  "runId": "results/run_s42_g100_t0_d0",
+  "totalLaws": 5,
+  "summary": {
+    "validated": 3,
+    "falsified": 0,
+    "deprecated": 1,
+    "hypothesis": 1
+  },
+  "laws": [
+    {
+      "id": "law-0",
+      "domain": "faiss",
+      "description": "HNSW M > 32 yields diminishing recall returns",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 6,
+        "successfulTrials": 6,
+        "counterexamples": 0
+      },
+      "status": "validated",
+      "confidence": 0.9996354999999999,
+      "discoveredAt": 0,
+      "lastValidatedAt": 100,
+      "version": 1
+    },
+    {
+      "id": "law-1",
+      "domain": "postgres",
+      "description": "work_mem correlates linearly with hash_agg performance",
+      "scope": {
+        "domain": "postgres",
+        "datasetSize": 100000,
+        "dimensions": 1,
+        "queryPattern": "sequential",
+        "targetMetric": "latency",
+        "k": 1,
+        "constraints": {
+          "maxLatencyMs": 100,
+          "maxMemoryMb": 1024
+        }
+      },
+      "evidence": {
+        "totalTrials": 6,
+        "successfulTrials": 4,
+        "counterexamples": 2
+      },
+      "status": "hypothesis",
+      "confidence": 0.5815722666666666,
+      "discoveredAt": 0,
+      "lastValidatedAt": 100,
+      "version": 1
+    },
+    {
+      "id": "law-2",
+      "domain": "compression",
+      "description": "Entropy coding switch point at 0.63 redundancy",
+      "scope": {
+        "domain": "compression",
+        "datasetSize": 50000,
+        "dimensions": 256,
+        "queryPattern": "random",
+        "targetMetric": "memory",
+        "k": 1,
+        "constraints": {
+          "maxMemoryMb": 256
+        }
+      },
+      "evidence": {
+        "totalTrials": 1,
+        "successfulTrials": 0,
+        "counterexamples": 1
+      },
+      "status": "deprecated",
+      "confidence": 0.23174609997530754,
+      "discoveredAt": 30,
+      "lastValidatedAt": 40,
+      "version": 1
+    },
+    {
+      "id": "law-3",
+      "domain": "compression",
+      "description": "Entropy coding switch point at 0.61 redundancy",
+      "scope": {
+        "domain": "compression",
+        "datasetSize": 50000,
+        "dimensions": 256,
+        "queryPattern": "random",
+        "targetMetric": "memory",
+        "k": 1,
+        "constraints": {
+          "maxMemoryMb": 256
+        }
+      },
+      "evidence": {
+        "totalTrials": 3,
+        "successfulTrials": 3,
+        "counterexamples": 0
+      },
+      "status": "validated",
+      "confidence": 0.9975683018347985,
+      "discoveredAt": 60,
+      "lastValidatedAt": 100,
+      "version": 1
+    },
+    {
+      "id": "law-4",
+      "domain": "prompts",
+      "description": "Temperature 0.70 optimal for creative generation",
+      "scope": {
+        "domain": "prompts",
+        "datasetSize": 1000,
+        "dimensions": 512,
+        "queryPattern": "clustered",
+        "targetMetric": "recall",
+        "k": 5,
+        "constraints": {
+          "minRecall": 0.9
+        }
+      },
+      "evidence": {
+        "totalTrials": 1,
+        "successfulTrials": 1,
+        "counterexamples": 0
+      },
+      "status": "validated",
+      "confidence": 0.9671919471221938,
+      "discoveredAt": 90,
+      "lastValidatedAt": 100,
+      "version": 1
+    }
+  ]
+}

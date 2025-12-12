@@ -1,10 +1,11 @@
 /**
- * Benchmark Service for SOS Tournament
+ * Benchmark Service for LawForge
  * =====================================
  * Provides deterministic benchmark harness with:
  * - Fixed seeds for reproducibility
  * - Run-to-run variance measurement
  * - FAISS-like metrics (recall@k, latency, memory)
+ * - Law validation with confidence decay
  */
 
 import { 
@@ -15,7 +16,11 @@ import {
   LawTrialResult,
   LawCounterexample,
   TransferABTestResult,
-  SOSGenome
+  SOSGenome,
+  ConfidenceDecayEvent,
+  LawExport,
+  LawsFinalArtifact,
+  LawStressTestResult
 } from '../types';
 import { DEFAULT_BENCHMARK_CONFIG, DEFAULT_FAISS_FINGERPRINT } from '../constants';
 
@@ -35,6 +40,14 @@ const LAW_STATUS_THRESHOLDS = {
 const SEVERITY_THRESHOLDS = {
   CRITICAL_MULTIPLIER: 0.8,
   MAJOR_MULTIPLIER: 0.9
+};
+
+// Confidence decay constants
+const CONFIDENCE_DECAY = {
+  DRIFT_DECAY: 0.15,           // Decay when drift occurs
+  SCOPE_CHANGE_DECAY: 0.10,   // Decay when scope changes
+  CONTRADICTION_DECAY: 0.20,  // Decay when contradiction appears
+  TIME_DECAY_PER_100_GEN: 0.02 // Gradual decay over time without validation
 };
 
 // Seeded random number generator for reproducibility
@@ -440,4 +453,377 @@ export function getVarianceSummary(results: BenchmarkRunResult[]): {
   };
   
   return { meanVariance, runToRunVariance };
+}
+
+/**
+ * Apply confidence decay to a law based on various triggers
+ * Confidence must never be monotonic by default
+ */
+export function applyConfidenceDecay(
+  law: Law,
+  reason: 'drift' | 'scope_change' | 'contradiction' | 'time_decay',
+  currentGeneration: number
+): { updatedLaw: Law; decayEvent: ConfidenceDecayEvent } {
+  const previousConfidence = law.confidence;
+  let decayAmount = 0;
+  
+  switch (reason) {
+    case 'drift':
+      decayAmount = CONFIDENCE_DECAY.DRIFT_DECAY;
+      break;
+    case 'scope_change':
+      decayAmount = CONFIDENCE_DECAY.SCOPE_CHANGE_DECAY;
+      break;
+    case 'contradiction':
+      decayAmount = CONFIDENCE_DECAY.CONTRADICTION_DECAY;
+      break;
+    case 'time_decay':
+      // Decay based on generations since last validation
+      const gensSinceValidation = currentGeneration - (law.lastValidatedAt || law.discoveredAt);
+      decayAmount = Math.floor(gensSinceValidation / 100) * CONFIDENCE_DECAY.TIME_DECAY_PER_100_GEN;
+      break;
+  }
+  
+  const newConfidence = Math.max(0, previousConfidence - decayAmount);
+  
+  const decayEvent: ConfidenceDecayEvent = {
+    generation: currentGeneration,
+    reason,
+    decayAmount,
+    previousConfidence,
+    newConfidence
+  };
+  
+  const updatedLaw: Law = {
+    ...law,
+    confidence: newConfidence,
+    confidenceHistory: [...(law.confidenceHistory || []), decayEvent].slice(-20) // Keep last 20 events
+  };
+  
+  return { updatedLaw, decayEvent };
+}
+
+/**
+ * Calculate scope similarity between two workload fingerprints
+ * Returns a value between 0 and 1
+ */
+export function calculateScopeSimilarity(fp1: WorkloadFingerprint, fp2: WorkloadFingerprint): number {
+  let similarity = 0;
+  let totalWeight = 0;
+  
+  // Domain match (weight: 0.3)
+  const domainWeight = 0.3;
+  if (fp1.domain === fp2.domain) {
+    similarity += domainWeight;
+  }
+  totalWeight += domainWeight;
+  
+  // Dataset size similarity (weight: 0.15)
+  const sizeWeight = 0.15;
+  const sizeRatio = Math.min(fp1.datasetSize, fp2.datasetSize) / Math.max(fp1.datasetSize, fp2.datasetSize);
+  similarity += sizeWeight * sizeRatio;
+  totalWeight += sizeWeight;
+  
+  // Dimensions similarity (weight: 0.15)
+  const dimWeight = 0.15;
+  const dimRatio = Math.min(fp1.dimensions, fp2.dimensions) / Math.max(fp1.dimensions, fp2.dimensions);
+  similarity += dimWeight * dimRatio;
+  totalWeight += dimWeight;
+  
+  // Query pattern match (weight: 0.15)
+  const patternWeight = 0.15;
+  if (fp1.queryPattern === fp2.queryPattern) {
+    similarity += patternWeight;
+  }
+  totalWeight += patternWeight;
+  
+  // Target metric match (weight: 0.2)
+  const metricWeight = 0.2;
+  if (fp1.targetMetric === fp2.targetMetric) {
+    similarity += metricWeight;
+  }
+  totalWeight += metricWeight;
+  
+  // k similarity (weight: 0.05)
+  const kWeight = 0.05;
+  const kRatio = Math.min(fp1.k, fp2.k) / Math.max(fp1.k, fp2.k);
+  similarity += kWeight * kRatio;
+  totalWeight += kWeight;
+  
+  return similarity / totalWeight;
+}
+
+/**
+ * Check if transfer should be allowed based on law gating
+ */
+export function shouldAllowLawGatedTransfer(
+  sourceLaw: Law | undefined,
+  sourceFingerprint: WorkloadFingerprint,
+  targetFingerprint: WorkloadFingerprint,
+  minScopeSimilarity: number = 0.6,
+  minConfidence: number = 0.7
+): { allowed: boolean; reason: string; scopeSimilarity: number } {
+  if (!sourceLaw) {
+    return { allowed: false, reason: 'No source law found', scopeSimilarity: 0 };
+  }
+  
+  if (!sourceLaw.scopeSignature) {
+    return { allowed: false, reason: 'Source law has no scope signature', scopeSimilarity: 0 };
+  }
+  
+  const scopeSimilarity = calculateScopeSimilarity(sourceFingerprint, targetFingerprint);
+  
+  if (scopeSimilarity < minScopeSimilarity) {
+    return { 
+      allowed: false, 
+      reason: `Scope similarity ${(scopeSimilarity * 100).toFixed(1)}% below threshold ${(minScopeSimilarity * 100).toFixed(1)}%`,
+      scopeSimilarity 
+    };
+  }
+  
+  if (sourceLaw.confidence < minConfidence) {
+    return { 
+      allowed: false, 
+      reason: `Law confidence ${(sourceLaw.confidence * 100).toFixed(1)}% below threshold ${(minConfidence * 100).toFixed(1)}%`,
+      scopeSimilarity 
+    };
+  }
+  
+  // Check for metric overlap
+  if (sourceFingerprint.targetMetric !== targetFingerprint.targetMetric) {
+    return { 
+      allowed: false, 
+      reason: `Target metrics do not overlap (${sourceFingerprint.targetMetric} vs ${targetFingerprint.targetMetric})`,
+      scopeSimilarity 
+    };
+  }
+  
+  return { 
+    allowed: true, 
+    reason: 'Law-gated transfer criteria met',
+    scopeSimilarity 
+  };
+}
+
+/**
+ * Export a single law to the export format
+ */
+export function exportLaw(law: Law): LawExport {
+  return {
+    id: law.id,
+    domain: law.domain,
+    description: law.description,
+    scope: {
+      domain: law.scopeSignature?.domain || law.domain,
+      datasetSize: law.scopeSignature?.datasetSize || 0,
+      dimensions: law.scopeSignature?.dimensions || 0,
+      queryPattern: law.scopeSignature?.queryPattern || 'random',
+      targetMetric: law.scopeSignature?.targetMetric || 'recall',
+      k: law.scopeSignature?.k || 10,
+      constraints: law.scopeSignature?.constraintRegime
+    },
+    evidence: {
+      totalTrials: law.trialResults?.length || 0,
+      successfulTrials: law.trialResults?.filter(t => t.success).length || 0,
+      counterexamples: law.counterexamples?.length || 0,
+      confidenceHistory: law.confidenceHistory?.map(e => e.newConfidence).slice(-10) || [law.confidence]
+    },
+    status: law.status,
+    confidence: law.confidence,
+    discoveredAt: law.discoveredAt,
+    lastValidatedAt: law.lastValidatedAt || law.discoveredAt,
+    version: law.version
+  };
+}
+
+/**
+ * Generate the final laws artifact (laws.final.json structure)
+ */
+export function generateLawsFinalArtifact(laws: Law[], runId: string): LawsFinalArtifact {
+  const summary = {
+    validated: laws.filter(l => l.status === 'validated').length,
+    falsified: laws.filter(l => l.status === 'falsified').length,
+    deprecated: laws.filter(l => l.status === 'deprecated').length,
+    hypothesis: laws.filter(l => l.status === 'hypothesis').length
+  };
+  
+  return {
+    generated: new Date().toISOString(),
+    runId,
+    totalLaws: laws.length,
+    summary,
+    laws: laws.map(exportLaw)
+  };
+}
+
+/**
+ * Generate human-readable markdown for laws (laws.final.md)
+ */
+export function generateLawsMarkdown(artifact: LawsFinalArtifact): string {
+  const lines: string[] = [];
+  
+  lines.push(`# LawForge - Discovered Laws`);
+  lines.push(``);
+  lines.push(`**Generated:** ${artifact.generated}`);
+  lines.push(`**Run ID:** ${artifact.runId}`);
+  lines.push(`**Total Laws:** ${artifact.totalLaws}`);
+  lines.push(``);
+  lines.push(`## Summary`);
+  lines.push(``);
+  lines.push(`| Status | Count |`);
+  lines.push(`|--------|-------|`);
+  lines.push(`| Validated | ${artifact.summary.validated} |`);
+  lines.push(`| Falsified | ${artifact.summary.falsified} |`);
+  lines.push(`| Deprecated | ${artifact.summary.deprecated} |`);
+  lines.push(`| Hypothesis | ${artifact.summary.hypothesis} |`);
+  lines.push(``);
+  
+  // Group laws by status
+  const byStatus: Record<string, LawExport[]> = {
+    validated: [],
+    falsified: [],
+    deprecated: [],
+    hypothesis: []
+  };
+  
+  for (const law of artifact.laws) {
+    byStatus[law.status].push(law);
+  }
+  
+  // Validated laws (most important)
+  if (byStatus.validated.length > 0) {
+    lines.push(`## ✅ Validated Laws`);
+    lines.push(``);
+    for (const law of byStatus.validated.sort((a, b) => b.confidence - a.confidence)) {
+      lines.push(`### ${law.id}: ${law.description}`);
+      lines.push(``);
+      lines.push(`- **Domain:** ${law.domain}`);
+      lines.push(`- **Confidence:** ${(law.confidence * 100).toFixed(1)}%`);
+      lines.push(`- **Evidence:** ${law.evidence.successfulTrials}/${law.evidence.totalTrials} successful trials`);
+      lines.push(`- **Counterexamples:** ${law.evidence.counterexamples}`);
+      lines.push(`- **Scope:** ${law.scope.domain} @ ${law.scope.datasetSize}x${law.scope.dimensions}:${law.scope.queryPattern}:${law.scope.targetMetric}@${law.scope.k}`);
+      if (law.scope.constraints) {
+        const c = law.scope.constraints;
+        const constraints = [];
+        if (c.maxLatencyMs) constraints.push(`maxLatency=${c.maxLatencyMs}ms`);
+        if (c.minRecall) constraints.push(`minRecall=${c.minRecall}`);
+        if (c.maxMemoryMb) constraints.push(`maxMemory=${c.maxMemoryMb}MB`);
+        if (constraints.length > 0) {
+          lines.push(`- **Constraints:** ${constraints.join(', ')}`);
+        }
+      }
+      lines.push(`- **Discovered:** Gen ${law.discoveredAt}, Last Validated: Gen ${law.lastValidatedAt}`);
+      lines.push(``);
+    }
+  }
+  
+  // Falsified laws
+  if (byStatus.falsified.length > 0) {
+    lines.push(`## ❌ Falsified Laws`);
+    lines.push(``);
+    for (const law of byStatus.falsified) {
+      lines.push(`### ${law.id}: ${law.description}`);
+      lines.push(``);
+      lines.push(`- **Domain:** ${law.domain}`);
+      lines.push(`- **Final Confidence:** ${(law.confidence * 100).toFixed(1)}%`);
+      lines.push(`- **Counterexamples:** ${law.evidence.counterexamples}`);
+      lines.push(`- **Note:** This law was falsified due to accumulated counterexamples.`);
+      lines.push(``);
+    }
+  }
+  
+  // Deprecated laws
+  if (byStatus.deprecated.length > 0) {
+    lines.push(`## ⚠️ Deprecated Laws`);
+    lines.push(``);
+    for (const law of byStatus.deprecated) {
+      lines.push(`- **${law.id}:** ${law.description} (confidence: ${(law.confidence * 100).toFixed(1)}%)`);
+    }
+    lines.push(``);
+  }
+  
+  // Hypothesis laws
+  if (byStatus.hypothesis.length > 0) {
+    lines.push(`## 🔬 Hypothesis (Pending Validation)`);
+    lines.push(``);
+    for (const law of byStatus.hypothesis.sort((a, b) => b.confidence - a.confidence).slice(0, 10)) {
+      lines.push(`- **${law.id}:** ${law.description} (confidence: ${(law.confidence * 100).toFixed(1)}%)`);
+    }
+    if (byStatus.hypothesis.length > 10) {
+      lines.push(`- ... and ${byStatus.hypothesis.length - 10} more`);
+    }
+    lines.push(``);
+  }
+  
+  lines.push(`---`);
+  lines.push(`*Generated by LawForge*`);
+  
+  return lines.join('\n');
+}
+
+/**
+ * Run a stress test on a law by deliberately violating its boundaries
+ */
+export function runLawStressTest(
+  law: Law,
+  genome: SOSGenome,
+  violationType: 'boundary_push' | 'parameter_extreme' | 'scope_violation' = 'boundary_push',
+  violationMagnitude: number = 0.2,
+  testGenerations: number = 50
+): LawStressTestResult {
+  // Simulate stress test
+  const baselineFitness = genome.fitness;
+  let degradedFitness = baselineFitness;
+  
+  // Apply violation
+  switch (violationType) {
+    case 'boundary_push':
+      // Push parameters just beyond law boundary
+      degradedFitness = baselineFitness * (1 - violationMagnitude * 0.3);
+      break;
+    case 'parameter_extreme':
+      // Push parameters to extreme values
+      degradedFitness = baselineFitness * (1 - violationMagnitude * 0.5);
+      break;
+    case 'scope_violation':
+      // Operate outside defined scope
+      degradedFitness = baselineFitness * (1 - violationMagnitude * 0.4);
+      break;
+  }
+  
+  // Calculate degradation slope (fitness drop per generation)
+  const degradationSlope = (baselineFitness - degradedFitness) / 10; // Assume 10 gens to reach degraded state
+  
+  // Estimate recovery time (generations to return to 90% of baseline)
+  const recoveryTarget = baselineFitness * 0.9;
+  const recoveryRate = 0.02; // 2% recovery per generation
+  const recoveryTime = Math.ceil((baselineFitness - recoveryTarget) / recoveryRate);
+  
+  // Determine if law re-validates after rollback
+  // Laws with high confidence and few counterexamples are more likely to re-validate
+  const revalidateChance = law.confidence * (1 - (law.counterexamples?.length || 0) * 0.1);
+  const didRevalidate = revalidateChance > 0.6;
+  
+  // Calculate brittleness score (higher = more brittle)
+  const brittlenessScore = Math.min(1, (
+    degradationSlope * 10 +        // Faster degradation = more brittle
+    (1 - revalidateChance) * 0.3 + // Less likely to revalidate = more brittle
+    violationMagnitude * 0.2       // Larger violation needed = less brittle
+  ));
+  
+  // Determine constraint type
+  const constraintType = brittlenessScore > 0.6 ? 'hard' : 'soft';
+  
+  return {
+    lawId: law.id,
+    lawDescription: law.description,
+    testGeneration: genome.generation,
+    violationType,
+    violationMagnitude,
+    degradationSlope,
+    recoveryTime,
+    didRevalidate,
+    brittlenessScore,
+    constraintType
+  };
 }

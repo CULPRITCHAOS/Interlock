@@ -1,0 +1,353 @@
+[
+  {
+    "id": "law-0",
+    "domain": "faiss",
+    "description": "HNSW M > 32 yields diminishing recall returns",
+    "confidence": 0.9996354999999999,
+    "discoveredAt": 0,
+    "version": 1,
+    "status": "validated",
+    "scopeSignature": {
+      "domain": "faiss",
+      "datasetSize": 10000,
+      "dimensions": 128,
+      "queryPattern": "random",
+      "targetMetric": "recall",
+      "k": 10,
+      "constraintRegime": {
+        "maxLatencyMs": 50,
+        "minRecall": 0.8,
+        "maxMemoryMb": 512
+      }
+    },
+    "trialResults": [
+      {
+        "trialId": "t001",
+        "generation": 0,
+        "success": true,
+        "observedValue": 0.92,
+        "expectedRange": [
+          0.85,
+          0.95
+        ]
+      },
+      {
+        "trialId": "trial-20-xdqpf5",
+        "generation": 20,
+        "success": true,
+        "observedValue": 0.9758192510697148,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-40-0292hp",
+        "generation": 40,
+        "success": true,
+        "observedValue": 0.959311676146142,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-60-ci7028",
+        "generation": 60,
+        "success": true,
+        "observedValue": 0.8642757178117874,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-80-rdyh03",
+        "generation": 80,
+        "success": true,
+        "observedValue": 0.776465281879746,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-100-8dml5b",
+        "generation": 100,
+        "success": true,
+        "observedValue": 0.7321496367604237,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      }
+    ],
+    "counterexamples": [],
+    "lastValidatedAt": 100
+  },
+  {
+    "id": "law-1",
+    "domain": "postgres",
+    "description": "work_mem correlates linearly with hash_agg performance",
+    "confidence": 0.5815722666666666,
+    "discoveredAt": 0,
+    "version": 1,
+    "status": "hypothesis",
+    "scopeSignature": {
+      "domain": "postgres",
+      "datasetSize": 100000,
+      "dimensions": 1,
+      "queryPattern": "sequential",
+      "targetMetric": "latency",
+      "k": 1,
+      "constraintRegime": {
+        "maxLatencyMs": 100,
+        "maxMemoryMb": 1024
+      }
+    },
+    "trialResults": [
+      {
+        "trialId": "t002",
+        "generation": 0,
+        "success": true,
+        "observedValue": 0.88,
+        "expectedRange": [
+          0.8,
+          0.95
+        ]
+      },
+      {
+        "trialId": "trial-20-0vdk2b",
+        "generation": 20,
+        "success": true,
+        "observedValue": 0.8629515738053952,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-40-nd3s0m",
+        "generation": 40,
+        "success": false,
+        "observedValue": 0.7271593511231054,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-60-dl0g04",
+        "generation": 60,
+        "success": true,
+        "observedValue": 0.9776577712398291,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-80-y9c51z",
+        "generation": 80,
+        "success": true,
+        "observedValue": 0.7572147012023324,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-100-3lk66b",
+        "generation": 100,
+        "success": false,
+        "observedValue": 0.7048129111550808,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      }
+    ],
+    "counterexamples": [
+      {
+        "id": "cx-0",
+        "observedAt": 40,
+        "workloadFingerprint": {
+          "domain": "postgres",
+          "datasetSize": 100000,
+          "dimensions": 1,
+          "queryPattern": "sequential",
+          "targetMetric": "latency",
+          "k": 1,
+          "constraintRegime": {
+            "maxLatencyMs": 100,
+            "maxMemoryMb": 1024
+          }
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.7272",
+        "severity": "minor"
+      },
+      {
+        "id": "cx-2",
+        "observedAt": 100,
+        "workloadFingerprint": {
+          "domain": "postgres",
+          "datasetSize": 100000,
+          "dimensions": 1,
+          "queryPattern": "sequential",
+          "targetMetric": "latency",
+          "k": 1,
+          "constraintRegime": {
+            "maxLatencyMs": 100,
+            "maxMemoryMb": 1024
+          }
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.7048",
+        "severity": "minor"
+      }
+    ],
+    "lastValidatedAt": 100
+  },
+  {
+    "id": "law-2",
+    "domain": "compression",
+    "description": "Entropy coding switch point at 0.63 redundancy",
+    "confidence": 0.23174609997530754,
+    "discoveredAt": 30,
+    "version": 1,
+    "status": "deprecated",
+    "scopeSignature": {
+      "domain": "compression",
+      "datasetSize": 50000,
+      "dimensions": 256,
+      "queryPattern": "random",
+      "targetMetric": "memory",
+      "k": 1,
+      "constraintRegime": {
+        "maxMemoryMb": 256
+      }
+    },
+    "trialResults": [
+      {
+        "trialId": "trial-40-4wed8x",
+        "generation": 40,
+        "success": false,
+        "observedValue": 0.8091822952540508,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      }
+    ],
+    "counterexamples": [
+      {
+        "id": "cx-1",
+        "observedAt": 40,
+        "workloadFingerprint": {
+          "domain": "compression",
+          "datasetSize": 50000,
+          "dimensions": 256,
+          "queryPattern": "random",
+          "targetMetric": "memory",
+          "k": 1,
+          "constraintRegime": {
+            "maxMemoryMb": 256
+          }
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.8092",
+        "severity": "minor"
+      }
+    ],
+    "lastValidatedAt": 40
+  },
+  {
+    "id": "law-3",
+    "domain": "compression",
+    "description": "Entropy coding switch point at 0.61 redundancy",
+    "confidence": 0.9975683018347985,
+    "discoveredAt": 60,
+    "version": 1,
+    "status": "validated",
+    "scopeSignature": {
+      "domain": "compression",
+      "datasetSize": 50000,
+      "dimensions": 256,
+      "queryPattern": "random",
+      "targetMetric": "memory",
+      "k": 1,
+      "constraintRegime": {
+        "maxMemoryMb": 256
+      }
+    },
+    "trialResults": [
+      {
+        "trialId": "trial-60-int5lq",
+        "generation": 60,
+        "success": true,
+        "observedValue": 0.9325242758880017,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-80-nw46gf",
+        "generation": 80,
+        "success": true,
+        "observedValue": 0.9484327079022454,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-100-3nm114",
+        "generation": 100,
+        "success": true,
+        "observedValue": 0.722746527205569,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      }
+    ],
+    "counterexamples": [],
+    "lastValidatedAt": 100
+  },
+  {
+    "id": "law-4",
+    "domain": "prompts",
+    "description": "Temperature 0.70 optimal for creative generation",
+    "confidence": 0.9671919471221938,
+    "discoveredAt": 90,
+    "version": 1,
+    "status": "validated",
+    "scopeSignature": {
+      "domain": "prompts",
+      "datasetSize": 1000,
+      "dimensions": 512,
+      "queryPattern": "clustered",
+      "targetMetric": "recall",
+      "k": 5,
+      "constraintRegime": {
+        "minRecall": 0.9
+      }
+    },
+    "trialResults": [
+      {
+        "trialId": "trial-100-sfhtde",
+        "generation": 100,
+        "success": true,
+        "observedValue": 0.7765561282991227,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      }
+    ],
+    "counterexamples": [],
+    "lastValidatedAt": 100
+  }
+]
