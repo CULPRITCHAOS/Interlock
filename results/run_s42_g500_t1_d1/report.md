@@ -5,67 +5,67 @@
 **Generations:** 500
 **Transfer:** ON
 **Drift:** ON
-**Timestamp:** 2025-12-12T18:07:53.616Z
+**Timestamp:** 2025-12-12T18:13:39.172Z
 
 ## Convergence Metrics
 
 | Domain | Time-to-Threshold | Best Achieved | Gen@Best | Rolling Var | Stability |
 |--------|-------------------|---------------|----------|-------------|-----------|
-| faiss | 21 | 0.9909 | 91 | 0.000308 | 98.2% |
-| compression | 8 | 0.9723 | 402 | 0.002961 | 98.6% |
-| postgres | 6 | 0.9990 | 70 | 0.001273 | 97.6% |
-| prompts | 24 | 0.9580 | 332 | 0.003839 | 98.0% |
+| faiss | 12 | 0.9866 | 100 | 0.002281 | 99.0% |
+| compression | 7 | 0.9833 | 39 | 0.004348 | 97.0% |
+| postgres | 9 | 0.9922 | 98 | 0.009073 | 97.2% |
+| prompts | 19 | 0.9959 | 73 | 0.005579 | 97.4% |
 
 ## Law Quality Metrics
 
 - **Total Proposed:** 18
-- **Validated:** 5
-- **Falsified:** 8
-- **Deprecated:** 1
-- **Falsification Rate:** 44.4%
-- **Avg Time to Resolution:** 200.8 generations
+- **Validated:** 4
+- **Falsified:** 5
+- **Deprecated:** 4
+- **Falsification Rate:** 27.8%
+- **Avg Time to Resolution:** 185.6 generations
 
 ### Top 5 Laws (by Confidence)
 
-1. **[compression]** Sliding window 7580 optimal for streaming data
+1. **[prompts]** Chain-of-thought improves accuracy by 23% for reasoning tasks
    - Confidence: 100.0%
    - Status: validated
    - Trials: 10, Counterexamples: 0
-   - Scope: 50000x256:random:memory@1
-1. **[postgres]** B-tree vs Hash index crossover at cardinality 77107
-   - Confidence: 100.0%
-   - Status: validated
-   - Trials: 8, Counterexamples: 0
-   - Scope: 100000x1:sequential:latency@1
+   - Scope: 1000x512:clustered:recall@5
 1. **[faiss]** Index fragmentation inversely proportional to batch size
-   - Confidence: 100.0%
-   - Status: validated
-   - Trials: 6, Counterexamples: 0
-   - Scope: 10000x128:random:recall@10
-1. **[prompts]** Temperature 0.20 optimal for creative generation
-   - Confidence: 100.0%
+   - Confidence: 99.9%
    - Status: validated
    - Trials: 5, Counterexamples: 0
+   - Scope: 10000x128:random:recall@10
+1. **[prompts]** Context window utilization peaks at 66% occupancy
+   - Confidence: 99.5%
+   - Status: validated
+   - Trials: 3, Counterexamples: 0
    - Scope: 1000x512:clustered:recall@5
-1. **[compression]** Entropy coding switch point at 0.63 redundancy
-   - Confidence: 99.2%
+1. **[prompts]** Chain-of-thought improves accuracy by 20% for reasoning tasks
+   - Confidence: 98.0%
    - Status: validated
    - Trials: 2, Counterexamples: 0
-   - Scope: 50000x256:random:memory@1
+   - Scope: 1000x512:clustered:recall@5
+1. **[prompts]** Temperature 0.77 optimal for creative generation
+   - Confidence: 85.4%
+   - Status: hypothesis
+   - Trials: 10, Counterexamples: 2
+   - Scope: 1000x512:clustered:recall@5
 
 ## Transfer Effectiveness (A/B Testing)
 
 - **Total A/B Tests:** 24
 - **Net Positive:** 18 (75.0%)
-- **Avg Time-to-Threshold Improvement:** 30.6%
-- **Avg Best-Achieved Improvement:** 8.3%
-- **Avg Regret Reduction:** 72.1%
+- **Avg Time-to-Threshold Improvement:** 44.5%
+- **Avg Best-Achieved Improvement:** 8.2%
+- **Avg Regret Reduction:** 73.5%
 
 ## Drift Resilience
 
 - **Drift Events:** 3
-- **Avg Re-convergence Time:** 13.3 generations
-- **Laws Falsified After Drift:** 8
+- **Avg Re-convergence Time:** 17.3 generations
+- **Laws Falsified After Drift:** 5
 - **New Laws After Drift:** 13
 - **Instability Events:** 0
 

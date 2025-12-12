@@ -327,7 +327,8 @@ class SOSSimulator {
   }
 
   private _generateId(): string {
-    return Math.random().toString(36).substring(2, 8);
+    // Use seeded RNG for deterministic ID generation
+    return this.rng.next().toString(36).substring(2, 8);
   }
 
   private _simulateFAISSMetrics(genome: SOSGenome, fingerprint: WorkloadFingerprint): { recall: number; latencyMs: number; memoryMb: number } {
@@ -1186,5 +1187,9 @@ function main(): void {
 // Export for programmatic use
 export { SOSSimulator, executeRun, computeConvergence, computeLawQuality, computeTransferEffectiveness, computeDriftResilience };
 
-// Run if executed directly
-main();
+// Run if executed directly (ESM check)
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+                     process.argv[1]?.endsWith('sim-runner.ts');
+if (isMainModule) {
+  main();
+}

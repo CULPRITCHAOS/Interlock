@@ -5,68 +5,68 @@
 **Generations:** 500
 **Transfer:** ON
 **Drift:** ON
-**Timestamp:** 2025-12-12T18:07:54.390Z
+**Timestamp:** 2025-12-12T18:13:39.928Z
 
 ## Convergence Metrics
 
 | Domain | Time-to-Threshold | Best Achieved | Gen@Best | Rolling Var | Stability |
 |--------|-------------------|---------------|----------|-------------|-----------|
-| faiss | 22 | 0.9804 | 82 | 0.009710 | 96.8% |
-| compression | 11 | 0.9919 | 81 | 0.005899 | 99.2% |
-| postgres | 5 | 0.9945 | 59 | 0.007494 | 97.8% |
-| prompts | 23 | 0.9918 | 95 | 0.005020 | 97.8% |
+| faiss | 20 | 0.9995 | 68 | 0.003106 | 99.2% |
+| compression | 9 | 0.9980 | 85 | 0.004713 | 98.4% |
+| postgres | 5 | 0.9969 | 95 | 0.007183 | 98.2% |
+| prompts | 16 | 0.9656 | 448 | 0.003499 | 98.6% |
 
 ## Law Quality Metrics
 
 - **Total Proposed:** 18
-- **Validated:** 4
-- **Falsified:** 6
+- **Validated:** 2
+- **Falsified:** 5
 - **Deprecated:** 4
-- **Falsification Rate:** 33.3%
-- **Avg Time to Resolution:** 200.0 generations
+- **Falsification Rate:** 27.8%
+- **Avg Time to Resolution:** 235.7 generations
 
 ### Top 5 Laws (by Confidence)
 
-1. **[compression]** Dictionary size 95KB maximizes compression ratio
+1. **[faiss]** Index fragmentation inversely proportional to batch size
    - Confidence: 100.0%
    - Status: validated
-   - Trials: 9, Counterexamples: 0
-   - Scope: 50000x256:random:memory@1
-1. **[compression]** Dictionary size 119KB maximizes compression ratio
-   - Confidence: 100.0%
-   - Status: validated
-   - Trials: 5, Counterexamples: 0
-   - Scope: 50000x256:random:memory@1
-1. **[faiss]** Vector quantization optimal at dim > 298 for this workload
-   - Confidence: 99.9%
+   - Trials: 10, Counterexamples: 0
+   - Scope: 10000x128:random:recall@10
+1. **[postgres]** Autovacuum frequency optimal at 933 for write-heavy loads
+   - Confidence: 99.5%
    - Status: validated
    - Trials: 3, Counterexamples: 0
-   - Scope: 10000x128:random:recall@10
-1. **[faiss]** Vector quantization optimal at dim > 209 for this workload
-   - Confidence: 98.6%
-   - Status: validated
-   - Trials: 2, Counterexamples: 0
-   - Scope: 10000x128:random:recall@10
-1. **[prompts]** Chain-of-thought improves accuracy by 23% for reasoning tasks
-   - Confidence: 85.4%
+   - Scope: 100000x1:sequential:latency@1
+1. **[prompts]** Temperature 0.38 optimal for creative generation
+   - Confidence: 88.0%
    - Status: hypothesis
-   - Trials: 10, Counterexamples: 2
+   - Trials: 10, Counterexamples: 1
    - Scope: 1000x512:clustered:recall@5
+1. **[prompts]** Context window utilization peaks at 66% occupancy
+   - Confidence: 82.7%
+   - Status: hypothesis
+   - Trials: 10, Counterexamples: 1
+   - Scope: 1000x512:clustered:recall@5
+1. **[faiss]** HNSW M parameter correlates with recall at threshold 0.96
+   - Confidence: 79.6%
+   - Status: hypothesis
+   - Trials: 8, Counterexamples: 1
+   - Scope: 10000x128:random:recall@10
 
 ## Transfer Effectiveness (A/B Testing)
 
-- **Total A/B Tests:** 19
-- **Net Positive:** 8 (42.1%)
-- **Avg Time-to-Threshold Improvement:** 26.3%
-- **Avg Best-Achieved Improvement:** 5.1%
-- **Avg Regret Reduction:** 75.6%
-- **Poisoning Domains:** prompts, faiss
+- **Total A/B Tests:** 20
+- **Net Positive:** 11 (55.0%)
+- **Avg Time-to-Threshold Improvement:** 20.0%
+- **Avg Best-Achieved Improvement:** 3.8%
+- **Avg Regret Reduction:** 76.8%
+- **Poisoning Domains:** faiss
 
 ## Drift Resilience
 
 - **Drift Events:** 3
-- **Avg Re-convergence Time:** 23.7 generations
-- **Laws Falsified After Drift:** 6
+- **Avg Re-convergence Time:** 8.7 generations
+- **Laws Falsified After Drift:** 5
 - **New Laws After Drift:** 13
 - **Instability Events:** 0
 

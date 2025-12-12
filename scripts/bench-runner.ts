@@ -490,4 +490,9 @@ function main(): void {
   console.log('='.repeat(60) + '\n');
 }
 
-main();
+// Run if executed directly (ESM check)
+const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
+                     process.argv[1]?.endsWith('bench-runner.ts');
+if (isMainModule) {
+  main();
+}

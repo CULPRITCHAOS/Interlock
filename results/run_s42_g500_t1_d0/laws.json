@@ -3,334 +3,8 @@
     "id": "law-0",
     "domain": "faiss",
     "description": "HNSW M > 32 yields diminishing recall returns",
-    "confidence": 0.5525826758062896,
+    "confidence": 0.7584585293093596,
     "discoveredAt": 0,
-    "version": 1,
-    "status": "falsified",
-    "scopeSignature": {
-      "datasetSize": 10000,
-      "dimensions": 128,
-      "queryPattern": "random",
-      "targetMetric": "recall",
-      "k": 10
-    },
-    "trialResults": [
-      {
-        "trialId": "trial-160-z4rdlf",
-        "generation": 160,
-        "success": true,
-        "observedValue": 0.8110800028364546,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-180-09sh4l",
-        "generation": 180,
-        "success": true,
-        "observedValue": 0.7720868349410998,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-200-37pci3",
-        "generation": 200,
-        "success": false,
-        "observedValue": 0.8895418942857263,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-220-rpy9hy",
-        "generation": 220,
-        "success": true,
-        "observedValue": 0.8670501948180842,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-240-na84ut",
-        "generation": 240,
-        "success": true,
-        "observedValue": 0.9538505913009171,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-260-p9a41z",
-        "generation": 260,
-        "success": true,
-        "observedValue": 0.8211544871894431,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-280-phg53p",
-        "generation": 280,
-        "success": true,
-        "observedValue": 0.8776015044085688,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-300-d6shbl",
-        "generation": 300,
-        "success": true,
-        "observedValue": 0.9366995097308882,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-320-2xcuaa",
-        "generation": 320,
-        "success": false,
-        "observedValue": 0.7659896452287164,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-340-olcwd9",
-        "generation": 340,
-        "success": false,
-        "observedValue": 0.7768421858906942,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      }
-    ],
-    "counterexamples": [
-      {
-        "id": "cx-3",
-        "observedAt": 200,
-        "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.8895",
-        "severity": "minor"
-      },
-      {
-        "id": "cx-11",
-        "observedAt": 320,
-        "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7660",
-        "severity": "minor"
-      },
-      {
-        "id": "cx-13",
-        "observedAt": 340,
-        "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7768",
-        "severity": "minor"
-      }
-    ],
-    "lastValidatedAt": 340
-  },
-  {
-    "id": "law-1",
-    "domain": "postgres",
-    "description": "work_mem correlates linearly with hash_agg performance",
-    "confidence": 0.6344802830007313,
-    "discoveredAt": 0,
-    "version": 1,
-    "status": "falsified",
-    "scopeSignature": {
-      "datasetSize": 100000,
-      "dimensions": 1,
-      "queryPattern": "sequential",
-      "targetMetric": "latency",
-      "k": 1
-    },
-    "trialResults": [
-      {
-        "trialId": "trial-180-j7jdao",
-        "generation": 180,
-        "success": true,
-        "observedValue": 0.8117833495660607,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-200-v24bnq",
-        "generation": 200,
-        "success": true,
-        "observedValue": 0.7910484075970241,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-220-fek3mb",
-        "generation": 220,
-        "success": true,
-        "observedValue": 0.7897390604437045,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-240-vsb7oc",
-        "generation": 240,
-        "success": false,
-        "observedValue": 0.9491725416151678,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-260-j2ljks",
-        "generation": 260,
-        "success": true,
-        "observedValue": 0.861125561669993,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-280-pvu9n0",
-        "generation": 280,
-        "success": true,
-        "observedValue": 0.8537056685209766,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-300-9k9tfp",
-        "generation": 300,
-        "success": true,
-        "observedValue": 0.9325069666991508,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-320-vixnz3",
-        "generation": 320,
-        "success": true,
-        "observedValue": 0.819829797800551,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-340-0vfd0s",
-        "generation": 340,
-        "success": true,
-        "observedValue": 0.8157700777592929,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-360-vqi3by",
-        "generation": 360,
-        "success": false,
-        "observedValue": 0.8205659479464245,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      }
-    ],
-    "counterexamples": [
-      {
-        "id": "cx-0",
-        "observedAt": 120,
-        "workloadFingerprint": {
-          "datasetSize": 100000,
-          "dimensions": 1,
-          "queryPattern": "sequential",
-          "targetMetric": "latency",
-          "k": 1
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7337",
-        "severity": "minor"
-      },
-      {
-        "id": "cx-6",
-        "observedAt": 240,
-        "workloadFingerprint": {
-          "datasetSize": 100000,
-          "dimensions": 1,
-          "queryPattern": "sequential",
-          "targetMetric": "latency",
-          "k": 1
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.9492",
-        "severity": "minor"
-      },
-      {
-        "id": "cx-16",
-        "observedAt": 360,
-        "workloadFingerprint": {
-          "datasetSize": 100000,
-          "dimensions": 1,
-          "queryPattern": "sequential",
-          "targetMetric": "latency",
-          "k": 1
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.8206",
-        "severity": "minor"
-      }
-    ],
-    "lastValidatedAt": 360
-  },
-  {
-    "id": "law-2",
-    "domain": "faiss",
-    "description": "HNSW M parameter correlates with recall at threshold 0.95",
-    "confidence": 0.9285495586058294,
-    "discoveredAt": 30,
     "version": 1,
     "status": "hypothesis",
     "scopeSignature": {
@@ -342,100 +16,100 @@
     },
     "trialResults": [
       {
-        "trialId": "trial-320-q9pgco",
+        "trialId": "trial-320-mdrrf3",
         "generation": 320,
         "success": true,
-        "observedValue": 0.9927912236623424,
+        "observedValue": 0.9039973736759263,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-340-3w4vza",
+        "trialId": "trial-340-rvl30q",
         "generation": 340,
         "success": true,
-        "observedValue": 0.9504927874777898,
+        "observedValue": 0.7472101688604849,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-360-zjbxys",
+        "trialId": "trial-360-qdxrr2",
         "generation": 360,
         "success": true,
-        "observedValue": 0.7082970738449585,
+        "observedValue": 0.8730895996899761,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-380-pfo1ll",
+        "trialId": "trial-380-mvbfv8",
         "generation": 380,
         "success": true,
-        "observedValue": 0.8441171646789262,
+        "observedValue": 0.844034838743524,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-400-68dn60",
+        "trialId": "trial-400-qt58dp",
         "generation": 400,
         "success": true,
-        "observedValue": 0.7524447679763868,
+        "observedValue": 0.9040206910129732,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-420-jeuz3z",
+        "trialId": "trial-420-xjcc7h",
         "generation": 420,
         "success": true,
-        "observedValue": 0.9826141716365768,
+        "observedValue": 0.9699881912535001,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-440-ke1goa",
+        "trialId": "trial-440-m0vmkn",
         "generation": 440,
-        "success": true,
-        "observedValue": 0.9086292267817209,
+        "success": false,
+        "observedValue": 0.7817706901960869,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-460-e3s3p1",
+        "trialId": "trial-460-8qhp3n",
         "generation": 460,
         "success": true,
-        "observedValue": 0.70820148885632,
+        "observedValue": 0.7870647102999802,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-480-011xcs",
+        "trialId": "trial-480-sr9pc0",
         "generation": 480,
         "success": true,
-        "observedValue": 0.7127765059530625,
+        "observedValue": 0.7216346263986242,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-500-4libve",
+        "trialId": "trial-500-70ifpc",
         "generation": 500,
         "success": true,
-        "observedValue": 0.9653084607167675,
+        "observedValue": 0.9863307835004901,
         "expectedRange": [
           0.7,
           0.99
@@ -444,8 +118,8 @@
     ],
     "counterexamples": [
       {
-        "id": "cx-2",
-        "observedAt": 180,
+        "id": "cx-4",
+        "observedAt": 200,
         "workloadFingerprint": {
           "datasetSize": 10000,
           "dimensions": 128,
@@ -454,18 +128,181 @@
           "k": 10
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.8357",
+        "actualOutcome": "Observed: 0.7834",
+        "severity": "minor"
+      },
+      {
+        "id": "cx-18",
+        "observedAt": 440,
+        "workloadFingerprint": {
+          "datasetSize": 10000,
+          "dimensions": 128,
+          "queryPattern": "random",
+          "targetMetric": "recall",
+          "k": 10
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.7818",
         "severity": "minor"
       }
     ],
     "lastValidatedAt": 500
   },
   {
-    "id": "law-3",
+    "id": "law-1",
+    "domain": "postgres",
+    "description": "work_mem correlates linearly with hash_agg performance",
+    "confidence": 0.7585314237653477,
+    "discoveredAt": 0,
+    "version": 1,
+    "status": "hypothesis",
+    "scopeSignature": {
+      "datasetSize": 100000,
+      "dimensions": 1,
+      "queryPattern": "sequential",
+      "targetMetric": "latency",
+      "k": 1
+    },
+    "trialResults": [
+      {
+        "trialId": "trial-320-d5blgv",
+        "generation": 320,
+        "success": true,
+        "observedValue": 0.7958175182788714,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-340-qc5oy7",
+        "generation": 340,
+        "success": true,
+        "observedValue": 0.8105737805881414,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-360-hgoys2",
+        "generation": 360,
+        "success": true,
+        "observedValue": 0.9877897353320334,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-380-f5s0do",
+        "generation": 380,
+        "success": true,
+        "observedValue": 0.8797813267352903,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-400-gezwoe",
+        "generation": 400,
+        "success": true,
+        "observedValue": 0.9378797532235643,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-420-8f6o83",
+        "generation": 420,
+        "success": true,
+        "observedValue": 0.723566138755328,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-440-j72z6b",
+        "generation": 440,
+        "success": false,
+        "observedValue": 0.903414520716022,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-460-1va155",
+        "generation": 460,
+        "success": true,
+        "observedValue": 0.8793258429408659,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-480-35uuxf",
+        "generation": 480,
+        "success": true,
+        "observedValue": 0.737943574803855,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-500-955ty1",
+        "generation": 500,
+        "success": true,
+        "observedValue": 0.7996747494208043,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      }
+    ],
+    "counterexamples": [
+      {
+        "id": "cx-0",
+        "observedAt": 40,
+        "workloadFingerprint": {
+          "datasetSize": 100000,
+          "dimensions": 1,
+          "queryPattern": "sequential",
+          "targetMetric": "latency",
+          "k": 1
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.7883",
+        "severity": "minor"
+      },
+      {
+        "id": "cx-19",
+        "observedAt": 440,
+        "workloadFingerprint": {
+          "datasetSize": 100000,
+          "dimensions": 1,
+          "queryPattern": "sequential",
+          "targetMetric": "latency",
+          "k": 1
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.9034",
+        "severity": "minor"
+      }
+    ],
+    "lastValidatedAt": 500
+  },
+  {
+    "id": "law-2",
     "domain": "prompts",
-    "description": "Context window utilization peaks at 76% occupancy",
-    "confidence": 0.537305319786746,
-    "discoveredAt": 60,
+    "description": "Temperature 0.77 optimal for creative generation",
+    "confidence": 0.608528016018543,
+    "discoveredAt": 30,
     "version": 1,
     "status": "falsified",
     "scopeSignature": {
@@ -477,100 +314,100 @@
     },
     "trialResults": [
       {
-        "trialId": "trial-200-qvnme2",
+        "trialId": "trial-160-kqalha",
+        "generation": 160,
+        "success": true,
+        "observedValue": 0.9899684311309682,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-180-2crc3f",
+        "generation": 180,
+        "success": true,
+        "observedValue": 0.8635410160587825,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-200-e2bubd",
         "generation": 200,
         "success": true,
-        "observedValue": 0.7811046004673021,
+        "observedValue": 0.9876556517033166,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-220-71sg7k",
+        "trialId": "trial-220-zn9msf",
         "generation": 220,
         "success": true,
-        "observedValue": 0.9040209055896945,
+        "observedValue": 0.9139730096859732,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-240-b6rxkq",
+        "trialId": "trial-240-rgi0x4",
         "generation": 240,
         "success": true,
-        "observedValue": 0.8377565384552611,
+        "observedValue": 0.8293693066245733,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-260-6om990",
+        "trialId": "trial-260-rds4sm",
         "generation": 260,
-        "success": false,
-        "observedValue": 0.876297244511683,
+        "success": true,
+        "observedValue": 0.7138375878398481,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-280-hhg2tp",
+        "trialId": "trial-280-k6bgoi",
         "generation": 280,
         "success": false,
-        "observedValue": 0.9675640900933947,
+        "observedValue": 0.8439303488209519,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-300-uedhu8",
+        "trialId": "trial-300-sies4t",
         "generation": 300,
         "success": true,
-        "observedValue": 0.9262413353781408,
+        "observedValue": 0.8467522741047443,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-320-zzl1ph",
+        "trialId": "trial-320-x8uxhe",
         "generation": 320,
         "success": true,
-        "observedValue": 0.9849909306899602,
+        "observedValue": 0.9601855756063877,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-340-tx460a",
+        "trialId": "trial-340-5ryp6q",
         "generation": 340,
-        "success": true,
-        "observedValue": 0.8794827700497037,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-360-totmhm",
-        "generation": 360,
-        "success": true,
-        "observedValue": 0.7564812779689586,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-380-fujlwx",
-        "generation": 380,
         "success": false,
-        "observedValue": 0.8418661207621293,
+        "observedValue": 0.8212424010602954,
         "expectedRange": [
           0.7,
           0.99
@@ -579,8 +416,8 @@
     ],
     "counterexamples": [
       {
-        "id": "cx-7",
-        "observedAt": 260,
+        "id": "cx-2",
+        "observedAt": 140,
         "workloadFingerprint": {
           "datasetSize": 1000,
           "dimensions": 512,
@@ -589,11 +426,11 @@
           "k": 5
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.8763",
+        "actualOutcome": "Observed: 0.8610",
         "severity": "minor"
       },
       {
-        "id": "cx-8",
+        "id": "cx-11",
         "observedAt": 280,
         "workloadFingerprint": {
           "datasetSize": 1000,
@@ -603,12 +440,12 @@
           "k": 5
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.9676",
+        "actualOutcome": "Observed: 0.8439",
         "severity": "minor"
       },
       {
-        "id": "cx-19",
-        "observedAt": 380,
+        "id": "cx-15",
+        "observedAt": 340,
         "workloadFingerprint": {
           "datasetSize": 1000,
           "dimensions": 512,
@@ -617,183 +454,20 @@
           "k": 5
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.8419",
+        "actualOutcome": "Observed: 0.8212",
         "severity": "minor"
       }
     ],
-    "lastValidatedAt": 380
+    "lastValidatedAt": 340
   },
   {
-    "id": "law-4",
-    "domain": "faiss",
-    "description": "HNSW M parameter correlates with recall at threshold 0.92",
-    "confidence": 0.707068049039797,
-    "discoveredAt": 90,
-    "version": 1,
-    "status": "falsified",
-    "scopeSignature": {
-      "datasetSize": 10000,
-      "dimensions": 128,
-      "queryPattern": "random",
-      "targetMetric": "recall",
-      "k": 10
-    },
-    "trialResults": [
-      {
-        "trialId": "trial-240-ymwnhc",
-        "generation": 240,
-        "success": true,
-        "observedValue": 0.81267223363401,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-260-393mm3",
-        "generation": 260,
-        "success": true,
-        "observedValue": 0.9232179761972361,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-280-8f1g0a",
-        "generation": 280,
-        "success": true,
-        "observedValue": 0.7716821432447443,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-300-cxgo57",
-        "generation": 300,
-        "success": true,
-        "observedValue": 0.9850599171058554,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-320-p8ny7p",
-        "generation": 320,
-        "success": true,
-        "observedValue": 0.7472101688604849,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-340-qjq7az",
-        "generation": 340,
-        "success": true,
-        "observedValue": 0.7995051712261071,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-360-hc5ymk",
-        "generation": 360,
-        "success": true,
-        "observedValue": 0.7631595850284953,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-380-s2xfi7",
-        "generation": 380,
-        "success": true,
-        "observedValue": 0.9390779138724682,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-400-sprgob",
-        "generation": 400,
-        "success": true,
-        "observedValue": 0.8555186808833474,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-420-m8uzao",
-        "generation": 420,
-        "success": false,
-        "observedValue": 0.9447390993334068,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      }
-    ],
-    "counterexamples": [
-      {
-        "id": "cx-1",
-        "observedAt": 120,
-        "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.9804",
-        "severity": "minor"
-      },
-      {
-        "id": "cx-4",
-        "observedAt": 220,
-        "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.8300",
-        "severity": "minor"
-      },
-      {
-        "id": "cx-21",
-        "observedAt": 420,
-        "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.9447",
-        "severity": "minor"
-      }
-    ],
-    "lastValidatedAt": 420
-  },
-  {
-    "id": "law-5",
+    "id": "law-3",
     "domain": "compression",
-    "description": "Entropy coding switch point at 0.50 redundancy",
-    "confidence": 0.9999999999966347,
-    "discoveredAt": 120,
+    "description": "Dictionary size 97KB maximizes compression ratio",
+    "confidence": 0.18210713470313095,
+    "discoveredAt": 60,
     "version": 1,
-    "status": "validated",
+    "status": "deprecated",
     "scopeSignature": {
       "datasetSize": 50000,
       "dimensions": 256,
@@ -803,220 +477,145 @@
     },
     "trialResults": [
       {
-        "trialId": "trial-320-1az44b",
-        "generation": 320,
-        "success": true,
-        "observedValue": 0.777675306833198,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-340-xg4975",
-        "generation": 340,
-        "success": true,
-        "observedValue": 0.9687294842064051,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-360-gcg3is",
-        "generation": 360,
-        "success": true,
-        "observedValue": 0.9140217186017063,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-380-7v4zkl",
-        "generation": 380,
-        "success": true,
-        "observedValue": 0.8656317354019879,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-400-4vsy4o",
-        "generation": 400,
-        "success": true,
-        "observedValue": 0.946821451302069,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-420-lcw03t",
-        "generation": 420,
-        "success": true,
-        "observedValue": 0.7304353118084536,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-440-z1mm6m",
-        "generation": 440,
-        "success": true,
-        "observedValue": 0.8641677857209777,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-460-mha0ic",
-        "generation": 460,
-        "success": true,
-        "observedValue": 0.9683366299925076,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-480-umho9p",
-        "generation": 480,
-        "success": true,
-        "observedValue": 0.7353523731396311,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-500-yo9fiv",
-        "generation": 500,
-        "success": true,
-        "observedValue": 0.7757067084664975,
+        "trialId": "trial-60-kmmom8",
+        "generation": 60,
+        "success": false,
+        "observedValue": 0.7076505273616176,
         "expectedRange": [
           0.7,
           0.99
         ]
       }
     ],
-    "counterexamples": [],
-    "lastValidatedAt": 500
+    "counterexamples": [
+      {
+        "id": "cx-1",
+        "observedAt": 60,
+        "workloadFingerprint": {
+          "datasetSize": 50000,
+          "dimensions": 256,
+          "queryPattern": "random",
+          "targetMetric": "memory",
+          "k": 1
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.7077",
+        "severity": "minor"
+      }
+    ],
+    "lastValidatedAt": 60
   },
   {
-    "id": "law-6",
-    "domain": "postgres",
-    "description": "Autovacuum frequency optimal at 132 for write-heavy loads",
-    "confidence": 0.7481538860305446,
-    "discoveredAt": 150,
+    "id": "law-4",
+    "domain": "compression",
+    "description": "Dictionary size 21KB maximizes compression ratio",
+    "confidence": 0.5380216712126297,
+    "discoveredAt": 90,
     "version": 1,
-    "status": "hypothesis",
+    "status": "falsified",
     "scopeSignature": {
-      "datasetSize": 100000,
-      "dimensions": 1,
-      "queryPattern": "sequential",
-      "targetMetric": "latency",
+      "datasetSize": 50000,
+      "dimensions": 256,
+      "queryPattern": "random",
+      "targetMetric": "memory",
       "k": 1
     },
     "trialResults": [
       {
-        "trialId": "trial-320-fenfpu",
-        "generation": 320,
+        "trialId": "trial-140-6e5n0y",
+        "generation": 140,
         "success": true,
-        "observedValue": 0.9194810510703739,
+        "observedValue": 0.9275477768050263,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-340-bv4wk7",
-        "generation": 340,
+        "trialId": "trial-160-6vzjhn",
+        "generation": 160,
         "success": true,
-        "observedValue": 0.7031799197211768,
+        "observedValue": 0.7739739299164963,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-360-qre7k5",
-        "generation": 360,
+        "trialId": "trial-180-onb67g",
+        "generation": 180,
+        "success": true,
+        "observedValue": 0.9791128338682991,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-200-0didy6",
+        "generation": 200,
+        "success": true,
+        "observedValue": 0.8568501115575666,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-220-g2xnn9",
+        "generation": 220,
         "success": false,
-        "observedValue": 0.8036643475776837,
+        "observedValue": 0.8837540716788517,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-380-ogfctf",
-        "generation": 380,
+        "trialId": "trial-240-xzb471",
+        "generation": 240,
         "success": true,
-        "observedValue": 0.9741443277681918,
+        "observedValue": 0.7635280132589526,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-400-zh25xg",
-        "generation": 400,
-        "success": true,
-        "observedValue": 0.7958601475208346,
+        "trialId": "trial-260-t5c31l",
+        "generation": 260,
+        "success": false,
+        "observedValue": 0.8309642632170413,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-420-yi524a",
-        "generation": 420,
+        "trialId": "trial-280-01r6ey",
+        "generation": 280,
         "success": true,
-        "observedValue": 0.7452887058468948,
+        "observedValue": 0.7552570462484178,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-440-18mxq1",
-        "generation": 440,
+        "trialId": "trial-300-zcxha1",
+        "generation": 300,
         "success": true,
-        "observedValue": 0.8978649140325676,
+        "observedValue": 0.786834871809387,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-460-bg45qf",
-        "generation": 460,
-        "success": true,
-        "observedValue": 0.8068582147857445,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-480-mdbs0w",
-        "generation": 480,
-        "success": true,
-        "observedValue": 0.7258684754492102,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-500-yd98cy",
-        "generation": 500,
-        "success": true,
-        "observedValue": 0.9246312500092346,
+        "trialId": "trial-320-qm392g",
+        "generation": 320,
+        "success": false,
+        "observedValue": 0.9416633219652172,
         "expectedRange": [
           0.7,
           0.99
@@ -1025,147 +624,151 @@
     ],
     "counterexamples": [
       {
-        "id": "cx-9",
-        "observedAt": 280,
+        "id": "cx-7",
+        "observedAt": 220,
         "workloadFingerprint": {
-          "datasetSize": 100000,
-          "dimensions": 1,
-          "queryPattern": "sequential",
-          "targetMetric": "latency",
+          "datasetSize": 50000,
+          "dimensions": 256,
+          "queryPattern": "random",
+          "targetMetric": "memory",
           "k": 1
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7064",
+        "actualOutcome": "Observed: 0.8838",
         "severity": "minor"
       },
       {
-        "id": "cx-17",
-        "observedAt": 360,
+        "id": "cx-9",
+        "observedAt": 260,
         "workloadFingerprint": {
-          "datasetSize": 100000,
-          "dimensions": 1,
-          "queryPattern": "sequential",
-          "targetMetric": "latency",
+          "datasetSize": 50000,
+          "dimensions": 256,
+          "queryPattern": "random",
+          "targetMetric": "memory",
           "k": 1
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.8037",
+        "actualOutcome": "Observed: 0.8310",
+        "severity": "minor"
+      },
+      {
+        "id": "cx-13",
+        "observedAt": 320,
+        "workloadFingerprint": {
+          "datasetSize": 50000,
+          "dimensions": 256,
+          "queryPattern": "random",
+          "targetMetric": "memory",
+          "k": 1
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.9417",
         "severity": "minor"
       }
     ],
-    "lastValidatedAt": 500
+    "lastValidatedAt": 320
   },
   {
-    "id": "law-7",
-    "domain": "faiss",
-    "description": "HNSW M parameter correlates with recall at threshold 0.86",
-    "confidence": 0.5375599525636493,
-    "discoveredAt": 180,
+    "id": "law-5",
+    "domain": "compression",
+    "description": "Dictionary size 50KB maximizes compression ratio",
+    "confidence": 0.514625722341396,
+    "discoveredAt": 120,
     "version": 1,
     "status": "falsified",
     "scopeSignature": {
-      "datasetSize": 10000,
-      "dimensions": 128,
+      "datasetSize": 50000,
+      "dimensions": 256,
       "queryPattern": "random",
-      "targetMetric": "recall",
-      "k": 10
+      "targetMetric": "memory",
+      "k": 1
     },
     "trialResults": [
       {
-        "trialId": "trial-300-md573f",
-        "generation": 300,
+        "trialId": "trial-120-vfoltb",
+        "generation": 120,
         "success": true,
-        "observedValue": 0.8353503108654871,
+        "observedValue": 0.9782787562712462,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-320-tkrv5i",
-        "generation": 320,
+        "trialId": "trial-140-4hm71f",
+        "generation": 140,
+        "success": true,
+        "observedValue": 0.8607806385312139,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-160-0wv6fv",
+        "generation": 160,
+        "success": true,
+        "observedValue": 0.908689737417125,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-180-z98227",
+        "generation": 180,
+        "success": true,
+        "observedValue": 0.8076410532498923,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-200-h97oy2",
+        "generation": 200,
         "success": false,
-        "observedValue": 0.8212424010602954,
+        "observedValue": 0.8205598995650931,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-340-4gnnrm",
-        "generation": 340,
+        "trialId": "trial-220-q3iqmh",
+        "generation": 220,
         "success": true,
-        "observedValue": 0.9148710132645773,
+        "observedValue": 0.7369837016039451,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-360-nssd2h",
-        "generation": 360,
+        "trialId": "trial-240-77t5yz",
+        "generation": 240,
         "success": true,
-        "observedValue": 0.9533739091145683,
+        "observedValue": 0.9905684591692725,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-380-piw308",
-        "generation": 380,
-        "success": true,
-        "observedValue": 0.9309059740188094,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-400-ki41s5",
-        "generation": 400,
+        "trialId": "trial-260-hbyggf",
+        "generation": 260,
         "success": false,
-        "observedValue": 0.746485766790102,
+        "observedValue": 0.9457324822646251,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-420-tbguy4",
-        "generation": 420,
-        "success": true,
-        "observedValue": 0.8741638780451211,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-440-i7gesb",
-        "generation": 440,
-        "success": true,
-        "observedValue": 0.7616493225384733,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-460-w57v67",
-        "generation": 460,
-        "success": true,
-        "observedValue": 0.9553132177588126,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-480-7hlfyr",
-        "generation": 480,
+        "trialId": "trial-280-rlmztw",
+        "generation": 280,
         "success": false,
-        "observedValue": 0.8884393633289446,
+        "observedValue": 0.9199797541927451,
         "expectedRange": [
           0.7,
           0.99
@@ -1174,56 +777,56 @@
     ],
     "counterexamples": [
       {
+        "id": "cx-5",
+        "observedAt": 200,
+        "workloadFingerprint": {
+          "datasetSize": 50000,
+          "dimensions": 256,
+          "queryPattern": "random",
+          "targetMetric": "memory",
+          "k": 1
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.8206",
+        "severity": "minor"
+      },
+      {
+        "id": "cx-10",
+        "observedAt": 260,
+        "workloadFingerprint": {
+          "datasetSize": 50000,
+          "dimensions": 256,
+          "queryPattern": "random",
+          "targetMetric": "memory",
+          "k": 1
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.9457",
+        "severity": "minor"
+      },
+      {
         "id": "cx-12",
-        "observedAt": 320,
+        "observedAt": 280,
         "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
+          "datasetSize": 50000,
+          "dimensions": 256,
           "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
+          "targetMetric": "memory",
+          "k": 1
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.8212",
-        "severity": "minor"
-      },
-      {
-        "id": "cx-20",
-        "observedAt": 400,
-        "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7465",
-        "severity": "minor"
-      },
-      {
-        "id": "cx-24",
-        "observedAt": 480,
-        "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.8884",
+        "actualOutcome": "Observed: 0.9200",
         "severity": "minor"
       }
     ],
-    "lastValidatedAt": 480
+    "lastValidatedAt": 280
   },
   {
-    "id": "law-8",
+    "id": "law-6",
     "domain": "prompts",
-    "description": "Temperature 0.36 optimal for creative generation",
-    "confidence": 0.19502058351972168,
-    "discoveredAt": 210,
+    "description": "Temperature 0.72 optimal for creative generation",
+    "confidence": 0.3124221409820883,
+    "discoveredAt": 150,
     "version": 1,
     "status": "deprecated",
     "scopeSignature": {
@@ -1235,10 +838,30 @@
     },
     "trialResults": [
       {
-        "trialId": "trial-220-otaiwe",
-        "generation": 220,
+        "trialId": "trial-160-8nx1jf",
+        "generation": 160,
+        "success": true,
+        "observedValue": 0.8558881283532307,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-180-6hvtdh",
+        "generation": 180,
         "success": false,
-        "observedValue": 0.9241827220768587,
+        "observedValue": 0.7417737335161183,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-200-c6l3w7",
+        "generation": 200,
+        "success": false,
+        "observedValue": 0.8296472818263094,
         "expectedRange": [
           0.7,
           0.99
@@ -1247,8 +870,8 @@
     ],
     "counterexamples": [
       {
-        "id": "cx-5",
-        "observedAt": 220,
+        "id": "cx-3",
+        "observedAt": 180,
         "workloadFingerprint": {
           "datasetSize": 1000,
           "dimensions": 512,
@@ -1257,123 +880,137 @@
           "k": 5
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.9242",
+        "actualOutcome": "Observed: 0.7418",
+        "severity": "minor"
+      },
+      {
+        "id": "cx-6",
+        "observedAt": 200,
+        "workloadFingerprint": {
+          "datasetSize": 1000,
+          "dimensions": 512,
+          "queryPattern": "clustered",
+          "targetMetric": "recall",
+          "k": 5
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.8296",
         "severity": "minor"
       }
     ],
-    "lastValidatedAt": 220
+    "lastValidatedAt": 200
   },
   {
-    "id": "law-9",
-    "domain": "faiss",
-    "description": "Index fragmentation inversely proportional to batch size",
-    "confidence": 0.5362384907442429,
-    "discoveredAt": 240,
+    "id": "law-7",
+    "domain": "prompts",
+    "description": "Chain-of-thought improves accuracy by 10% for reasoning tasks",
+    "confidence": 0.6631599996930416,
+    "discoveredAt": 180,
     "version": 1,
-    "status": "falsified",
+    "status": "hypothesis",
     "scopeSignature": {
-      "datasetSize": 10000,
-      "dimensions": 128,
-      "queryPattern": "random",
+      "datasetSize": 1000,
+      "dimensions": 512,
+      "queryPattern": "clustered",
       "targetMetric": "recall",
-      "k": 10
+      "k": 5
     },
     "trialResults": [
       {
-        "trialId": "trial-280-medigr",
-        "generation": 280,
-        "success": false,
-        "observedValue": 0.995324829358293,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-300-ai8kxj",
-        "generation": 300,
-        "success": true,
-        "observedValue": 0.7828393817333688,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-320-wm52qs",
+        "trialId": "trial-320-r05xn3",
         "generation": 320,
         "success": true,
-        "observedValue": 0.8368747085970243,
+        "observedValue": 0.9530794740901698,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-340-ggipjv",
+        "trialId": "trial-340-twf5mw",
         "generation": 340,
-        "success": false,
-        "observedValue": 0.7941830605707052,
+        "success": true,
+        "observedValue": 0.8214155555336808,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-360-sapw2b",
+        "trialId": "trial-360-xqa11n",
         "generation": 360,
         "success": true,
-        "observedValue": 0.8517148972264095,
+        "observedValue": 0.7521067828182628,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-380-83njcf",
+        "trialId": "trial-380-wzyn2u",
         "generation": 380,
         "success": true,
-        "observedValue": 0.8245214105232253,
+        "observedValue": 0.9910858036443059,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-400-51wykl",
+        "trialId": "trial-400-jl6y1u",
         "generation": 400,
         "success": true,
-        "observedValue": 0.8877077818790953,
+        "observedValue": 0.7728153229098838,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-420-esgbd0",
+        "trialId": "trial-420-607m3c",
         "generation": 420,
         "success": true,
-        "observedValue": 0.9662107200670105,
+        "observedValue": 0.7289829492703932,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-440-jqdrl9",
+        "trialId": "trial-440-qndo5i",
         "generation": 440,
-        "success": true,
-        "observedValue": 0.8117307782693444,
+        "success": false,
+        "observedValue": 0.8120532949045548,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-460-nnu8s5",
+        "trialId": "trial-460-ytm0e1",
         "generation": 460,
         "success": false,
-        "observedValue": 0.724708768736901,
+        "observedValue": 0.7253474295257345,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-480-kf0h8n",
+        "generation": 480,
+        "success": true,
+        "observedValue": 0.7445954084604025,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-500-wvcfdo",
+        "generation": 500,
+        "success": true,
+        "observedValue": 0.7366647243670489,
         "expectedRange": [
           0.7,
           0.99
@@ -1382,55 +1019,221 @@
     ],
     "counterexamples": [
       {
-        "id": "cx-10",
-        "observedAt": 280,
+        "id": "cx-20",
+        "observedAt": 440,
         "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
+          "datasetSize": 1000,
+          "dimensions": 512,
+          "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 10
+          "k": 5
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.9953",
+        "actualOutcome": "Observed: 0.8121",
         "severity": "minor"
       },
       {
-        "id": "cx-14",
-        "observedAt": 340,
-        "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7942",
-        "severity": "minor"
-      },
-      {
-        "id": "cx-23",
+        "id": "cx-21",
         "observedAt": 460,
         "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
+          "datasetSize": 1000,
+          "dimensions": 512,
+          "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 10
+          "k": 5
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7247",
+        "actualOutcome": "Observed: 0.7253",
         "severity": "minor"
       }
     ],
-    "lastValidatedAt": 460
+    "lastValidatedAt": 500
+  },
+  {
+    "id": "law-8",
+    "domain": "postgres",
+    "description": "B-tree vs Hash index crossover at cardinality 86285",
+    "confidence": 0.22108838169932754,
+    "discoveredAt": 210,
+    "version": 1,
+    "status": "deprecated",
+    "scopeSignature": {
+      "datasetSize": 100000,
+      "dimensions": 1,
+      "queryPattern": "sequential",
+      "targetMetric": "latency",
+      "k": 1
+    },
+    "trialResults": [
+      {
+        "trialId": "trial-220-y39x57",
+        "generation": 220,
+        "success": false,
+        "observedValue": 0.9704482158042714,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      }
+    ],
+    "counterexamples": [
+      {
+        "id": "cx-8",
+        "observedAt": 220,
+        "workloadFingerprint": {
+          "datasetSize": 100000,
+          "dimensions": 1,
+          "queryPattern": "sequential",
+          "targetMetric": "latency",
+          "k": 1
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.9704",
+        "severity": "minor"
+      }
+    ],
+    "lastValidatedAt": 220
+  },
+  {
+    "id": "law-9",
+    "domain": "prompts",
+    "description": "Temperature 0.51 optimal for creative generation",
+    "confidence": 0.8286774918101554,
+    "discoveredAt": 240,
+    "version": 1,
+    "status": "hypothesis",
+    "scopeSignature": {
+      "datasetSize": 1000,
+      "dimensions": 512,
+      "queryPattern": "clustered",
+      "targetMetric": "recall",
+      "k": 5
+    },
+    "trialResults": [
+      {
+        "trialId": "trial-320-87h0i1",
+        "generation": 320,
+        "success": true,
+        "observedValue": 0.8694115758731084,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-340-tu3wge",
+        "generation": 340,
+        "success": true,
+        "observedValue": 0.9968604566049112,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-360-fz1xf7",
+        "generation": 360,
+        "success": true,
+        "observedValue": 0.7564256668353573,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-380-ws2ly2",
+        "generation": 380,
+        "success": true,
+        "observedValue": 0.9687476517021412,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-400-68k7uj",
+        "generation": 400,
+        "success": false,
+        "observedValue": 0.9918351860213257,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-420-7hp8xh",
+        "generation": 420,
+        "success": true,
+        "observedValue": 0.8214007676213051,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-440-7cvg81",
+        "generation": 440,
+        "success": true,
+        "observedValue": 0.7234209418405876,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-460-uyw9xc",
+        "generation": 460,
+        "success": true,
+        "observedValue": 0.7153431296420019,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-480-zspycz",
+        "generation": 480,
+        "success": true,
+        "observedValue": 0.9769261719085863,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-500-5wm9sg",
+        "generation": 500,
+        "success": true,
+        "observedValue": 0.7894459844052074,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      }
+    ],
+    "counterexamples": [
+      {
+        "id": "cx-17",
+        "observedAt": 400,
+        "workloadFingerprint": {
+          "datasetSize": 1000,
+          "dimensions": 512,
+          "queryPattern": "clustered",
+          "targetMetric": "recall",
+          "k": 5
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.9918",
+        "severity": "minor"
+      }
+    ],
+    "lastValidatedAt": 500
   },
   {
     "id": "law-10",
     "domain": "faiss",
-    "description": "Vector quantization optimal at dim > 149 for this workload",
-    "confidence": 0.6562025255533404,
+    "description": "Index fragmentation inversely proportional to batch size",
+    "confidence": 0.8280938274817545,
     "discoveredAt": 270,
     "version": 1,
     "status": "hypothesis",
@@ -1443,100 +1246,100 @@
     },
     "trialResults": [
       {
-        "trialId": "trial-320-kqzw8i",
+        "trialId": "trial-320-cza3hb",
         "generation": 320,
         "success": true,
-        "observedValue": 0.9491715313164384,
+        "observedValue": 0.7012386083608673,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-340-54abfs",
+        "trialId": "trial-340-as8csf",
         "generation": 340,
         "success": false,
-        "observedValue": 0.7363299936225312,
+        "observedValue": 0.7934886535599309,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-360-6e6bbb",
+        "trialId": "trial-360-wll9o6",
         "generation": 360,
-        "success": false,
-        "observedValue": 0.7226358492032792,
+        "success": true,
+        "observedValue": 0.961440241458565,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-380-5pqt9s",
+        "trialId": "trial-380-q00msy",
         "generation": 380,
         "success": true,
-        "observedValue": 0.9116129518540637,
+        "observedValue": 0.7943409800968789,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-400-gyer0f",
+        "trialId": "trial-400-kxa63e",
         "generation": 400,
         "success": true,
-        "observedValue": 0.894747614951221,
+        "observedValue": 0.7820104003334466,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-420-0tw2n1",
+        "trialId": "trial-420-lhb867",
         "generation": 420,
         "success": true,
-        "observedValue": 0.8770540476669808,
+        "observedValue": 0.9060882450109758,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-440-9v1yuo",
+        "trialId": "trial-440-vvat1i",
         "generation": 440,
         "success": true,
-        "observedValue": 0.7169608235438172,
+        "observedValue": 0.9615402163292934,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-460-woa3qb",
+        "trialId": "trial-460-mfaui7",
         "generation": 460,
         "success": true,
-        "observedValue": 0.8350646198424811,
+        "observedValue": 0.7606206417366027,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-480-9tzq87",
+        "trialId": "trial-480-vwgqjl",
         "generation": 480,
         "success": true,
-        "observedValue": 0.8583842278264389,
+        "observedValue": 0.9631929488215563,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-500-igjmop",
+        "trialId": "trial-500-6w5jxm",
         "generation": 500,
         "success": true,
-        "observedValue": 0.9003311515787296,
+        "observedValue": 0.8184821844652678,
         "expectedRange": [
           0.7,
           0.99
@@ -1545,7 +1348,7 @@
     ],
     "counterexamples": [
       {
-        "id": "cx-15",
+        "id": "cx-16",
         "observedAt": 340,
         "workloadFingerprint": {
           "datasetSize": 10000,
@@ -1555,21 +1358,7 @@
           "k": 10
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7363",
-        "severity": "minor"
-      },
-      {
-        "id": "cx-18",
-        "observedAt": 360,
-        "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7226",
+        "actualOutcome": "Observed: 0.7935",
         "severity": "minor"
       }
     ],
@@ -1578,11 +1367,11 @@
   {
     "id": "law-11",
     "domain": "faiss",
-    "description": "Vector quantization optimal at dim > 170 for this workload",
-    "confidence": 0.9999996542788985,
+    "description": "Vector quantization optimal at dim > 106 for this workload",
+    "confidence": 0.7069532181737989,
     "discoveredAt": 300,
     "version": 1,
-    "status": "validated",
+    "status": "hypothesis",
     "scopeSignature": {
       "datasetSize": 10000,
       "dimensions": 128,
@@ -1592,115 +1381,269 @@
     },
     "trialResults": [
       {
-        "trialId": "trial-320-gy6pc4",
+        "trialId": "trial-320-lbhfgc",
         "generation": 320,
-        "success": true,
-        "observedValue": 0.9968604566049112,
+        "success": false,
+        "observedValue": 0.930178817235948,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-340-9fjuqv",
+        "trialId": "trial-340-cn90av",
         "generation": 340,
         "success": true,
-        "observedValue": 0.8026504278660986,
+        "observedValue": 0.7096856355712216,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-360-ytthk3",
+        "trialId": "trial-360-esnb6p",
         "generation": 360,
         "success": true,
-        "observedValue": 0.9519750834684703,
+        "observedValue": 0.8759721876010169,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-380-x9x719",
+        "trialId": "trial-380-hso1hd",
         "generation": 380,
         "success": true,
-        "observedValue": 0.7156486153675469,
+        "observedValue": 0.9293213249320729,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-400-4w7enr",
+        "trialId": "trial-400-jvhtb5",
         "generation": 400,
         "success": true,
-        "observedValue": 0.9973089934779837,
+        "observedValue": 0.7419688105778623,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-420-uiaoya",
+        "trialId": "trial-420-micnwx",
         "generation": 420,
         "success": true,
-        "observedValue": 0.7570381403234965,
+        "observedValue": 0.921689546211478,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-440-gfozg0",
+        "trialId": "trial-440-srq3lk",
         "generation": 440,
         "success": true,
-        "observedValue": 0.734117341057452,
+        "observedValue": 0.7092482566876561,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-460-jm0trt",
+        "trialId": "trial-460-7cm2n4",
         "generation": 460,
         "success": true,
-        "observedValue": 0.7561651706957095,
+        "observedValue": 0.7508576512573555,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-480-5pbzer",
+        "trialId": "trial-480-iq07gp",
         "generation": 480,
         "success": true,
-        "observedValue": 0.9171050072727283,
+        "observedValue": 0.730947792544471,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-500-ekghfe",
+        "trialId": "trial-500-otgzm3",
         "generation": 500,
-        "success": true,
-        "observedValue": 0.9792407394755821,
+        "success": false,
+        "observedValue": 0.9790515006887965,
         "expectedRange": [
           0.7,
           0.99
         ]
       }
     ],
-    "counterexamples": [],
+    "counterexamples": [
+      {
+        "id": "cx-14",
+        "observedAt": 320,
+        "workloadFingerprint": {
+          "datasetSize": 10000,
+          "dimensions": 128,
+          "queryPattern": "random",
+          "targetMetric": "recall",
+          "k": 10
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.9302",
+        "severity": "minor"
+      },
+      {
+        "id": "cx-24",
+        "observedAt": 500,
+        "workloadFingerprint": {
+          "datasetSize": 10000,
+          "dimensions": 128,
+          "queryPattern": "random",
+          "targetMetric": "recall",
+          "k": 10
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.9791",
+        "severity": "minor"
+      }
+    ],
     "lastValidatedAt": 500
   },
   {
     "id": "law-12",
-    "domain": "compression",
-    "description": "Dictionary size 102KB maximizes compression ratio",
-    "confidence": 0.999995676510709,
+    "domain": "postgres",
+    "description": "B-tree vs Hash index crossover at cardinality 57197",
+    "confidence": 0.8309707912105937,
     "discoveredAt": 330,
+    "version": 1,
+    "status": "hypothesis",
+    "scopeSignature": {
+      "datasetSize": 100000,
+      "dimensions": 1,
+      "queryPattern": "sequential",
+      "targetMetric": "latency",
+      "k": 1
+    },
+    "trialResults": [
+      {
+        "trialId": "trial-340-sg42rx",
+        "generation": 340,
+        "success": true,
+        "observedValue": 0.9613334537769358,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-360-b5f020",
+        "generation": 360,
+        "success": true,
+        "observedValue": 0.7028853148235404,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-380-umet85",
+        "generation": 380,
+        "success": true,
+        "observedValue": 0.9791719318736214,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-400-ghkgfo",
+        "generation": 400,
+        "success": true,
+        "observedValue": 0.7987653732759716,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-420-7mkj5b",
+        "generation": 420,
+        "success": true,
+        "observedValue": 0.8643238902857172,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-440-30tmx4",
+        "generation": 440,
+        "success": true,
+        "observedValue": 0.7241844773405158,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-460-ku18qw",
+        "generation": 460,
+        "success": true,
+        "observedValue": 0.7249723225948271,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-480-v8dxck",
+        "generation": 480,
+        "success": false,
+        "observedValue": 0.804717955042011,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-500-t35v9o",
+        "generation": 500,
+        "success": true,
+        "observedValue": 0.9843914122713688,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      }
+    ],
+    "counterexamples": [
+      {
+        "id": "cx-23",
+        "observedAt": 480,
+        "workloadFingerprint": {
+          "datasetSize": 100000,
+          "dimensions": 1,
+          "queryPattern": "sequential",
+          "targetMetric": "latency",
+          "k": 1
+        },
+        "expectedOutcome": "Value in range [0.7, 0.99]",
+        "actualOutcome": "Observed: 0.8047",
+        "severity": "minor"
+      }
+    ],
+    "lastValidatedAt": 500
+  },
+  {
+    "id": "law-13",
+    "domain": "compression",
+    "description": "Dictionary size 97KB maximizes compression ratio",
+    "confidence": 0.9999915618953608,
+    "discoveredAt": 360,
     "version": 1,
     "status": "validated",
     "scopeSignature": {
@@ -1712,190 +1655,80 @@
     },
     "trialResults": [
       {
-        "trialId": "trial-340-d50zol",
-        "generation": 340,
-        "success": true,
-        "observedValue": 0.7251024007914133,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-360-j88dbj",
+        "trialId": "trial-360-cwojad",
         "generation": 360,
         "success": true,
-        "observedValue": 0.8606609583649136,
+        "observedValue": 0.7340620517889326,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-380-1kjutp",
+        "trialId": "trial-380-c7wn83",
         "generation": 380,
         "success": true,
-        "observedValue": 0.9700903655356217,
+        "observedValue": 0.7840165496263729,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-400-qk9ssg",
+        "trialId": "trial-400-de0a5x",
         "generation": 400,
         "success": true,
-        "observedValue": 0.8710388899645949,
+        "observedValue": 0.8962375641782943,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-420-dz86xi",
+        "trialId": "trial-420-66c7ed",
         "generation": 420,
         "success": true,
-        "observedValue": 0.8894341052460643,
+        "observedValue": 0.999923181673476,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-440-08sba7",
+        "trialId": "trial-440-ojwwuc",
         "generation": 440,
         "success": true,
-        "observedValue": 0.77816032174889,
+        "observedValue": 0.8299891472468102,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-460-ybbam0",
+        "trialId": "trial-460-3hp8qo",
         "generation": 460,
         "success": true,
-        "observedValue": 0.9099426866555319,
+        "observedValue": 0.952130732057677,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-480-qmiw2c",
+        "trialId": "trial-480-qdn4db",
         "generation": 480,
         "success": true,
-        "observedValue": 0.8407946587264512,
+        "observedValue": 0.7140393614834357,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-500-us5sh8",
+        "trialId": "trial-500-bi0l12",
         "generation": 500,
         "success": true,
-        "observedValue": 0.8338392615941536,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      }
-    ],
-    "counterexamples": [],
-    "lastValidatedAt": 500
-  },
-  {
-    "id": "law-13",
-    "domain": "faiss",
-    "description": "Index fragmentation inversely proportional to batch size",
-    "confidence": 0.999994195325234,
-    "discoveredAt": 360,
-    "version": 1,
-    "status": "validated",
-    "scopeSignature": {
-      "datasetSize": 10000,
-      "dimensions": 128,
-      "queryPattern": "random",
-      "targetMetric": "recall",
-      "k": 10
-    },
-    "trialResults": [
-      {
-        "trialId": "trial-360-fn8qiq",
-        "generation": 360,
-        "success": true,
-        "observedValue": 0.9796114207616129,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-380-uik18o",
-        "generation": 380,
-        "success": true,
-        "observedValue": 0.7458954662298296,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-400-58vwuh",
-        "generation": 400,
-        "success": true,
-        "observedValue": 0.8651194334799048,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-420-iz5t1l",
-        "generation": 420,
-        "success": true,
-        "observedValue": 0.8521304608099769,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-440-23bx0d",
-        "generation": 440,
-        "success": true,
-        "observedValue": 0.7135106444421739,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-460-uf12ke",
-        "generation": 460,
-        "success": true,
-        "observedValue": 0.766735613377176,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-480-juug4o",
-        "generation": 480,
-        "success": true,
-        "observedValue": 0.7190283775418197,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-500-dzfdui",
-        "generation": 500,
-        "success": true,
-        "observedValue": 0.996322763104142,
+        "observedValue": 0.7200181126687759,
         "expectedRange": [
           0.7,
           0.99
@@ -1907,75 +1740,75 @@
   },
   {
     "id": "law-14",
-    "domain": "postgres",
-    "description": "B-tree vs Hash index crossover at cardinality 96541",
-    "confidence": 0.9998963791918941,
+    "domain": "faiss",
+    "description": "Index fragmentation inversely proportional to batch size",
+    "confidence": 0.999865592130192,
     "discoveredAt": 390,
     "version": 1,
     "status": "validated",
     "scopeSignature": {
-      "datasetSize": 100000,
-      "dimensions": 1,
-      "queryPattern": "sequential",
-      "targetMetric": "latency",
-      "k": 1
+      "datasetSize": 10000,
+      "dimensions": 128,
+      "queryPattern": "random",
+      "targetMetric": "recall",
+      "k": 10
     },
     "trialResults": [
       {
-        "trialId": "trial-400-a7waxg",
+        "trialId": "trial-400-14x4nw",
         "generation": 400,
         "success": true,
-        "observedValue": 0.7999241590965186,
+        "observedValue": 0.7678056717234689,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-420-0tsx51",
+        "trialId": "trial-420-wlyxh5",
         "generation": 420,
         "success": true,
-        "observedValue": 0.8181987286164418,
+        "observedValue": 0.760619032411193,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-440-k9de2g",
+        "trialId": "trial-440-l9l32u",
         "generation": 440,
         "success": true,
-        "observedValue": 0.8801126957778411,
+        "observedValue": 0.9417836190395912,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-460-lrk2ov",
+        "trialId": "trial-460-070vv8",
         "generation": 460,
         "success": true,
-        "observedValue": 0.8630337477489531,
+        "observedValue": 0.8128260136176021,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-480-ahk1dq",
+        "trialId": "trial-480-dowywq",
         "generation": 480,
         "success": true,
-        "observedValue": 0.7358967900443341,
+        "observedValue": 0.9081346989647181,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-500-h3fryb",
+        "trialId": "trial-500-4i3le9",
         "generation": 500,
         "success": true,
-        "observedValue": 0.9793704511036028,
+        "observedValue": 0.7653130770033751,
         "expectedRange": [
           0.7,
           0.99
@@ -1987,65 +1820,65 @@
   },
   {
     "id": "law-15",
-    "domain": "faiss",
-    "description": "Vector quantization optimal at dim > 440 for this workload",
-    "confidence": 0.7057481764143356,
+    "domain": "postgres",
+    "description": "work_mem > 65MB improves hash_agg by 19%",
+    "confidence": 0.7168997318978674,
     "discoveredAt": 420,
     "version": 1,
     "status": "hypothesis",
     "scopeSignature": {
-      "datasetSize": 10000,
-      "dimensions": 128,
-      "queryPattern": "random",
-      "targetMetric": "recall",
-      "k": 10
+      "datasetSize": 100000,
+      "dimensions": 1,
+      "queryPattern": "sequential",
+      "targetMetric": "latency",
+      "k": 1
     },
     "trialResults": [
       {
-        "trialId": "trial-420-bc9py1",
+        "trialId": "trial-420-t2oaye",
         "generation": 420,
         "success": true,
-        "observedValue": 0.8307574749601806,
+        "observedValue": 0.9895190091289202,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-440-0uqrno",
+        "trialId": "trial-440-pr129k",
         "generation": 440,
-        "success": false,
-        "observedValue": 0.7154642671418675,
-        "expectedRange": [
-          0.7,
-          0.99
-        ]
-      },
-      {
-        "trialId": "trial-460-id3nat",
-        "generation": 460,
         "success": true,
-        "observedValue": 0.779852938689223,
+        "observedValue": 0.8334189415599307,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-480-719ztc",
+        "trialId": "trial-460-8jams6",
+        "generation": 460,
+        "success": false,
+        "observedValue": 0.9502572537633857,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-480-um471n",
         "generation": 480,
         "success": true,
-        "observedValue": 0.8289367914800237,
+        "observedValue": 0.7346148014229791,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-500-q8bp9s",
+        "trialId": "trial-500-3x2k3v",
         "generation": 500,
         "success": true,
-        "observedValue": 0.987772703304781,
+        "observedValue": 0.7997906029689081,
         "expectedRange": [
           0.7,
           0.99
@@ -2055,16 +1888,16 @@
     "counterexamples": [
       {
         "id": "cx-22",
-        "observedAt": 440,
+        "observedAt": 460,
         "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
+          "datasetSize": 100000,
+          "dimensions": 1,
+          "queryPattern": "sequential",
+          "targetMetric": "latency",
+          "k": 1
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7155",
+        "actualOutcome": "Observed: 0.9503",
         "severity": "minor"
       }
     ],
@@ -2073,11 +1906,11 @@
   {
     "id": "law-16",
     "domain": "prompts",
-    "description": "Temperature 0.13 optimal for creative generation",
-    "confidence": 0.7110648234007141,
+    "description": "Context window utilization peaks at 80% occupancy",
+    "confidence": 0.9945254739755369,
     "discoveredAt": 450,
     "version": 1,
-    "status": "hypothesis",
+    "status": "validated",
     "scopeSignature": {
       "datasetSize": 1000,
       "dimensions": 512,
@@ -2087,97 +1920,77 @@
     },
     "trialResults": [
       {
-        "trialId": "trial-460-5o21b9",
+        "trialId": "trial-460-a1h1kq",
         "generation": 460,
         "success": true,
-        "observedValue": 0.9506531478141682,
+        "observedValue": 0.8680587590523338,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-480-3jnfv8",
+        "trialId": "trial-480-0kmfjm",
         "generation": 480,
         "success": true,
-        "observedValue": 0.8050192118180073,
+        "observedValue": 0.890968525498625,
         "expectedRange": [
           0.7,
           0.99
         ]
       },
       {
-        "trialId": "trial-500-xxmvql",
+        "trialId": "trial-500-j4vhlj",
         "generation": 500,
-        "success": false,
-        "observedValue": 0.7203998178338631,
+        "success": true,
+        "observedValue": 0.7718945384360358,
         "expectedRange": [
           0.7,
           0.99
         ]
       }
     ],
-    "counterexamples": [
-      {
-        "id": "cx-26",
-        "observedAt": 500,
-        "workloadFingerprint": {
-          "datasetSize": 1000,
-          "dimensions": 512,
-          "queryPattern": "clustered",
-          "targetMetric": "recall",
-          "k": 5
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7204",
-        "severity": "minor"
-      }
-    ],
+    "counterexamples": [],
     "lastValidatedAt": 500
   },
   {
     "id": "law-17",
-    "domain": "faiss",
-    "description": "HNSW M parameter correlates with recall at threshold 0.95",
-    "confidence": 0.23615096345411196,
+    "domain": "postgres",
+    "description": "work_mem > 137MB improves hash_agg by 8%",
+    "confidence": 0.982745466250016,
     "discoveredAt": 480,
     "version": 1,
-    "status": "deprecated",
+    "status": "validated",
     "scopeSignature": {
-      "datasetSize": 10000,
-      "dimensions": 128,
-      "queryPattern": "random",
-      "targetMetric": "recall",
-      "k": 10
+      "datasetSize": 100000,
+      "dimensions": 1,
+      "queryPattern": "sequential",
+      "targetMetric": "latency",
+      "k": 1
     },
     "trialResults": [
       {
-        "trialId": "trial-480-rq72h7",
+        "trialId": "trial-480-6kwhab",
         "generation": 480,
-        "success": false,
-        "observedValue": 0.7420132000194923,
+        "success": true,
+        "observedValue": 0.8938932062098259,
+        "expectedRange": [
+          0.7,
+          0.99
+        ]
+      },
+      {
+        "trialId": "trial-500-jyup7u",
+        "generation": 500,
+        "success": true,
+        "observedValue": 0.74325180055725,
         "expectedRange": [
           0.7,
           0.99
         ]
       }
     ],
-    "counterexamples": [
-      {
-        "id": "cx-25",
-        "observedAt": 480,
-        "workloadFingerprint": {
-          "datasetSize": 10000,
-          "dimensions": 128,
-          "queryPattern": "random",
-          "targetMetric": "recall",
-          "k": 10
-        },
-        "expectedOutcome": "Value in range [0.7, 0.99]",
-        "actualOutcome": "Observed: 0.7420",
-        "severity": "minor"
-      }
-    ],
-    "lastValidatedAt": 480
+    "counterexamples": [],
+    "lastValidatedAt": 500
   }
 ]

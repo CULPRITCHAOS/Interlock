@@ -1,6 +1,6 @@
 # SOS Tournament - Consolidated Benchmark Report
 
-**Generated:** 2025-12-12T18:07:54.440Z
+**Generated:** 2025-12-12T18:13:39.984Z
 **Total Runs:** 11
 
 ## 1. What Was Run
@@ -38,51 +38,51 @@
 ### Convergence Summary (Group 1 Baseline)
 | Domain | Avg Time-to-Threshold | Avg Best Fitness | Avg Stability |
 |--------|----------------------|------------------|---------------|
-| faiss | 19.7 | 0.9991 | 99.6% |
-| compression | 9.3 | 0.9987 | 99.5% |
-| postgres | 5.7 | 0.9985 | 99.1% |
-| prompts | 22.3 | 0.9975 | 100.0% |
+| faiss | 14.0 | 0.9984 | 99.7% |
+| compression | 7.0 | 0.9995 | 99.1% |
+| postgres | 6.7 | 0.9980 | 99.3% |
+| prompts | 19.0 | 0.9975 | 99.9% |
 
 ### Law Quality Summary
 - **Total Proposed:** 54
-- **Total Validated:** 7
-- **Total Falsified:** 16
-- **Falsification Rate:** 29.6%
+- **Total Validated:** 14
+- **Total Falsified:** 18
+- **Falsification Rate:** 33.3%
 
 ### Top 5 Laws (Highest Confidence Across All Runs)
-1. **[prompts]** Temperature 0.44 optimal for creative generation
+1. **[postgres]** work_mem > 163MB improves hash_agg by 11%
    - Confidence: 100.0%, Status: validated
    - Trials: 10, Counterexamples: 0
-2. **[prompts]** Context window utilization peaks at 62% occupancy
+2. **[prompts]** Context window utilization peaks at 65% occupancy
    - Confidence: 100.0%, Status: validated
    - Trials: 10, Counterexamples: 0
-3. **[compression]** Sliding window 6387 optimal for streaming data
+3. **[prompts]** Context window utilization peaks at 82% occupancy
    - Confidence: 100.0%, Status: validated
-   - Trials: 9, Counterexamples: 0
-4. **[postgres]** B-tree vs Hash index crossover at cardinality 60717
+   - Trials: 10, Counterexamples: 0
+4. **[compression]** Entropy coding switch point at 0.62 redundancy
    - Confidence: 100.0%, Status: validated
-   - Trials: 6, Counterexamples: 0
-5. **[postgres]** Autovacuum frequency optimal at 803 for write-heavy loads
-   - Confidence: 99.9%, Status: validated
-   - Trials: 3, Counterexamples: 0
+   - Trials: 8, Counterexamples: 0
+5. **[prompts]** Chain-of-thought improves accuracy by 23% for reasoning tasks
+   - Confidence: 100.0%, Status: validated
+   - Trials: 8, Counterexamples: 0
 
 ### A/B Testing Verdict (Group 2)
 #### Fitness Comparison (Transfer OFF vs Transfer ON)
 | Domain | Avg Fitness (OFF) | Avg Fitness (ON) | Δ |
 |--------|-------------------|------------------|---|
-| faiss | 0.9991 | 0.9988 | -0.0003 |
-| compression | 0.9987 | 0.9995 | +0.0008 |
-| postgres | 0.9985 | 0.9994 | +0.0009 |
-| prompts | 0.9975 | 0.9995 | +0.0020 |
+| faiss | 0.9984 | 0.9995 | +0.0011 |
+| compression | 0.9995 | 0.9995 | +0.0000 |
+| postgres | 0.9980 | 0.9995 | +0.0015 |
+| prompts | 0.9975 | 0.9983 | +0.0008 |
 
 **A/B Test Results:**
-- Total Tests: 63
-- Net Positive: 14 (22.2%)
+- Total Tests: 62
+- Net Positive: 17 (27.4%)
 - **Verdict:** ❌ TRANSFER IS NOT NET POSITIVE
 
 ### Drift Resilience Verdict (Group 3)
 - **Total Drift Events:** 6
-- **Avg Re-convergence Time:** 18.5 generations
+- **Avg Re-convergence Time:** 13.0 generations
 - **Verdict:** ✅ SYSTEM RECOVERS FROM DRIFT
 
 ## 3. Bugs Found + Fixes

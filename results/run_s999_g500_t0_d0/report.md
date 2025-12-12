@@ -5,52 +5,52 @@
 **Generations:** 500
 **Transfer:** OFF
 **Drift:** OFF
-**Timestamp:** 2025-12-12T18:07:50.731Z
+**Timestamp:** 2025-12-12T18:13:36.275Z
 
 ## Convergence Metrics
 
 | Domain | Time-to-Threshold | Best Achieved | Gen@Best | Rolling Var | Stability |
 |--------|-------------------|---------------|----------|-------------|-----------|
-| faiss | 20 | 0.9983 | 85 | 0.004302 | 100.0% |
-| compression | 9 | 0.9984 | 106 | 0.005180 | 99.4% |
-| postgres | 6 | 0.9995 | 138 | 0.004633 | 99.2% |
-| prompts | 24 | 0.9995 | 347 | 0.005951 | 100.0% |
+| faiss | 9 | 0.9995 | 51 | 0.005919 | 99.4% |
+| compression | 5 | 0.9995 | 360 | 0.002726 | 99.0% |
+| postgres | 6 | 0.9986 | 228 | 0.008296 | 99.2% |
+| prompts | 20 | 0.9985 | 210 | 0.000070 | 100.0% |
 
 ## Law Quality Metrics
 
 - **Total Proposed:** 18
-- **Validated:** 4
+- **Validated:** 7
 - **Falsified:** 7
 - **Deprecated:** 2
 - **Falsification Rate:** 38.9%
-- **Avg Time to Resolution:** 200.0 generations
+- **Avg Time to Resolution:** 227.9 generations
 
 ### Top 5 Laws (by Confidence)
 
-1. **[prompts]** Context window utilization peaks at 62% occupancy
+1. **[postgres]** work_mem > 163MB improves hash_agg by 11%
+   - Confidence: 100.0%
+   - Status: validated
+   - Trials: 10, Counterexamples: 0
+   - Scope: 100000x1:sequential:latency@1
+1. **[prompts]** Context window utilization peaks at 82% occupancy
    - Confidence: 100.0%
    - Status: validated
    - Trials: 10, Counterexamples: 0
    - Scope: 1000x512:clustered:recall@5
-1. **[compression]** Sliding window 6387 optimal for streaming data
+1. **[prompts]** Chain-of-thought improves accuracy by 23% for reasoning tasks
    - Confidence: 100.0%
    - Status: validated
-   - Trials: 9, Counterexamples: 0
-   - Scope: 50000x256:random:memory@1
-1. **[compression]** Entropy coding switch point at 0.36 redundancy
-   - Confidence: 99.6%
+   - Trials: 8, Counterexamples: 0
+   - Scope: 1000x512:clustered:recall@5
+1. **[postgres]** Autovacuum frequency optimal at 678 for write-heavy loads
+   - Confidence: 100.0%
    - Status: validated
-   - Trials: 3, Counterexamples: 0
-   - Scope: 50000x256:random:memory@1
-1. **[faiss]** Index fragmentation inversely proportional to batch size
-   - Confidence: 99.1%
+   - Trials: 6, Counterexamples: 0
+   - Scope: 100000x1:sequential:latency@1
+1. **[postgres]** B-tree vs Hash index crossover at cardinality 53874
+   - Confidence: 100.0%
    - Status: validated
-   - Trials: 2, Counterexamples: 0
-   - Scope: 10000x128:random:recall@10
-1. **[postgres]** work_mem correlates linearly with hash_agg performance
-   - Confidence: 92.9%
-   - Status: hypothesis
-   - Trials: 10, Counterexamples: 1
+   - Trials: 5, Counterexamples: 0
    - Scope: 100000x1:sequential:latency@1
 
 ---
