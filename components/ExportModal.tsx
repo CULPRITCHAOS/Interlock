@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { SOSGenome } from '../types';
-import { generateOptimizerCode, generateMain, generateRequirements, generateDockerfile, generateReadme } from '../services/codeGenerator';
-import { X, Copy, Check, FileCode, Server, Box, Container, FileText } from 'lucide-react';
+import { generateOptimizerCode, generateMain, generateRequirements, generateDockerfile, generateReadme, generateOptimizersInit } from '../services/codeGenerator';
+import { X, Copy, Check, FileCode, Server, Box, Container, FileText, FolderOpen } from 'lucide-react';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -9,7 +9,7 @@ interface ExportModalProps {
   genomes: Record<string, SOSGenome>;
 }
 
-type Tab = 'main' | 'requirements' | 'docker' | 'readme' | string;
+type Tab = 'main' | 'requirements' | 'docker' | 'readme' | 'init' | string;
 
 const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, genomes }) => {
   const [activeTab, setActiveTab] = useState<Tab>('main');
@@ -22,6 +22,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, genomes }) =
     if (activeTab === 'requirements') return generateRequirements();
     if (activeTab === 'docker') return generateDockerfile();
     if (activeTab === 'readme') return generateReadme(genomes);
+    if (activeTab === 'init') return generateOptimizersInit(genomes);
     if (genomes[activeTab]) return generateOptimizerCode(genomes[activeTab]);
     return '# Error generating code';
   };
@@ -86,6 +87,12 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, genomes }) =
              </button>
              
              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider px-3 py-2 mt-4">Optimizers (optimizers/)</div>
+             <button 
+                onClick={() => setActiveTab('init')}
+                className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${activeTab === 'init' ? 'bg-amber-600/20 text-amber-400 border border-amber-600/50' : 'text-slate-400 hover:bg-slate-800'}`}
+             >
+                <FolderOpen size={14} /> __init__.py
+             </button>
              {Object.values(genomes).map((g: SOSGenome) => (
                <button
                  key={g.domain}
