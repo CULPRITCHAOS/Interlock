@@ -44,12 +44,47 @@ class SOSGenome(BaseModel):
     origin_domain: str | None = None
 
 
+class WorkloadFingerprint(BaseModel):
+    """Defines the scope signature for a law."""
+    dataset_size: int = 10000
+    dimensions: int = 128
+    query_pattern: str = "random"  # 'random' | 'clustered' | 'sequential'
+    target_metric: str = "recall"  # 'recall' | 'latency' | 'memory'
+    k: int = 10
+
+
+class LawTrialResult(BaseModel):
+    """Trial result for repeated confidence measurement."""
+    trial_id: str
+    generation: int
+    success: bool
+    observed_value: float
+    expected_range: tuple[float, float]
+
+
+class LawCounterexample(BaseModel):
+    """Counterexample tracking for when a law fails."""
+    id: str
+    observed_at: int
+    workload_fingerprint: WorkloadFingerprint
+    expected_outcome: str
+    actual_outcome: str
+    severity: str  # 'minor' | 'major' | 'critical'
+
+
 class Law(BaseModel):
+    """Enhanced Law with falsifiable properties."""
     id: str
     domain: str
     description: str
     confidence: float
     discovered_at: int
+    version: int = 1
+    status: str = "hypothesis"  # 'hypothesis' | 'validated' | 'falsified' | 'deprecated'
+    scope_signature: WorkloadFingerprint | None = None
+    trial_results: List[LawTrialResult] = []
+    counterexamples: List[LawCounterexample] = []
+    last_validated_at: int | None = None
 
 
 class SimulationLog(BaseModel):
@@ -145,6 +180,38 @@ LAW_TEMPLATES = {
     ]
 }
 
+# Default workload fingerprints for each domain
+DEFAULT_FINGERPRINTS = {
+    "faiss": WorkloadFingerprint(
+        dataset_size=10000,
+        dimensions=128,
+        query_pattern="random",
+        target_metric="recall",
+        k=10
+    ),
+    "postgres": WorkloadFingerprint(
+        dataset_size=100000,
+        dimensions=1,
+        query_pattern="sequential",
+        target_metric="latency",
+        k=1
+    ),
+    "compression": WorkloadFingerprint(
+        dataset_size=50000,
+        dimensions=256,
+        query_pattern="random",
+        target_metric="memory",
+        k=1
+    ),
+    "prompts": WorkloadFingerprint(
+        dataset_size=1000,
+        dimensions=512,
+        query_pattern="clustered",
+        target_metric="recall",
+        k=5
+    )
+}
+
 
 def generate_id() -> str:
     return f"{random.randint(0, 0xFFFFFF):06x}"
@@ -155,7 +222,7 @@ def get_timestamp() -> str:
 
 
 def generate_mock_law(domain: str, generation: int) -> Law:
-    """Generate a mock discovered law."""
+    """Generate a mock discovered law with falsifiable properties."""
     templates = LAW_TEMPLATES.get(domain, LAW_TEMPLATES["faiss"])
     template = random.choice(templates)
     
@@ -174,12 +241,21 @@ def generate_mock_law(domain: str, generation: int) -> Law:
         util=random.randint(60, 95)
     )
     
+    # Get default fingerprint for the domain
+    fingerprint = DEFAULT_FINGERPRINTS.get(domain, DEFAULT_FINGERPRINTS["faiss"])
+    
     return Law(
         id=f"law-{generate_id()}",
         domain=domain,
         description=description,
         confidence=round(random.uniform(0.75, 0.98), 2),
-        discovered_at=generation
+        discovered_at=generation,
+        version=1,
+        status="hypothesis",
+        scope_signature=fingerprint,
+        trial_results=[],
+        counterexamples=[],
+        last_validated_at=generation
     )
 
 
