@@ -5,6 +5,16 @@
  * 
  * Usage:
  *   npx tsx scripts/sim-runner.ts --seed 42 --gens 500 --transfer on --drift off --out results/run_001
+ * 
+ * ARCHITECTURE NOTE:
+ * This file is intentionally self-contained with duplicated type definitions and functions.
+ * This allows the simulation runner to execute independently without requiring the rest of
+ * the codebase (frontend, services, etc.). Types and functions are mirrored from:
+ * - types.ts (for type definitions)
+ * - services/forecast.ts (for Phase III failure forecasting)
+ * 
+ * The frontend uses services/forecast.ts directly. This duplication is a deliberate
+ * trade-off for standalone execution capability.
  */
 
 import * as fs from 'fs';
