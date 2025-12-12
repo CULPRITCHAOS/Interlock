@@ -1,0 +1,60 @@
+{
+  "generated": "2025-12-12T21:42:02.293Z",
+  "runId": "results/run_s100_g300_t1_d1",
+  "totalBoundaries": 3,
+  "summary": {
+    "highRisk": 2,
+    "mediumRisk": 0,
+    "lowRisk": 1
+  },
+  "boundaries": [
+    {
+      "id": "fb-boundary-postgres-1",
+      "domain": "postgres",
+      "parameter": "fitness",
+      "parameterRange": [
+        1.566378583573019,
+        2.215925716329797
+      ],
+      "criticalValue": 2.103177775440122,
+      "abruptnessScore": 0.37191685242837225,
+      "historicalDropDepth": 0.11157505572851167,
+      "recoverySlope": 0.005578752786425584,
+      "confidence": 0.5,
+      "observedCrossings": 0,
+      "lawsAtRisk": []
+    },
+    {
+      "id": "fb-boundary-prompts-99",
+      "domain": "prompts",
+      "parameter": "alpha",
+      "parameterRange": [
+        4.505234473401585,
+        5.347291916184399
+      ],
+      "criticalValue": 4.831322626724663,
+      "abruptnessScore": 1,
+      "historicalDropDepth": 0.35963419773290994,
+      "recoverySlope": 0.0179817098866455,
+      "confidence": 0.7,
+      "observedCrossings": 2,
+      "lawsAtRisk": []
+    },
+    {
+      "id": "fb-boundary-prompts-249",
+      "domain": "prompts",
+      "parameter": "alpha",
+      "parameterRange": [
+        2.3117151576367903,
+        3.8584812960185655
+      ],
+      "criticalValue": 2.382704291921006,
+      "abruptnessScore": 0.9893762574639176,
+      "historicalDropDepth": 0.35963419773290994,
+      "recoverySlope": 0.0179817098866455,
+      "confidence": 0.7,
+      "observedCrossings": 2,
+      "lawsAtRisk": []
+    }
+  ]
+}

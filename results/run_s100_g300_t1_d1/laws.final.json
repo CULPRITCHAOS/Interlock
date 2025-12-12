@@ -1,0 +1,368 @@
+{
+  "generated": "2025-12-12T21:42:02.290Z",
+  "runId": "results/run_s100_g300_t1_d1",
+  "totalLaws": 12,
+  "summary": {
+    "validated": 3,
+    "falsified": 0,
+    "deprecated": 2,
+    "hypothesis": 7
+  },
+  "laws": [
+    {
+      "id": "law-0",
+      "domain": "faiss",
+      "description": "HNSW M > 32 yields diminishing recall returns",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 4,
+        "successfulTrials": 2,
+        "counterexamples": 2
+      },
+      "status": "deprecated",
+      "confidence": 0.42494999999999994,
+      "discoveredAt": 0,
+      "lastValidatedAt": 60,
+      "version": 1
+    },
+    {
+      "id": "law-1",
+      "domain": "postgres",
+      "description": "work_mem correlates linearly with hash_agg performance",
+      "scope": {
+        "domain": "postgres",
+        "datasetSize": 100000,
+        "dimensions": 1,
+        "queryPattern": "sequential",
+        "targetMetric": "latency",
+        "k": 1,
+        "constraints": {
+          "maxLatencyMs": 100,
+          "maxMemoryMb": 1024
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 8,
+        "counterexamples": 2
+      },
+      "status": "hypothesis",
+      "confidence": 0.6585319524770874,
+      "discoveredAt": 0,
+      "lastValidatedAt": 300,
+      "version": 1
+    },
+    {
+      "id": "law-2",
+      "domain": "postgres",
+      "description": "Autovacuum frequency optimal at 917 for write-heavy loads",
+      "scope": {
+        "domain": "postgres",
+        "datasetSize": 100000,
+        "dimensions": 1,
+        "queryPattern": "sequential",
+        "targetMetric": "latency",
+        "k": 1,
+        "constraints": {
+          "maxLatencyMs": 100,
+          "maxMemoryMb": 1024
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 8,
+        "counterexamples": 2
+      },
+      "status": "hypothesis",
+      "confidence": 0.657211011768344,
+      "discoveredAt": 30,
+      "lastValidatedAt": 300,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 199,
+      "churnRate": 0
+    },
+    {
+      "id": "law-3",
+      "domain": "compression",
+      "description": "Entropy coding switch point at 0.57 redundancy",
+      "scope": {
+        "domain": "compression",
+        "datasetSize": 50000,
+        "dimensions": 256,
+        "queryPattern": "random",
+        "targetMetric": "memory",
+        "k": 1,
+        "constraints": {
+          "maxMemoryMb": 256
+        }
+      },
+      "evidence": {
+        "totalTrials": 1,
+        "successfulTrials": 0,
+        "counterexamples": 1
+      },
+      "status": "deprecated",
+      "confidence": 0.22624611773493053,
+      "discoveredAt": 60,
+      "lastValidatedAt": 60,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 135,
+      "churnRate": 0
+    },
+    {
+      "id": "law-4",
+      "domain": "postgres",
+      "description": "work_mem > 239MB improves hash_agg by 15%",
+      "scope": {
+        "domain": "postgres",
+        "datasetSize": 100000,
+        "dimensions": 1,
+        "queryPattern": "sequential",
+        "targetMetric": "latency",
+        "k": 1,
+        "constraints": {
+          "maxLatencyMs": 100,
+          "maxMemoryMb": 1024
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 9,
+        "counterexamples": 1
+      },
+      "status": "hypothesis",
+      "confidence": 0.8287871943913636,
+      "discoveredAt": 90,
+      "lastValidatedAt": 300,
+      "version": 1,
+      "lawType": "structural",
+      "halfLife": 57,
+      "churnRate": 0
+    },
+    {
+      "id": "law-5",
+      "domain": "postgres",
+      "description": "B-tree vs Hash index crossover at cardinality 87453",
+      "scope": {
+        "domain": "postgres",
+        "datasetSize": 100000,
+        "dimensions": 1,
+        "queryPattern": "sequential",
+        "targetMetric": "latency",
+        "k": 1,
+        "constraints": {
+          "maxLatencyMs": 100,
+          "maxMemoryMb": 1024
+        }
+      },
+      "evidence": {
+        "totalTrials": 10,
+        "successfulTrials": 9,
+        "counterexamples": 1
+      },
+      "status": "hypothesis",
+      "confidence": 0.8232032082042867,
+      "discoveredAt": 120,
+      "lastValidatedAt": 300,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 141,
+      "churnRate": 0
+    },
+    {
+      "id": "law-6",
+      "domain": "faiss",
+      "description": "Vector quantization optimal at dim > 486 for this workload",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 8,
+        "successfulTrials": 7,
+        "counterexamples": 1
+      },
+      "status": "hypothesis",
+      "confidence": 0.8024887820131196,
+      "discoveredAt": 150,
+      "lastValidatedAt": 300,
+      "version": 1,
+      "lawType": "structural",
+      "halfLife": 101,
+      "churnRate": 0
+    },
+    {
+      "id": "law-7",
+      "domain": "postgres",
+      "description": "B-tree vs Hash index crossover at cardinality 15897",
+      "scope": {
+        "domain": "postgres",
+        "datasetSize": 100000,
+        "dimensions": 1,
+        "queryPattern": "sequential",
+        "targetMetric": "latency",
+        "k": 1,
+        "constraints": {
+          "maxLatencyMs": 100,
+          "maxMemoryMb": 1024
+        }
+      },
+      "evidence": {
+        "totalTrials": 7,
+        "successfulTrials": 6,
+        "counterexamples": 1
+      },
+      "status": "hypothesis",
+      "confidence": 0.7767880457359044,
+      "discoveredAt": 180,
+      "lastValidatedAt": 300,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 82,
+      "churnRate": 0
+    },
+    {
+      "id": "law-8",
+      "domain": "faiss",
+      "description": "Index fragmentation inversely proportional to batch size",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 5,
+        "successfulTrials": 4,
+        "counterexamples": 1
+      },
+      "status": "hypothesis",
+      "confidence": 0.7420583176353748,
+      "discoveredAt": 210,
+      "lastValidatedAt": 300,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 155,
+      "churnRate": 0
+    },
+    {
+      "id": "law-9",
+      "domain": "compression",
+      "description": "Dictionary size 101KB maximizes compression ratio",
+      "scope": {
+        "domain": "compression",
+        "datasetSize": 50000,
+        "dimensions": 256,
+        "queryPattern": "random",
+        "targetMetric": "memory",
+        "k": 1,
+        "constraints": {
+          "maxMemoryMb": 256
+        }
+      },
+      "evidence": {
+        "totalTrials": 4,
+        "successfulTrials": 4,
+        "counterexamples": 0
+      },
+      "status": "validated",
+      "confidence": 0.9987636650285816,
+      "discoveredAt": 240,
+      "lastValidatedAt": 300,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 98,
+      "churnRate": 0
+    },
+    {
+      "id": "law-10",
+      "domain": "faiss",
+      "description": "HNSW M parameter correlates with recall at threshold 0.84",
+      "scope": {
+        "domain": "faiss",
+        "datasetSize": 10000,
+        "dimensions": 128,
+        "queryPattern": "random",
+        "targetMetric": "recall",
+        "k": 10,
+        "constraints": {
+          "maxLatencyMs": 50,
+          "minRecall": 0.8,
+          "maxMemoryMb": 512
+        }
+      },
+      "evidence": {
+        "totalTrials": 2,
+        "successfulTrials": 2,
+        "counterexamples": 0
+      },
+      "status": "validated",
+      "confidence": 0.9788217823034719,
+      "discoveredAt": 270,
+      "lastValidatedAt": 300,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 192,
+      "churnRate": 0
+    },
+    {
+      "id": "law-11",
+      "domain": "prompts",
+      "description": "Chain-of-thought improves accuracy by 22% for reasoning tasks",
+      "scope": {
+        "domain": "prompts",
+        "datasetSize": 1000,
+        "dimensions": 512,
+        "queryPattern": "clustered",
+        "targetMetric": "recall",
+        "k": 5,
+        "constraints": {
+          "minRecall": 0.9
+        }
+      },
+      "evidence": {
+        "totalTrials": 1,
+        "successfulTrials": 1,
+        "counterexamples": 0
+      },
+      "status": "validated",
+      "confidence": 0.9291101212520665,
+      "discoveredAt": 300,
+      "lastValidatedAt": 300,
+      "version": 1,
+      "lawType": "soft",
+      "halfLife": 106,
+      "churnRate": 0
+    }
+  ]
+}
