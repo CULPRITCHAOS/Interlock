@@ -1,6 +1,25 @@
-import { Law } from './types';
+import { Law, BenchmarkConfig, WorkloadFingerprint } from './types';
 
 export const DOMAINS = ['faiss', 'compression', 'postgres', 'prompts'];
+
+// Default workload fingerprint for FAISS domain (our primary measurable target)
+export const DEFAULT_FAISS_FINGERPRINT: WorkloadFingerprint = {
+  datasetSize: 10000,
+  dimensions: 128,
+  queryPattern: 'random',
+  targetMetric: 'recall',
+  k: 10
+};
+
+// Default benchmark configuration for reproducible runs
+export const DEFAULT_BENCHMARK_CONFIG: BenchmarkConfig = {
+  seed: 42,                     // Fixed seed for reproducibility
+  datasetSize: 10000,
+  dimensions: 128,
+  queryCount: 100,
+  runs: 5,                      // 5 repeated runs to measure variance
+  workloadFingerprint: DEFAULT_FAISS_FINGERPRINT
+};
 
 export const INITIAL_LAWS: Law[] = [
   {
@@ -8,14 +27,36 @@ export const INITIAL_LAWS: Law[] = [
     domain: 'faiss',
     description: 'HNSW M > 32 yields diminishing recall returns',
     confidence: 0.85,
-    discoveredAt: 1
+    discoveredAt: 1,
+    version: 1,
+    status: 'validated',
+    scopeSignature: DEFAULT_FAISS_FINGERPRINT,
+    trialResults: [
+      { trialId: 't001', generation: 1, success: true, observedValue: 0.92, expectedRange: [0.85, 0.95] }
+    ],
+    counterexamples: [],
+    lastValidatedAt: 1
   },
   {
     id: 'law-002',
     domain: 'postgres',
     description: 'work_mem correlates linearly with hash_agg performance',
     confidence: 0.92,
-    discoveredAt: 3
+    discoveredAt: 3,
+    version: 1,
+    status: 'validated',
+    scopeSignature: {
+      datasetSize: 100000,
+      dimensions: 1,
+      queryPattern: 'sequential',
+      targetMetric: 'latency',
+      k: 1
+    },
+    trialResults: [
+      { trialId: 't002', generation: 3, success: true, observedValue: 0.88, expectedRange: [0.80, 0.95] }
+    ],
+    counterexamples: [],
+    lastValidatedAt: 3
   }
 ];
 

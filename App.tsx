@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { SOSGenome, Law, SimulationLog, ChartDataPoint, CrossDomainInsight } from './types';
-import { DOMAINS, INITIAL_LAWS } from './constants';
+import { SOSGenome, Law, SimulationLog, ChartDataPoint, CrossDomainInsight, BenchmarkRunResult, TransferABTestResult } from './types';
+import { DOMAINS, INITIAL_LAWS, DEFAULT_BENCHMARK_CONFIG, DEFAULT_FAISS_FINGERPRINT } from './constants';
 import ArchitectureDiagram from './components/ArchitectureDiagram';
 import Terminal from './components/Terminal';
 import GenomeCard from './components/GenomeCard';
@@ -9,15 +9,25 @@ import LawList from './components/LawList';
 import CrossDomainPanel from './components/CrossDomainPanel';
 import ExportModal from './components/ExportModal';
 import SearchSpaceViz from './components/SearchSpaceViz';
-import ControlPanel from './components/ControlPanel'; // New Import
-import { Play, Pause, RefreshCw, Trophy, Download, Activity, Cpu, Wifi, WifiOff } from 'lucide-react';
+import ControlPanel from './components/ControlPanel';
+import BenchmarkPanel from './components/BenchmarkPanel';
+import { Play, Pause, RefreshCw, Trophy, Download, Activity, Cpu, Wifi, WifiOff, Gauge } from 'lucide-react';
 import { generateSimulatedInsight, generateDiscoveredLaw, generateCrossDomainInsight } from './services/ai';
 import { wsService, SOSEvent } from './services/websocket';
+import { 
+  initBenchmark, 
+  runBenchmarkIteration, 
+  validateLaw, 
+  createCounterexample, 
+  updateLawConfidence, 
+  determineLawStatus,
+  runTransferABTest 
+} from './services/benchmark';
 
 // Utility for random ID
 const generateId = () => Math.random().toString(36).substring(2, 8);
 
-type PanelTab = 'blueprint' | 'kernel';
+type PanelTab = 'blueprint' | 'kernel' | 'benchmark';
 
 // Initial "Physics"
 const INITIAL_BIAS: Record<string, { targetAlpha: number, preferredStrategy: string }> = {
@@ -69,6 +79,11 @@ const App: React.FC = () => {
 
   const [globalMutationRate, setGlobalMutationRate] = useState(0.05);
 
+  // Benchmark State
+  const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkRunResult[]>([]);
+  const [abTestResults, setAbTestResults] = useState<TransferABTestResult[]>([]);
+  const [benchmarkConfig] = useState(DEFAULT_BENCHMARK_CONFIG);
+
   // History State
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [laws, setLaws] = useState<Law[]>(INITIAL_LAWS);
@@ -76,11 +91,17 @@ const App: React.FC = () => {
   const [logs, setLogs] = useState<SimulationLog[]>([
     { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'SOS Tournament Mode Initialized.' },
     { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'info', message: '4 Parallel evolutionary channels active.' },
+    { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'info', message: `Benchmark seed locked: ${DEFAULT_BENCHMARK_CONFIG.seed}` },
   ]);
 
   // Refs
   const intervalRef = useRef<number | null>(null);
   const isFetchingAI = useRef(false);
+
+  // Initialize benchmark with deterministic seed on mount
+  useEffect(() => {
+    initBenchmark(benchmarkConfig.seed);
+  }, [benchmarkConfig.seed]);
 
   // --- WebSocket Integration ---
   
@@ -329,13 +350,28 @@ const App: React.FC = () => {
     return newGenome;
   }, [globalMutationRate, domainBias]);
 
-  // Cross-Pollination
+  // Cross-Pollination with A/B Test
   const performCrossPollination = useCallback(async (currentGenomes: Record<string, SOSGenome>) => {
      const sorted = Object.values(currentGenomes).sort((a, b) => b.fitness - a.fitness);
      const best = sorted[0];
      const worst = sorted[sorted.length - 1];
 
      if (best.domain !== worst.domain && (best.fitness - worst.fitness > 0.15)) {
+         // Run A/B test before transfer to measure impact
+         const abResult = runTransferABTest(best, worst);
+         setAbTestResults(prev => {
+           const newResults = [...prev, abResult];
+           // Keep last 10 A/B test results
+           return newResults.length > 10 ? newResults.slice(newResults.length - 10) : newResults;
+         });
+         
+         // Log A/B test result
+         if (abResult.isNetPositive) {
+           addLog(`[A/B TEST] ${best.domain} → ${worst.domain}: NET POSITIVE (+${abResult.improvement.timeToThreshold.toFixed(1)}% time, +${abResult.improvement.bestAchieved.toFixed(1)}% fitness)`, 'success');
+         } else {
+           addLog(`[A/B TEST] ${best.domain} → ${worst.domain}: NET NEGATIVE (transfer may not help)`, 'warning');
+         }
+         
          const newWorst = { 
              ...worst, 
              sampleStrategy: best.sampleStrategy,
@@ -392,6 +428,55 @@ const App: React.FC = () => {
     if (isRunning && generation > 0 && generation % 15 === 0) performCrossPollination(genomes);
   }, [generation, isRunning]); 
 
+  // Run benchmark at intervals to collect metrics with variance
+  useEffect(() => {
+    if (!isRunning || generation === 0) return;
+    
+    // Run benchmark every 10 generations for FAISS domain
+    if (generation % 10 === 0) {
+      const faissGenome = genomes['faiss'];
+      const result = runBenchmarkIteration(faissGenome, benchmarkConfig, benchmarkResults.length);
+      setBenchmarkResults(prev => {
+        const newResults = [...prev, result];
+        // Keep last 20 results
+        return newResults.length > 20 ? newResults.slice(newResults.length - 20) : newResults;
+      });
+      addLog(`[BENCHMARK] Recall@${benchmarkConfig.workloadFingerprint.k}: ${result.metrics.recall.toFixed(3)} (±${Math.sqrt(result.variance.recall).toFixed(3)})`, 'info');
+    }
+    
+    // Validate laws against benchmark results every 20 generations
+    if (generation % 20 === 0 && benchmarkResults.length > 0) {
+      const latestBenchmark = benchmarkResults[benchmarkResults.length - 1];
+      setLaws(prev => prev.map(law => {
+        if (law.domain === 'faiss') {
+          const trialResult = validateLaw(law, genomes['faiss'], latestBenchmark);
+          const updatedTrials = [...(law.trialResults || []), trialResult];
+          
+          let updatedCounterexamples = law.counterexamples || [];
+          if (!trialResult.success) {
+            const counterexample = createCounterexample(law, genomes['faiss'], trialResult, DEFAULT_FAISS_FINGERPRINT);
+            updatedCounterexamples = [...updatedCounterexamples, counterexample];
+            addLog(`[LAW] Counterexample found for "${law.description.substring(0, 30)}..."`, 'warning');
+          }
+          
+          const updatedLaw = {
+            ...law,
+            trialResults: updatedTrials.slice(-10), // Keep last 10 trials
+            counterexamples: updatedCounterexamples.slice(-5), // Keep last 5 counterexamples
+            lastValidatedAt: generation
+          };
+          
+          return {
+            ...updatedLaw,
+            confidence: updateLawConfidence(updatedLaw),
+            status: determineLawStatus(updatedLaw)
+          };
+        }
+        return law;
+      }));
+    }
+  }, [generation, isRunning, genomes, benchmarkResults, benchmarkConfig]);
+
   useEffect(() => {
     if (!isRunning) return;
     if (generation > 0 && generation % 30 === 0 && !isFetchingAI.current) {
@@ -405,12 +490,25 @@ const App: React.FC = () => {
     if (generation > 0 && generation % 45 === 0) {
          const randomDomain = DOMAINS[Math.floor(Math.random() * DOMAINS.length)];
          generateDiscoveredLaw(genomes[randomDomain]).then(law => {
+             // Create new law with falsifiable properties
              const newLaw: Law = {
-                 id: generateId(),
+                 id: `law-${generateId()}`,
                  domain: randomDomain,
                  description: law.description,
                  confidence: law.confidence,
-                 discoveredAt: generation
+                 discoveredAt: generation,
+                 version: 1,
+                 status: 'hypothesis',
+                 scopeSignature: randomDomain === 'faiss' ? DEFAULT_FAISS_FINGERPRINT : {
+                   datasetSize: 10000,
+                   dimensions: 128,
+                   queryPattern: 'random',
+                   targetMetric: 'latency',
+                   k: 10
+                 },
+                 trialResults: [],
+                 counterexamples: [],
+                 lastValidatedAt: generation
              };
              setLaws(prev => [...prev, newLaw]);
              addLog(`Universal Law Candidate: ${law.description}`, 'success');
@@ -447,8 +545,12 @@ const App: React.FC = () => {
     setGeneration(0);
     setChartData([]);
     setCrossInsights([]);
+    setBenchmarkResults([]);
+    setAbTestResults([]);
     setGlobalMutationRate(0.05);
     setDomainBias(INITIAL_BIAS); // Reset Physics
+    // Re-initialize benchmark with same seed for reproducibility
+    initBenchmark(benchmarkConfig.seed);
     const initial: Record<string, SOSGenome> = {};
     DOMAINS.forEach(d => {
       initial[d] = {
@@ -463,7 +565,11 @@ const App: React.FC = () => {
       };
     });
     setGenomes(initial);
-    setLogs([{ id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'Tournament Reset.' }]);
+    setLaws(INITIAL_LAWS); // Reset laws to initial state
+    setLogs([
+      { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'Tournament Reset.' },
+      { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'info', message: `Benchmark seed re-locked: ${benchmarkConfig.seed}` }
+    ]);
   };
 
   // Toggle simulation running state
@@ -547,7 +653,7 @@ const App: React.FC = () => {
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-140px)]">
         
-        {/* Col 1: System View (Diagram or Kernel Viz) */}
+        {/* Col 1: System View (Diagram or Kernel Viz or Benchmark) */}
         <div className="lg:col-span-1 flex flex-col gap-4 overflow-y-auto pr-2">
             
             <div className="flex p-1 bg-slate-900 rounded-lg border border-slate-800">
@@ -563,16 +669,28 @@ const App: React.FC = () => {
                 >
                     <Cpu size={12} /> Kernel
                 </button>
+                <button 
+                    onClick={() => setActiveTab('benchmark')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-bold rounded transition-all ${activeTab === 'benchmark' ? 'bg-cyan-900/30 text-cyan-400 shadow' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                    <Gauge size={12} /> Bench
+                </button>
             </div>
 
             <div className="min-h-[250px]">
                 {activeTab === 'blueprint' ? (
                     <ArchitectureDiagram />
-                ) : (
+                ) : activeTab === 'kernel' ? (
                     <SearchSpaceViz 
                         genome={genomes[leaderKey]} 
                         isRunning={isRunning} 
                         target={vizTargets[leaderKey]} // Dynamic Target
+                    />
+                ) : (
+                    <BenchmarkPanel 
+                        results={benchmarkResults}
+                        config={benchmarkConfig}
+                        isRunning={isRunning}
                     />
                 )}
             </div>
@@ -615,7 +733,11 @@ const App: React.FC = () => {
 
         {/* Col 4: Cross Domain Intelligence */}
         <div className="lg:col-span-1 flex flex-col gap-6">
-            <CrossDomainPanel insights={crossInsights} mutationRate={globalMutationRate} />
+            <CrossDomainPanel 
+              insights={crossInsights} 
+              mutationRate={globalMutationRate} 
+              abTestResults={abTestResults}
+            />
         </div>
 
       </div>
