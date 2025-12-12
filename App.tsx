@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { SOSGenome, Law, SimulationLog, ChartDataPoint, CrossDomainInsight, BenchmarkRunResult, TransferABTestResult } from './types';
+import { SOSGenome, Law, SimulationLog, ChartDataPoint, CrossDomainInsight, BenchmarkRunResult, TransferABTestResult, FailureBoundary, FailureForecast, SystemState, ProposedChange } from './types';
 import { DOMAINS, INITIAL_LAWS, DEFAULT_BENCHMARK_CONFIG, DEFAULT_FAISS_FINGERPRINT } from './constants';
 import ArchitectureDiagram from './components/ArchitectureDiagram';
 import Terminal from './components/Terminal';
@@ -11,7 +11,8 @@ import ExportModal from './components/ExportModal';
 import SearchSpaceViz from './components/SearchSpaceViz';
 import ControlPanel from './components/ControlPanel';
 import BenchmarkPanel from './components/BenchmarkPanel';
-import { Play, Pause, RefreshCw, FlaskConical, Download, Activity, Cpu, Wifi, WifiOff, Gauge } from 'lucide-react';
+import EarlyWarningPanel from './components/EarlyWarningPanel';
+import { Play, Pause, RefreshCw, FlaskConical, Download, Activity, Cpu, Wifi, WifiOff, Gauge, AlertTriangle } from 'lucide-react';
 import { generateSimulatedInsight, generateDiscoveredLaw, generateCrossDomainInsight } from './services/ai';
 import { wsService, SOSEvent } from './services/websocket';
 import { 
@@ -23,11 +24,12 @@ import {
   determineLawStatus,
   runTransferABTest 
 } from './services/benchmark';
+import { predictFailure, findNearestBoundary } from './services/forecast';
 
 // Utility for random ID
 const generateId = () => Math.random().toString(36).substring(2, 8);
 
-type PanelTab = 'blueprint' | 'kernel' | 'benchmark';
+type PanelTab = 'blueprint' | 'kernel' | 'benchmark' | 'warning';
 
 // Initial "Physics"
 const INITIAL_BIAS: Record<string, { targetAlpha: number, preferredStrategy: string }> = {
@@ -83,6 +85,11 @@ const App: React.FC = () => {
   const [benchmarkResults, setBenchmarkResults] = useState<BenchmarkRunResult[]>([]);
   const [abTestResults, setAbTestResults] = useState<TransferABTestResult[]>([]);
   const [benchmarkConfig] = useState(DEFAULT_BENCHMARK_CONFIG);
+
+  // Phase III: Failure Forecasting State
+  const [failureBoundaries, setFailureBoundaries] = useState<FailureBoundary[]>([]);
+  const [currentForecast, setCurrentForecast] = useState<FailureForecast | null>(null);
+  const [currentSystemState, setCurrentSystemState] = useState<SystemState | null>(null);
 
   // History State
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
@@ -517,6 +524,96 @@ const App: React.FC = () => {
     }
   }, [generation, isRunning, genomes]); 
 
+  // Phase III: Update failure forecasts every 5 generations
+  useEffect(() => {
+    if (!isRunning || generation === 0) return;
+    
+    // Update system state and generate forecasts every 5 generations
+    if (generation % 5 === 0) {
+      const leaderDomain = Object.keys(genomes).reduce((a, b) => 
+        genomes[a].fitness > genomes[b].fitness ? a : b
+      );
+      const genome = genomes[leaderDomain];
+      
+      // Calculate recent fitness variance
+      const recentFitnesses = chartData.slice(-10).map(p => p[leaderDomain] as number || 0);
+      const avgFitness = recentFitnesses.reduce((s, f) => s + f, 0) / Math.max(recentFitnesses.length, 1);
+      const recentVariance = recentFitnesses.reduce((s, f) => s + Math.pow(f - avgFitness, 2), 0) / Math.max(recentFitnesses.length, 1);
+      
+      // Create system state
+      const systemState: SystemState = {
+        domain: leaderDomain,
+        currentAlpha: genome.alpha,
+        currentFitness: genome.fitness,
+        currentStrategy: genome.sampleStrategy,
+        generation,
+        recentVariance,
+        proximityToBoundary: 0.5 // Will be updated by findNearestBoundary
+      };
+      
+      setCurrentSystemState(systemState);
+      
+      // Create proposed change (next mutation)
+      const proposedChange: ProposedChange = {
+        parameterName: 'alpha',
+        currentValue: genome.alpha,
+        proposedValue: genome.alpha + (Math.random() - 0.5) * 0.5, // Simulated mutation
+        changeType: 'mutation'
+      };
+      
+      // Generate forecast if we have boundaries
+      if (failureBoundaries.length > 0) {
+        const forecast = predictFailure(systemState, proposedChange, failureBoundaries);
+        setCurrentForecast(forecast);
+        
+        // Log warnings for yellow and red zones
+        if (forecast.riskLevel === 'red') {
+          addLog(`[FORECAST] 🔴 RED ZONE: ${forecast.warningReason.substring(0, 80)}...`, 'warning');
+        } else if (forecast.riskLevel === 'yellow') {
+          addLog(`[FORECAST] 🟡 YELLOW ZONE: ${forecast.warningReason.substring(0, 80)}...`, 'info');
+        }
+      }
+      
+      // Add implicit boundaries based on observed behavior
+      // Detect sharp fitness drops as potential boundaries
+      if (chartData.length >= 2) {
+        const lastTwo = chartData.slice(-2);
+        const prevFitness = lastTwo[0][leaderDomain] as number || 0;
+        const currFitness = lastTwo[1][leaderDomain] as number || genome.fitness;
+        const fitnessDelta = prevFitness - currFitness;
+        
+        if (fitnessDelta > 0.1) { // Sharp drop detected
+          const newBoundary: FailureBoundary = {
+            id: `fb-observed-${generation}`,
+            domain: leaderDomain,
+            parameter: 'alpha',
+            parameterRange: [Math.max(1, genome.alpha - 0.5), Math.min(6, genome.alpha + 0.5)],
+            criticalValue: genome.alpha,
+            abruptnessScore: Math.min(1, fitnessDelta * 3),
+            historicalDropDepth: fitnessDelta,
+            recoverySlope: 0.02,
+            confidence: 0.6,
+            observedCrossings: 1,
+            lawsAtRisk: []
+          };
+          
+          // Add if not already tracking this region
+          setFailureBoundaries(prev => {
+            const exists = prev.some(b => 
+              b.domain === leaderDomain && 
+              Math.abs(b.criticalValue - newBoundary.criticalValue) < 0.2
+            );
+            if (!exists && prev.length < 20) { // Limit stored boundaries
+              addLog(`[BOUNDARY] New failure boundary detected at ${leaderDomain} alpha=${genome.alpha.toFixed(2)}`, 'warning');
+              return [...prev, newBoundary];
+            }
+            return prev;
+          });
+        }
+      }
+    }
+  }, [generation, isRunning, genomes, chartData, failureBoundaries]);
+
   useEffect(() => {
     // Skip local simulation if in live mode - backend handles it
     if (isLiveMode && isConnected) {
@@ -548,6 +645,9 @@ const App: React.FC = () => {
     setCrossInsights([]);
     setBenchmarkResults([]);
     setAbTestResults([]);
+    setFailureBoundaries([]); // Reset Phase III state
+    setCurrentForecast(null);
+    setCurrentSystemState(null);
     setGlobalMutationRate(0.05);
     setDomainBias(INITIAL_BIAS); // Reset Physics
     // Re-initialize benchmark with same seed for reproducibility
@@ -676,6 +776,24 @@ const App: React.FC = () => {
                 >
                     <Gauge size={12} /> Bench
                 </button>
+                <button 
+                    onClick={() => setActiveTab('warning')}
+                    className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-bold rounded transition-all ${
+                      activeTab === 'warning' 
+                        ? currentForecast?.riskLevel === 'red' 
+                          ? 'bg-red-900/30 text-red-400 shadow' 
+                          : currentForecast?.riskLevel === 'yellow'
+                          ? 'bg-amber-900/30 text-amber-400 shadow'
+                          : 'bg-emerald-900/30 text-emerald-400 shadow'
+                        : currentForecast?.riskLevel === 'red'
+                        ? 'text-red-400 animate-pulse'
+                        : currentForecast?.riskLevel === 'yellow'
+                        ? 'text-amber-400'
+                        : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                >
+                    <AlertTriangle size={12} /> Warn
+                </button>
             </div>
 
             <div className="min-h-[250px]">
@@ -686,6 +804,13 @@ const App: React.FC = () => {
                         genome={genomes[leaderKey]} 
                         isRunning={isRunning} 
                         target={vizTargets[leaderKey]} // Dynamic Target
+                    />
+                ) : activeTab === 'warning' ? (
+                    <EarlyWarningPanel 
+                        forecast={currentForecast}
+                        boundaries={failureBoundaries}
+                        systemState={currentSystemState}
+                        isRunning={isRunning}
                     />
                 ) : (
                     <BenchmarkPanel 
