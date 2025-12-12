@@ -30,3 +30,9 @@ venv
 *.njsproj
 *.sln
 *.sw?
+
+# Results (keep only reports and summaries)
+results/**/gen_log.jsonl
+results/**/*.tmp
+!/results/**/*.md
+!/results/**/*.json

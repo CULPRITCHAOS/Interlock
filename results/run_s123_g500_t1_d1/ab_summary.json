@@ -1,0 +1,452 @@
+{
+  "runId": "results/run_s123_g500_t1_d1",
+  "seed": 123,
+  "transferEnabled": true,
+  "totalTests": 19,
+  "netPositiveCount": 8,
+  "netPositiveRate": 0.42105263157894735,
+  "avgImprovements": {
+    "timeToThreshold": 26.31578947368421,
+    "bestAchieved": 5.112756686420583,
+    "regret": 75.57765393590682
+  },
+  "testResults": [
+    {
+      "id": "abtest-15-sfyunf",
+      "sourceDomain": "postgres",
+      "targetDomain": "prompts",
+      "baselineMetrics": {
+        "timeToThreshold": 16,
+        "bestAchieved": 0.8665287126509956,
+        "regret": 10.387947890227283
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 2.243917076785951
+      },
+      "improvement": {
+        "timeToThreshold": 100,
+        "bestAchieved": 9.632835719157912,
+        "regret": 78.398841614358
+      },
+      "isNetPositive": true,
+      "confidence": 0.99,
+      "completedAt": 15
+    },
+    {
+      "id": "abtest-30-68gmze",
+      "sourceDomain": "postgres",
+      "targetDomain": "prompts",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.899264249619266,
+        "regret": 7.646188913528443
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.3426461469308806
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 5.641917868103249,
+        "regret": 82.44032207266905
+      },
+      "isNetPositive": true,
+      "confidence": 0.793607466469241,
+      "completedAt": 30
+    },
+    {
+      "id": "abtest-45-i3m64w",
+      "sourceDomain": "postgres",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.8190173983130666
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.9357436031136824
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 75.49779156473552
+      },
+      "isNetPositive": false,
+      "confidence": 0.7516593052157851,
+      "completedAt": 45
+    },
+    {
+      "id": "abtest-60-jyhw9q",
+      "sourceDomain": "postgres",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.105432545999627
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.2774836357223847
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 58.86294045034014
+      },
+      "isNetPositive": false,
+      "confidence": 0.6962098015011338,
+      "completedAt": 60
+    },
+    {
+      "id": "abtest-90-xy6rgc",
+      "sourceDomain": "prompts",
+      "targetDomain": "postgres",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 2.684598481460598
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.37604549441430757
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 85.99248651106612
+      },
+      "isNetPositive": false,
+      "confidence": 0.7866416217035537,
+      "completedAt": 90
+    },
+    {
+      "id": "abtest-105-pd3l6v",
+      "sourceDomain": "compression",
+      "targetDomain": "prompts",
+      "baselineMetrics": {
+        "timeToThreshold": 32,
+        "bestAchieved": 0.764227787063883,
+        "regret": 13.671693956101011
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.005318685175016
+      },
+      "improvement": {
+        "timeToThreshold": 100,
+        "bestAchieved": 24.308487087317598,
+        "regret": 78.01794938633856
+      },
+      "isNetPositive": true,
+      "confidence": 0.99,
+      "completedAt": 105
+    },
+    {
+      "id": "abtest-165-wz9ph0",
+      "sourceDomain": "prompts",
+      "targetDomain": "compression",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 4.212964379109435
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.8089184817962776
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 80.79930402907246
+      },
+      "isNetPositive": false,
+      "confidence": 0.7693310134302416,
+      "completedAt": 165
+    },
+    {
+      "id": "abtest-180-6j7i07",
+      "sourceDomain": "postgres",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.8693731206044871,
+        "regret": 7.435518709454128
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.5585031397347526
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 9.274139892828966,
+        "regret": 79.03975229390326
+      },
+      "isNetPositive": true,
+      "confidence": 0.7943796406224408,
+      "completedAt": 180
+    },
+    {
+      "id": "abtest-195-zyyiaf",
+      "sourceDomain": "compression",
+      "targetDomain": "postgres",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 4.656547665068198
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.6679847079824317
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 85.65493674652102
+      },
+      "isNetPositive": false,
+      "confidence": 0.7855164558217367,
+      "completedAt": 195
+    },
+    {
+      "id": "abtest-240-6opjn3",
+      "sourceDomain": "prompts",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.6906219214938765
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.2118038232314983
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 67.16532202407261
+      },
+      "isNetPositive": false,
+      "confidence": 0.7238844067469087,
+      "completedAt": 240
+    },
+    {
+      "id": "abtest-255-uwmad1",
+      "sourceDomain": "postgres",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 4.870922069405838
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.8290567929559012
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 82.97946916122534
+      },
+      "isNetPositive": false,
+      "confidence": 0.7765982305374177,
+      "completedAt": 255
+    },
+    {
+      "id": "abtest-285-ec4fnp",
+      "sourceDomain": "faiss",
+      "targetDomain": "postgres",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 2.334541748484872
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.2757121695260332
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 45.35492156634269
+      },
+      "isNetPositive": false,
+      "confidence": 0.651183071887809,
+      "completedAt": 285
+    },
+    {
+      "id": "abtest-345-x0299z",
+      "sourceDomain": "prompts",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.4524999205593727
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.0123515569651405
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 70.67772396063894
+      },
+      "isNetPositive": false,
+      "confidence": 0.7355924132021298,
+      "completedAt": 345
+    },
+    {
+      "id": "abtest-390-ckh4xg",
+      "sourceDomain": "postgres",
+      "targetDomain": "prompts",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 4.036795673808998
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.7587301256249323
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 81.20464380826544
+      },
+      "isNetPositive": false,
+      "confidence": 0.7706821460275515,
+      "completedAt": 390
+    },
+    {
+      "id": "abtest-405-i8sarg",
+      "sourceDomain": "faiss",
+      "targetDomain": "postgres",
+      "baselineMetrics": {
+        "timeToThreshold": 12,
+        "bestAchieved": 0.8249514951465503,
+        "regret": 10.444561542618898
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 2.135937571386943
+      },
+      "improvement": {
+        "timeToThreshold": 100,
+        "bestAchieved": 15.158285740331332,
+        "regret": 79.54976316936543
+      },
+      "isNetPositive": true,
+      "confidence": 0.99,
+      "completedAt": 405
+    },
+    {
+      "id": "abtest-435-sgkakn",
+      "sourceDomain": "postgres",
+      "targetDomain": "prompts",
+      "baselineMetrics": {
+        "timeToThreshold": 4,
+        "bestAchieved": 0.9121961254720355,
+        "regret": 8.059014208489648
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 2.0781461069417677
+      },
+      "improvement": {
+        "timeToThreshold": 100,
+        "bestAchieved": 4.144270455917797,
+        "regret": 74.2133956687584
+      },
+      "isNetPositive": true,
+      "confidence": 0.99,
+      "completedAt": 435
+    },
+    {
+      "id": "abtest-465-olz13f",
+      "sourceDomain": "postgres",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.7930910262399409,
+        "regret": 9.77421569432512
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.2357297895393509
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 19.78448482817507,
+        "regret": 87.35724862040018
+      },
+      "isNetPositive": true,
+      "confidence": 0.8571391114952508,
+      "completedAt": 465
+    },
+    {
+      "id": "abtest-480-sbwah4",
+      "sourceDomain": "compression",
+      "targetDomain": "postgres",
+      "baselineMetrics": {
+        "timeToThreshold": 4,
+        "bestAchieved": 0.8699796585785027,
+        "regret": 9.031937262659445
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.8281193622089886
+      },
+      "improvement": {
+        "timeToThreshold": 100,
+        "bestAchieved": 9.19795545015914,
+        "regret": 79.75938816839499
+      },
+      "isNetPositive": true,
+      "confidence": 0.99,
+      "completedAt": 480
+    },
+    {
+      "id": "abtest-495-gtzjcy",
+      "sourceDomain": "faiss",
+      "targetDomain": "compression",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 2.7984399297289966
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.0351646468587545
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 63.00922396576149
+      },
+      "isNetPositive": false,
+      "confidence": 0.7100307465525383,
+      "completedAt": 495
+    }
+  ]
+}

@@ -1,0 +1,383 @@
+{
+  "runId": "results/run_s123_g500_t1_d0",
+  "seed": 123,
+  "transferEnabled": true,
+  "totalTests": 16,
+  "netPositiveCount": 4,
+  "netPositiveRate": 0.25,
+  "avgImprovements": {
+    "timeToThreshold": 6.25,
+    "bestAchieved": 1.2156550371799353,
+    "regret": 79.77087608890785
+  },
+  "testResults": [
+    {
+      "id": "abtest-15-o82ibj",
+      "sourceDomain": "postgres",
+      "targetDomain": "prompts",
+      "baselineMetrics": {
+        "timeToThreshold": 16,
+        "bestAchieved": 0.8665287126509956,
+        "regret": 10.387947890227283
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 2.243917076785951
+      },
+      "improvement": {
+        "timeToThreshold": 100,
+        "bestAchieved": 9.632835719157912,
+        "regret": 78.398841614358
+      },
+      "isNetPositive": true,
+      "confidence": 0.99,
+      "completedAt": 15
+    },
+    {
+      "id": "abtest-30-6mkhms",
+      "sourceDomain": "postgres",
+      "targetDomain": "prompts",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.899264249619266,
+        "regret": 7.646188913528443
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.3426461469308806
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 5.641917868103249,
+        "regret": 82.44032207266905
+      },
+      "isNetPositive": true,
+      "confidence": 0.793607466469241,
+      "completedAt": 30
+    },
+    {
+      "id": "abtest-45-p65qon",
+      "sourceDomain": "postgres",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.8190173983130666
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.9357436031136824
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 75.49779156473552
+      },
+      "isNetPositive": false,
+      "confidence": 0.7516593052157851,
+      "completedAt": 45
+    },
+    {
+      "id": "abtest-60-1b2j46",
+      "sourceDomain": "postgres",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.105432545999627
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.2774836357223847
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 58.86294045034014
+      },
+      "isNetPositive": false,
+      "confidence": 0.6962098015011338,
+      "completedAt": 60
+    },
+    {
+      "id": "abtest-90-sb4omh",
+      "sourceDomain": "prompts",
+      "targetDomain": "postgres",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 2.684598481460598
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.37604549441430757
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 85.99248651106612
+      },
+      "isNetPositive": false,
+      "confidence": 0.7866416217035537,
+      "completedAt": 90
+    },
+    {
+      "id": "abtest-105-8t0xbz",
+      "sourceDomain": "prompts",
+      "targetDomain": "postgres",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.5267723423899113
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.9709752684451948
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 72.46844496383866
+      },
+      "isNetPositive": false,
+      "confidence": 0.7415614832127956,
+      "completedAt": 105
+    },
+    {
+      "id": "abtest-120-ryzn2l",
+      "sourceDomain": "prompts",
+      "targetDomain": "compression",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.9495829835779199,
+        "regret": 4.051027705794372
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.0816338298368213
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.04391574294104974,
+        "regret": 73.29976716057234
+      },
+      "isNetPositive": true,
+      "confidence": 0.7444789430117114,
+      "completedAt": 120
+    },
+    {
+      "id": "abtest-225-3jh6li",
+      "sourceDomain": "compression",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.2402715966648614
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.6764279824382236
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 79.12434306017879
+      },
+      "isNetPositive": false,
+      "confidence": 0.7637478102005959,
+      "completedAt": 225
+    },
+    {
+      "id": "abtest-240-n5lmbl",
+      "sourceDomain": "prompts",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 2.930352179601736
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.33093064370844105
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 88.7067961997176
+      },
+      "isNetPositive": false,
+      "confidence": 0.7956893206657254,
+      "completedAt": 240
+    },
+    {
+      "id": "abtest-255-ql5fuf",
+      "sourceDomain": "compression",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 4.108357524471404
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.33228021277181696
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 91.91209112662196
+      },
+      "isNetPositive": false,
+      "confidence": 0.8063736370887399,
+      "completedAt": 255
+    },
+    {
+      "id": "abtest-270-oq5g8t",
+      "sourceDomain": "prompts",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 2.8165960244056536
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.3576683679203094
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 87.301396266233
+      },
+      "isNetPositive": false,
+      "confidence": 0.7910046542207767,
+      "completedAt": 270
+    },
+    {
+      "id": "abtest-300-jhacc5",
+      "sourceDomain": "postgres",
+      "targetDomain": "prompts",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 2.2303743206418756
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.3323264008719483
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 85.09997188380879
+      },
+      "isNetPositive": false,
+      "confidence": 0.7836665729460293,
+      "completedAt": 300
+    },
+    {
+      "id": "abtest-345-v3ps26",
+      "sourceDomain": "prompts",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.6797999393575402
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.6594080915696297
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 82.08032766898855
+      },
+      "isNetPositive": false,
+      "confidence": 0.7736010922299619,
+      "completedAt": 345
+    },
+    {
+      "id": "abtest-450-1cbmba",
+      "sourceDomain": "compression",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.4131271329719177
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.7634052731228651
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 77.63325995834958
+      },
+      "isNetPositive": false,
+      "confidence": 0.7587775331944986,
+      "completedAt": 450
+    },
+    {
+      "id": "abtest-465-emik1c",
+      "sourceDomain": "compression",
+      "targetDomain": "faiss",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.9123052681618492,
+        "regret": 5.164919598912303
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 1.5004925224669532
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 4.131811264676754,
+        "regret": 70.94838566735973
+      },
+      "isNetPositive": true,
+      "confidence": 0.7502673231067882,
+      "completedAt": 465
+    },
+    {
+      "id": "abtest-495-7uzynj",
+      "sourceDomain": "compression",
+      "targetDomain": "prompts",
+      "baselineMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 3.2439015835234994
+      },
+      "transferMetrics": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0.95,
+        "regret": 0.4357581248986845
+      },
+      "improvement": {
+        "timeToThreshold": 0,
+        "bestAchieved": 0,
+        "regret": 86.56685125368793
+      },
+      "isNetPositive": false,
+      "confidence": 0.7885561708456263,
+      "completedAt": 495
+    }
+  ]
+}
