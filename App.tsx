@@ -500,6 +500,7 @@ const App: React.FC = () => {
                  version: 1,
                  status: 'hypothesis',
                  scopeSignature: randomDomain === 'faiss' ? DEFAULT_FAISS_FINGERPRINT : {
+                   domain: randomDomain,
                    datasetSize: 10000,
                    dimensions: 128,
                    queryPattern: 'random',
@@ -601,7 +602,7 @@ const App: React.FC = () => {
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-blue-500">
                 LawForge
             </h1>
-            <p className="text-slate-500 text-xs mt-0.5 font-mono">Optimization Law Laboratory • Gen {generation}</p>
+            <p className="text-slate-500 text-xs mt-0.5 font-mono">Optimization Microscope • Gen {generation}</p>
           </div>
         </div>
 

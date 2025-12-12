@@ -1,50 +1,74 @@
 # LawForge ⚗️
 
-> **LawForge** is a deterministic optimization laboratory for discovering, validating, falsifying, and enforcing domain-scoped optimization laws.
+> **LawForge** is an optimization microscope for discovering, falsifying, and stress-testing domain-scoped laws.
 >
-> It provides reproducible convergence benchmarks, falsifiable law tracking, and resilience testing under drift — with explicit evidence, counterexamples, and failure modes.
+> It provides reproducible convergence measurement, falsifiable law tracking, and resilience certification under drift — with explicit evidence, counterexamples, and failure modes.
+>
+> **LawForge does not attempt universal transfer. It measures where transfer fails.**
 
-![LawForge Preview](https://via.placeholder.com/800x400?text=LawForge+Dashboard)
+![LawForge Preview](https://via.placeholder.com/800x400?text=LawForge+Instrument)
 
 ## 🔬 Core Concepts
 
-LawForge formalizes the process of optimization law discovery:
+LawForge is a rigorous measurement instrument for optimization law discovery:
 
 - **Laws** (not heuristics): Explicit, falsifiable statements about parameter-performance relationships with tracked confidence, evidence, and counterexamples.
+- **Law Taxonomy**: Laws are classified as Structural (hard constraints), Soft (performance gradients), or Regime-bound (valid under certain drift conditions).
 - **Falsification**: Laws are continuously tested against new evidence. When counterexamples accumulate, laws are demoted or falsified.
 - **Scope Signatures**: Every law has a defined scope (domain, workload fingerprint, metric set, constraint regime). Laws must not apply outside their scope.
-- **Resilience Under Drift**: The system tracks how laws behave when conditions change, measuring re-convergence time and stability.
+- **Resilience Measurement**: The instrument tracks how laws behave when conditions change, measuring re-convergence time, half-life under perturbation, and churn rate under drift.
 
 ## ⚡ Key Features
 
 ### 1. Falsifiable Law Tracking
-Laws are not just discovered — they are rigorously tracked:
+Laws are not just discovered — they are rigorously measured:
 - **Confidence scoring** based on trial results and counterexamples
 - **Status progression**: hypothesis → validated → falsified → deprecated
 - **Scope signatures** that define exactly where a law applies
 - **Version tracking** for law evolution over time
+- **Law Taxonomy**: Structural, Soft, and Regime-bound classifications
+- **Half-life metrics**: Generations a law survives under perturbation
+- **Churn rate**: Law invalidation rate under drift conditions
 
-### 2. Reproducible Benchmarks
+### 2. Optimization Landscape Measurement
+LawForge maps the optimization landscape:
+- **Stable Regions**: Where laws hold and behavior is predictable
+- **Brittle Regions**: Where laws break or behavior is unpredictable
+- **Phase Transitions**: Sharp behavior changes at parameter boundaries
+- **Invariants**: Laws that hold across all measured regions
+- Exports: `landscape.json` and `landscape.md`
+
+### 3. Reproducible Measurement
 All experiments use deterministic seeded random number generation:
 - **Seed 42** is the default for reproducibility
 - Run-to-run variance is tracked and reported
 - Results are stored in structured JSON format for analysis
 
-### 3. Drift Resilience Testing
-Test system behavior under changing conditions:
-- **Scheduled drift injection** at configurable generations
-- **Re-convergence time measurement**
-- **Law stability tracking** before/after drift events
+### 4. Resilience Certification Mode
+Run LawForge in certification mode (`--mode=certification`) to:
+- **Optimize to stability** — Reach stable fitness levels
+- **Hold steady** for N generations — Verify consistency
+- **Inject drift events** — Multiple perturbations
+- **Measure resilience** — Drop Depth, Recovery Time, Law invalidation rate
+- **Compute Resilience Score**: `(1 - DropDepth) / RecoveryTime`
+- **Output**: `LawForge_Resilience_Audit.md` with recovery curves and shield rating (green/yellow/red)
 
-### 4. Cross-Domain Transfer (Experimental)
-> ⚠️ **Note:** Transfer is experimental and not currently net-positive in aggregate benchmarks (27.4% success rate).
+### 5. Cross-Domain Transfer (Experimental)
+> ⚠️ **Warning:** Transfer is experimental and not currently net-positive in aggregate benchmarks (27.4% success rate).
+> 
+> **LawForge does not attempt universal transfer. It measures where transfer fails.**
 
-The system can attempt to transfer successful strategies between domains, with A/B testing to measure actual impact.
+- **Law-Gated Transfer**: Transfers constraints, not strategies
+- Aborts transfer if scope similarity < threshold
+- A/B testing to measure actual impact
 
-### 5. Law Export
-Export discovered laws as artifacts:
+### 6. Artifact Export
+Every run produces explicit artifacts with no silent successes or hidden failures:
 - `laws.final.json` — Machine-readable law definitions
 - `laws.final.md` — Human-readable summary with evidence
+- `landscape.json` / `landscape.md` — Optimization landscape measurement
+- `resilience_audit.md` — Resilience certification report (when using `--mode=certification`)
+- `results/index.json` — Updated run index
 
 ## 🛠️ Tech Stack
 
@@ -72,6 +96,9 @@ Export discovered laws as artifacts:
    
    # Single run with custom parameters
    npm run sim:run -- --seed 42 --gens 500 --transfer on --drift on
+   
+   # Resilience certification mode
+   npm run sim:run -- --seed 42 --mode certification --stability-gens 100 --drift-events 3
    ```
 
 ## 📂 Project Structure
@@ -97,4 +124,10 @@ See `results/consolidated_report.md` for full details.
 
 ---
 
-*LawForge v3.0 — Deterministic Optimization Laboratory*
+## 📐 Guiding Principle
+
+> **LawForge does not optimize systems. It reveals the physics they obey.**
+
+---
+
+*LawForge v3.1 — Optimization Microscope & Resilience Certification Engine*

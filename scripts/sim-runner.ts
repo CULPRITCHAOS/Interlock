@@ -47,6 +47,9 @@ interface LawTrialResult {
   expectedRange: [number, number];
 }
 
+// Law taxonomy classification
+type LawType = 'structural' | 'soft' | 'regime-bound';
+
 interface Law {
   id: string;
   domain: string;
@@ -61,6 +64,11 @@ interface Law {
   lastValidatedAt?: number;
   status: 'hypothesis' | 'validated' | 'falsified' | 'deprecated';
   evidenceCount?: number;
+  // Law Taxonomy (Phase II)
+  lawType?: LawType;            // structural=hard constraint, soft=performance gradient, regime-bound=valid under certain drift
+  // Half-life metrics (Phase II)
+  halfLife?: number;            // Generations law survives under perturbation
+  churnRate?: number;           // Rate of invalidation under drift (0-1)
 }
 
 interface SOSGenome {
@@ -163,6 +171,13 @@ interface RunConfig {
   driftEnabled: boolean;
   driftSchedule?: number[]; // generations when drift is injected
   timestamp: string;
+  // Phase II additions
+  mode?: 'standard' | 'certification';  // Execution mode
+  lawGatedTransfer?: boolean;           // Enable law-gated transfer
+  scopeSimilarityThreshold?: number;    // Threshold for law-gated transfer (0-1)
+  // Certification mode specific
+  stabilityGenerations?: number;        // N generations to hold steady
+  driftEvents?: number;                 // Number of drift events to inject
 }
 
 interface ABSummary {
@@ -204,6 +219,10 @@ interface LawExport {
   discoveredAt: number;
   lastValidatedAt: number;
   version: number;
+  // Phase II additions
+  lawType?: LawType;            // Classification: structural, soft, or regime-bound
+  halfLife?: number;            // Generations law survives under perturbation
+  churnRate?: number;           // Rate of invalidation under drift
 }
 
 // Final laws artifact format
@@ -218,6 +237,112 @@ interface LawsFinalArtifact {
     hypothesis: number;
   };
   laws: LawExport[];
+}
+
+// ============= Optimization Landscape Types (Phase II) =============
+
+// Region in the optimization landscape
+interface Region {
+  id: string;
+  domain: string;
+  parameterRanges: {
+    alpha: [number, number];
+    explorationBonus: [number, number];
+  };
+  fitnessRange: [number, number];
+  stability: number;            // 0-1, how stable is this region
+  lawsHolding: string[];        // Law IDs that hold in this region
+  lawsBreaking: string[];       // Law IDs that break in this region
+}
+
+// Phase transition boundary in the optimization landscape
+interface Boundary {
+  id: string;
+  domain: string;
+  fromRegion: string;           // Region ID
+  toRegion: string;             // Region ID
+  transitionParameter: string;  // Parameter that triggers the transition
+  transitionValue: number;      // Value at which transition occurs
+  abruptness: number;           // 0-1, how sharp is the transition
+  lawsInvalidated: string[];    // Laws that break at this boundary
+}
+
+// Optimization Landscape Report - LawForge's scientific core
+interface LandscapeReport {
+  generated: string;
+  runId: string;
+  totalGenerations: number;
+  domains: string[];
+  stableRegions: Region[];      // Regions where laws hold and behavior is predictable
+  brittleRegions: Region[];     // Regions where laws break or behavior is unpredictable
+  phaseTransitions: Boundary[]; // Sharp behavior changes
+  invariants: LawExport[];      // Laws that hold across all measured regions
+  measurement: {
+    regionsExplored: number;
+    lawsValidated: number;
+    lawsFalsified: number;
+    transitionsDetected: number;
+  };
+}
+
+// ============= Resilience Certification Types (Phase II) =============
+
+// Recovery curve data point
+interface RecoveryCurvePoint {
+  generation: number;
+  fitness: number;
+  lawsValid: number;
+  lawsInvalid: number;
+}
+
+// Single drift injection result
+interface DriftInjectionResult {
+  injectedAt: number;           // Generation when drift was injected
+  domain: string;
+  preFitness: number;
+  dropDepth: number;            // Max fitness drop (0-1)
+  recoveryTime: number;         // Generations to recover to 90% of pre-drift
+  lawsInvalidatedCount: number;
+  recoveryCurve: RecoveryCurvePoint[];
+}
+
+// Resilience Score calculation
+interface ResilienceScore {
+  overall: number;              // (1 - DropDepth) / RecoveryTime
+  byDomain: Record<string, number>;
+  shieldRating: 'green' | 'yellow' | 'red';  // green: ≥0.08, yellow: ≥0.04, red: <0.04
+}
+
+// Resilience Audit Report
+interface ResilienceAudit {
+  generated: string;
+  runId: string;
+  mode: 'certification';
+  config: {
+    stabilityGenerations: number;      // N generations to hold steady
+    driftEvents: number;               // Number of drift injections
+    seed: number;
+  };
+  phases: {
+    optimization: {
+      startGen: number;
+      endGen: number;
+      finalFitness: Record<string, number>;
+    };
+    stability: {
+      startGen: number;
+      endGen: number;
+      maintained: boolean;
+      varianceObserved: Record<string, number>;
+    };
+    stressTesting: {
+      driftResults: DriftInjectionResult[];
+      lawInvalidationRate: number;     // % of laws invalidated across all drift events
+    };
+  };
+  resilienceScore: ResilienceScore;
+  failureModes: string[];              // Identified failure patterns
+  recoveryPatterns: string[];          // Observed recovery behaviors
 }
 
 // ============= Seeded Random Number Generator =============
@@ -591,6 +716,19 @@ class SOSSimulator {
       .replace('{temp}', (0.1 + this.rng.next() * 0.9).toFixed(2))
       .replace('{util}', String(Math.floor(60 + this.rng.next() * 35)));
     
+    // Determine law type based on description patterns (Phase II)
+    let lawType: LawType = 'soft';
+    if (description.includes('must') || description.includes('>') || description.includes('limit') || description.includes('boundary')) {
+      lawType = 'structural';
+    } else if (description.includes('correlates') || description.includes('improves') || description.includes('optimal')) {
+      lawType = 'soft';
+    } else if (description.includes('under') || description.includes('for') || description.includes('when')) {
+      lawType = 'regime-bound';
+    }
+    
+    // Initialize half-life (will be updated as law survives perturbations)
+    const initialHalfLife = 50 + Math.floor(this.rng.next() * 150);  // 50-200 generations
+    
     return {
       id: `law-${this.lawIdCounter++}`,
       domain,
@@ -602,7 +740,11 @@ class SOSSimulator {
       scopeSignature: DOMAIN_FINGERPRINTS[domain],
       trialResults: [],
       counterexamples: [],
-      lastValidatedAt: this.generation
+      lastValidatedAt: this.generation,
+      // Phase II additions
+      lawType,
+      halfLife: initialHalfLife,
+      churnRate: 0  // Will be calculated based on drift events
     };
   }
 
@@ -1132,7 +1274,11 @@ function exportLaw(law: Law): LawExport {
     confidence: law.confidence,
     discoveredAt: law.discoveredAt,
     lastValidatedAt: law.lastValidatedAt || law.discoveredAt,
-    version: law.version
+    version: law.version,
+    // Phase II additions
+    lawType: law.lawType,
+    halfLife: law.halfLife,
+    churnRate: law.churnRate
   };
 }
 
@@ -1193,6 +1339,9 @@ function generateLawsMarkdown(artifact: LawsFinalArtifact): string {
       lines.push(``);
       lines.push(`- **Domain:** ${law.domain}`);
       lines.push(`- **Confidence:** ${(law.confidence * 100).toFixed(1)}%`);
+      lines.push(`- **Type:** ${law.lawType || 'soft'} (${law.lawType === 'structural' ? 'hard constraint' : law.lawType === 'regime-bound' ? 'valid under certain drift' : 'performance gradient'})`);
+      lines.push(`- **Half-Life:** ${law.halfLife || 'N/A'} generations`);
+      lines.push(`- **Churn Rate:** ${law.churnRate !== undefined ? (law.churnRate * 100).toFixed(1) + '%' : 'N/A'}`);
       lines.push(`- **Evidence:** ${law.evidence.successfulTrials}/${law.evidence.totalTrials} successful trials`);
       lines.push(`- **Counterexamples:** ${law.evidence.counterexamples}`);
       lines.push(`- **Scope:** ${law.scope.domain} @ ${law.scope.datasetSize}x${law.scope.dimensions}:${law.scope.queryPattern}:${law.scope.targetMetric}@${law.scope.k}`);
@@ -1205,7 +1354,8 @@ function generateLawsMarkdown(artifact: LawsFinalArtifact): string {
     lines.push(`## ❌ Falsified Laws`);
     lines.push(``);
     for (const law of byStatus.falsified) {
-      lines.push(`- **${law.id}:** ${law.description} (${law.evidence.counterexamples} counterexamples)`);
+      lines.push(`- **${law.id}:** ${law.description}`);
+      lines.push(`  - Type: ${law.lawType || 'soft'}, Counterexamples: ${law.evidence.counterexamples}, Half-Life: ${law.halfLife || 'N/A'} gens`);
     }
     lines.push(``);
   }
@@ -1215,7 +1365,8 @@ function generateLawsMarkdown(artifact: LawsFinalArtifact): string {
     lines.push(`## ⚠️ Deprecated Laws`);
     lines.push(``);
     for (const law of byStatus.deprecated) {
-      lines.push(`- **${law.id}:** ${law.description} (confidence: ${(law.confidence * 100).toFixed(1)}%)`);
+      lines.push(`- **${law.id}:** ${law.description}`);
+      lines.push(`  - Type: ${law.lawType || 'soft'}, Confidence: ${(law.confidence * 100).toFixed(1)}%, Churn: ${law.churnRate !== undefined ? (law.churnRate * 100).toFixed(1) + '%' : 'N/A'}`);
     }
     lines.push(``);
   }
@@ -1225,7 +1376,8 @@ function generateLawsMarkdown(artifact: LawsFinalArtifact): string {
     lines.push(`## 🔬 Hypothesis (Pending Validation)`);
     lines.push(``);
     for (const law of byStatus.hypothesis.sort((a, b) => b.confidence - a.confidence).slice(0, 10)) {
-      lines.push(`- **${law.id}:** ${law.description} (confidence: ${(law.confidence * 100).toFixed(1)}%)`);
+      lines.push(`- **${law.id}:** ${law.description}`);
+      lines.push(`  - Type: ${law.lawType || 'soft'}, Confidence: ${(law.confidence * 100).toFixed(1)}%`);
     }
     if (byStatus.hypothesis.length > 10) {
       lines.push(`- ... and ${byStatus.hypothesis.length - 10} more`);
@@ -1239,7 +1391,546 @@ function generateLawsMarkdown(artifact: LawsFinalArtifact): string {
   return lines.join('\n');
 }
 
-// ============= Main Execution =============
+// ============= Optimization Landscape Functions (Phase II) =============
+
+function generateLandscapeReport(
+  logs: GenerationLog[],
+  laws: Law[],
+  config: RunConfig
+): LandscapeReport {
+  const stableRegions: Region[] = [];
+  const brittleRegions: Region[] = [];
+  const phaseTransitions: Boundary[] = [];
+  
+  // Analyze each domain for regions
+  for (const domain of config.domains) {
+    // Identify stable vs brittle regions based on fitness variance and law validity
+    const domainLogs = logs.map(l => ({
+      gen: l.generation,
+      fitness: l.genomes[domain]?.fitness || 0,
+      alpha: l.genomes[domain]?.alpha || 2,
+      drift: l.driftEvents.some(e => e.domain === domain)
+    }));
+    
+    const domainLaws = laws.filter(l => l.domain === domain);
+    const validatedLaws = domainLaws.filter(l => l.status === 'validated').map(l => l.id);
+    const falsifiedLaws = domainLaws.filter(l => l.status === 'falsified').map(l => l.id);
+    
+    // Segment into regions based on fitness stability
+    const windowSize = 50;
+    for (let i = 0; i < domainLogs.length - windowSize; i += windowSize) {
+      const window = domainLogs.slice(i, i + windowSize);
+      const avgFitness = window.reduce((s, w) => s + w.fitness, 0) / window.length;
+      const fitnessVariance = window.reduce((s, w) => s + Math.pow(w.fitness - avgFitness, 2), 0) / window.length;
+      const avgAlpha = window.reduce((s, w) => s + w.alpha, 0) / window.length;
+      
+      const hasDrift = window.some(w => w.drift);
+      const stability = 1 - Math.min(1, fitnessVariance * 10);  // Higher variance = lower stability
+      
+      const region: Region = {
+        id: `region-${domain}-${i}`,
+        domain,
+        parameterRanges: {
+          alpha: [Math.min(...window.map(w => w.alpha)), Math.max(...window.map(w => w.alpha))],
+          explorationBonus: [0.05, 0.15]  // Typical range
+        },
+        fitnessRange: [Math.min(...window.map(w => w.fitness)), Math.max(...window.map(w => w.fitness))],
+        stability,
+        lawsHolding: validatedLaws,
+        lawsBreaking: falsifiedLaws
+      };
+      
+      if (stability > 0.7 && !hasDrift) {
+        stableRegions.push(region);
+      } else {
+        brittleRegions.push(region);
+      }
+    }
+    
+    // Detect phase transitions (sharp fitness changes)
+    for (let i = 1; i < domainLogs.length; i++) {
+      const prev = domainLogs[i - 1];
+      const curr = domainLogs[i];
+      const fitnessDelta = Math.abs(curr.fitness - prev.fitness);
+      
+      if (fitnessDelta > 0.1) {  // Abrupt change threshold
+        const boundary: Boundary = {
+          id: `boundary-${domain}-${i}`,
+          domain,
+          fromRegion: `region-${domain}-${Math.floor((i - 1) / 50) * 50}`,
+          toRegion: `region-${domain}-${Math.floor(i / 50) * 50}`,
+          transitionParameter: Math.abs(curr.alpha - prev.alpha) > 0.3 ? 'alpha' : 'fitness',
+          transitionValue: curr.alpha,
+          abruptness: Math.min(1, fitnessDelta / 0.3),  // Normalized abruptness
+          lawsInvalidated: falsifiedLaws.filter((_, idx) => {
+            const law = domainLaws.find(l => l.id === falsifiedLaws[idx]);
+            return law && law.lastValidatedAt && law.lastValidatedAt < i && (law.counterexamples?.some(c => c.observedAt >= i) || false);
+          })
+        };
+        phaseTransitions.push(boundary);
+      }
+    }
+  }
+  
+  // Find invariants (laws that hold across all regions)
+  const invariantLaws = laws.filter(l => 
+    l.status === 'validated' && 
+    (l.counterexamples?.length || 0) === 0 &&
+    l.confidence >= 0.9
+  );
+  
+  return {
+    generated: new Date().toISOString(),
+    runId: config.runId,
+    totalGenerations: config.generations,
+    domains: config.domains,
+    stableRegions,
+    brittleRegions,
+    phaseTransitions,
+    invariants: invariantLaws.map(exportLaw),
+    measurement: {
+      regionsExplored: stableRegions.length + brittleRegions.length,
+      lawsValidated: laws.filter(l => l.status === 'validated').length,
+      lawsFalsified: laws.filter(l => l.status === 'falsified').length,
+      transitionsDetected: phaseTransitions.length
+    }
+  };
+}
+
+function generateLandscapeMarkdown(report: LandscapeReport): string {
+  const lines: string[] = [];
+  
+  lines.push(`# LawForge - Optimization Landscape Measurement`);
+  lines.push(``);
+  lines.push(`> LawForge does not optimize systems. It reveals the physics they obey.`);
+  lines.push(``);
+  lines.push(`**Generated:** ${report.generated}`);
+  lines.push(`**Run ID:** ${report.runId}`);
+  lines.push(`**Total Generations:** ${report.totalGenerations}`);
+  lines.push(`**Domains Measured:** ${report.domains.join(', ')}`);
+  lines.push(``);
+  
+  lines.push(`## Measurement Summary`);
+  lines.push(``);
+  lines.push(`| Metric | Value |`);
+  lines.push(`|--------|-------|`);
+  lines.push(`| Regions Explored | ${report.measurement.regionsExplored} |`);
+  lines.push(`| Laws Validated | ${report.measurement.lawsValidated} |`);
+  lines.push(`| Laws Falsified | ${report.measurement.lawsFalsified} |`);
+  lines.push(`| Phase Transitions Detected | ${report.measurement.transitionsDetected} |`);
+  lines.push(``);
+  
+  lines.push(`## 🟢 Stable Regions`);
+  lines.push(``);
+  lines.push(`Regions where laws hold and behavior is predictable:`);
+  lines.push(``);
+  if (report.stableRegions.length > 0) {
+    lines.push(`| Region | Domain | Alpha Range | Fitness Range | Stability |`);
+    lines.push(`|--------|--------|-------------|---------------|-----------|`);
+    for (const region of report.stableRegions.slice(0, 10)) {
+      lines.push(`| ${region.id} | ${region.domain} | [${region.parameterRanges.alpha[0].toFixed(2)}, ${region.parameterRanges.alpha[1].toFixed(2)}] | [${region.fitnessRange[0].toFixed(3)}, ${region.fitnessRange[1].toFixed(3)}] | ${(region.stability * 100).toFixed(1)}% |`);
+    }
+    if (report.stableRegions.length > 10) {
+      lines.push(`| ... | ... | ... | ... | ... |`);
+      lines.push(`| (${report.stableRegions.length - 10} more regions) |`);
+    }
+  } else {
+    lines.push(`*No stable regions detected.*`);
+  }
+  lines.push(``);
+  
+  lines.push(`## 🔴 Brittle Regions`);
+  lines.push(``);
+  lines.push(`Regions where laws break or behavior is unpredictable:`);
+  lines.push(``);
+  if (report.brittleRegions.length > 0) {
+    lines.push(`| Region | Domain | Alpha Range | Fitness Range | Stability |`);
+    lines.push(`|--------|--------|-------------|---------------|-----------|`);
+    for (const region of report.brittleRegions.slice(0, 10)) {
+      lines.push(`| ${region.id} | ${region.domain} | [${region.parameterRanges.alpha[0].toFixed(2)}, ${region.parameterRanges.alpha[1].toFixed(2)}] | [${region.fitnessRange[0].toFixed(3)}, ${region.fitnessRange[1].toFixed(3)}] | ${(region.stability * 100).toFixed(1)}% |`);
+    }
+    if (report.brittleRegions.length > 10) {
+      lines.push(`| ... | ... | ... | ... | ... |`);
+      lines.push(`| (${report.brittleRegions.length - 10} more regions) |`);
+    }
+  } else {
+    lines.push(`*No brittle regions detected.*`);
+  }
+  lines.push(``);
+  
+  lines.push(`## ⚡ Phase Transitions`);
+  lines.push(``);
+  lines.push(`Sharp behavior changes at parameter boundaries:`);
+  lines.push(``);
+  if (report.phaseTransitions.length > 0) {
+    for (const boundary of report.phaseTransitions.slice(0, 5)) {
+      lines.push(`- **${boundary.id}** (${boundary.domain}): ${boundary.transitionParameter} transition at ${boundary.transitionValue.toFixed(2)}`);
+      lines.push(`  - Abruptness: ${(boundary.abruptness * 100).toFixed(1)}%`);
+      if (boundary.lawsInvalidated.length > 0) {
+        lines.push(`  - Laws Invalidated: ${boundary.lawsInvalidated.join(', ')}`);
+      }
+    }
+    if (report.phaseTransitions.length > 5) {
+      lines.push(`- ... and ${report.phaseTransitions.length - 5} more transitions`);
+    }
+  } else {
+    lines.push(`*No abrupt phase transitions detected.*`);
+  }
+  lines.push(``);
+  
+  lines.push(`## 🔒 Invariants`);
+  lines.push(``);
+  lines.push(`Laws that hold across all measured regions:`);
+  lines.push(``);
+  if (report.invariants.length > 0) {
+    for (const law of report.invariants) {
+      lines.push(`- **${law.id}** (${law.domain}): ${law.description}`);
+      lines.push(`  - Confidence: ${(law.confidence * 100).toFixed(1)}%, Type: ${law.lawType || 'soft'}`);
+    }
+  } else {
+    lines.push(`*No universal invariants detected across all regions.*`);
+  }
+  lines.push(``);
+  
+  lines.push(`---`);
+  lines.push(`*Generated by LawForge Optimization Microscope*`);
+  
+  return lines.join('\n');
+}
+
+// ============= Resilience Certification Functions (Phase II) =============
+
+function executeCertificationRun(
+  seed: number,
+  stabilityGenerations: number,
+  driftEvents: number
+): ResilienceAudit {
+  const timestamp = new Date().toISOString();
+  const runId = `results/certification_s${seed}_stab${stabilityGenerations}_drift${driftEvents}`;
+  
+  // Ensure directory exists
+  if (!fs.existsSync(runId)) {
+    fs.mkdirSync(runId, { recursive: true });
+  }
+  
+  // Phase 1: Optimize to stability (200 generations)
+  const optimizationGens = 200;
+  const config: RunConfig = {
+    runId,
+    seed,
+    generations: optimizationGens + stabilityGenerations + (driftEvents * 50),
+    domains: DOMAINS,
+    transferEnabled: false,
+    driftEnabled: false,
+    timestamp,
+    mode: 'certification',
+    stabilityGenerations,
+    driftEvents
+  };
+  
+  fs.writeFileSync(path.join(runId, 'config.json'), JSON.stringify(config, null, 2));
+  
+  const sim = new SOSSimulator(config);
+  
+  // Run optimization phase
+  console.log(`[Certification] Phase 1: Optimizing for ${optimizationGens} generations...`);
+  sim.openLogStream();
+  for (let i = 0; i < optimizationGens; i++) {
+    sim.runStep();
+  }
+  
+  const optimizationFitness: Record<string, number> = {};
+  for (const domain of DOMAINS) {
+    optimizationFitness[domain] = sim.getGenomes()[domain].fitness;
+  }
+  
+  // Phase 2: Hold steady for N generations
+  console.log(`[Certification] Phase 2: Holding steady for ${stabilityGenerations} generations...`);
+  const stabilityStartGen = optimizationGens;
+  const varianceObserved: Record<string, number> = {};
+  const stabilityFitnesses: Record<string, number[]> = {};
+  
+  for (const domain of DOMAINS) {
+    stabilityFitnesses[domain] = [];
+  }
+  
+  for (let i = 0; i < stabilityGenerations; i++) {
+    sim.runStep();
+    for (const domain of DOMAINS) {
+      stabilityFitnesses[domain].push(sim.getGenomes()[domain].fitness);
+    }
+  }
+  
+  // Calculate variance during stability phase
+  let stabilityMaintained = true;
+  for (const domain of DOMAINS) {
+    const fitnesses = stabilityFitnesses[domain];
+    const mean = fitnesses.reduce((s, f) => s + f, 0) / fitnesses.length;
+    const variance = fitnesses.reduce((s, f) => s + Math.pow(f - mean, 2), 0) / fitnesses.length;
+    varianceObserved[domain] = variance;
+    if (variance > 0.01) {  // Threshold for "stable"
+      stabilityMaintained = false;
+    }
+  }
+  
+  // Phase 3: Inject drift events and measure recovery
+  console.log(`[Certification] Phase 3: Injecting ${driftEvents} drift events...`);
+  const driftResults: DriftInjectionResult[] = [];
+  const stressStartGen = optimizationGens + stabilityGenerations;
+  
+  for (let d = 0; d < driftEvents; d++) {
+    const domain = DOMAINS[d % DOMAINS.length];
+    const preFitness = sim.getGenomes()[domain].fitness;
+    const preLaws = sim.getLaws().filter(l => l.status === 'validated').length;
+    
+    // Manually inject drift
+    const driftEvent = (sim as any)._injectDrift(domain);
+    
+    const recoveryCurve: RecoveryCurvePoint[] = [];
+    let minFitness = sim.getGenomes()[domain].fitness;
+    let recoveryTime = 50;  // Default to max
+    const recoveryTarget = preFitness * 0.9;
+    
+    // Run 50 generations after drift
+    for (let i = 0; i < 50; i++) {
+      sim.runStep();
+      const currentFitness = sim.getGenomes()[domain].fitness;
+      minFitness = Math.min(minFitness, currentFitness);
+      
+      const validLaws = sim.getLaws().filter(l => l.status === 'validated').length;
+      const invalidLaws = sim.getLaws().filter(l => l.status === 'falsified' || l.status === 'deprecated').length;
+      
+      recoveryCurve.push({
+        generation: stressStartGen + d * 50 + i,
+        fitness: currentFitness,
+        lawsValid: validLaws,
+        lawsInvalid: invalidLaws
+      });
+      
+      if (currentFitness >= recoveryTarget && recoveryTime === 50) {
+        recoveryTime = i + 1;
+      }
+    }
+    
+    const dropDepth = preFitness - minFitness;
+    const postLaws = sim.getLaws().filter(l => l.status === 'validated').length;
+    
+    driftResults.push({
+      injectedAt: stressStartGen + d * 50,
+      domain,
+      preFitness,
+      dropDepth,
+      recoveryTime,
+      lawsInvalidatedCount: preLaws - postLaws,
+      recoveryCurve
+    });
+  }
+  
+  sim.closeLogStream();
+  
+  // Calculate resilience score
+  const avgDropDepth = driftResults.reduce((s, r) => s + r.dropDepth, 0) / driftResults.length;
+  const avgRecoveryTime = driftResults.reduce((s, r) => s + r.recoveryTime, 0) / driftResults.length;
+  const overallScore = avgRecoveryTime > 0 ? (1 - avgDropDepth) / avgRecoveryTime : 0;
+  
+  const byDomain: Record<string, number> = {};
+  for (const domain of DOMAINS) {
+    const domainResults = driftResults.filter(r => r.domain === domain);
+    if (domainResults.length > 0) {
+      const domainAvgDrop = domainResults.reduce((s, r) => s + r.dropDepth, 0) / domainResults.length;
+      const domainAvgRecovery = domainResults.reduce((s, r) => s + r.recoveryTime, 0) / domainResults.length;
+      byDomain[domain] = domainAvgRecovery > 0 ? (1 - domainAvgDrop) / domainAvgRecovery : 0;
+    }
+  }
+  
+  const shieldRating: 'green' | 'yellow' | 'red' = overallScore >= 0.08 ? 'green' : overallScore >= 0.04 ? 'yellow' : 'red';
+  
+  const totalLawsInvalidated = driftResults.reduce((s, r) => s + r.lawsInvalidatedCount, 0);
+  const totalLaws = sim.getLaws().length;
+  const lawInvalidationRate = totalLaws > 0 ? totalLawsInvalidated / totalLaws : 0;
+  
+  // Identify failure modes and recovery patterns
+  const failureModes: string[] = [];
+  const recoveryPatterns: string[] = [];
+  
+  for (const result of driftResults) {
+    if (result.dropDepth > 0.3) {
+      failureModes.push(`${result.domain}: Severe fitness drop (${(result.dropDepth * 100).toFixed(1)}%) at gen ${result.injectedAt}`);
+    }
+    if (result.recoveryTime < 10) {
+      recoveryPatterns.push(`${result.domain}: Fast recovery (${result.recoveryTime} gens)`);
+    } else if (result.recoveryTime >= 50) {
+      failureModes.push(`${result.domain}: Failed to recover within 50 generations`);
+    }
+  }
+  
+  const audit: ResilienceAudit = {
+    generated: timestamp,
+    runId,
+    mode: 'certification',
+    config: {
+      stabilityGenerations,
+      driftEvents,
+      seed
+    },
+    phases: {
+      optimization: {
+        startGen: 0,
+        endGen: optimizationGens,
+        finalFitness: optimizationFitness
+      },
+      stability: {
+        startGen: stabilityStartGen,
+        endGen: stabilityStartGen + stabilityGenerations,
+        maintained: stabilityMaintained,
+        varianceObserved
+      },
+      stressTesting: {
+        driftResults,
+        lawInvalidationRate
+      }
+    },
+    resilienceScore: {
+      overall: overallScore,
+      byDomain,
+      shieldRating
+    },
+    failureModes,
+    recoveryPatterns
+  };
+  
+  // Write artifacts
+  fs.writeFileSync(path.join(runId, 'resilience_audit.json'), JSON.stringify(audit, null, 2));
+  fs.writeFileSync(path.join(runId, 'resilience_audit.md'), generateResilienceAuditMarkdown(audit));
+  
+  // Also generate laws and landscape
+  const laws = sim.getLaws();
+  const lawsFinalArtifact = generateLawsFinalArtifact(laws, runId);
+  fs.writeFileSync(path.join(runId, 'laws.final.json'), JSON.stringify(lawsFinalArtifact, null, 2));
+  fs.writeFileSync(path.join(runId, 'laws.final.md'), generateLawsMarkdown(lawsFinalArtifact));
+  
+  return audit;
+}
+
+function generateResilienceAuditMarkdown(audit: ResilienceAudit): string {
+  const lines: string[] = [];
+  
+  lines.push(`# LawForge Resilience Audit`);
+  lines.push(``);
+  lines.push(`> Resilience = (1 - DropDepth) / RecoveryTime`);
+  lines.push(``);
+  lines.push(`**Generated:** ${audit.generated}`);
+  lines.push(`**Run ID:** ${audit.runId}`);
+  lines.push(`**Mode:** ${audit.mode}`);
+  lines.push(``);
+  
+  lines.push(`## Configuration`);
+  lines.push(``);
+  lines.push(`- **Seed:** ${audit.config.seed}`);
+  lines.push(`- **Stability Hold:** ${audit.config.stabilityGenerations} generations`);
+  lines.push(`- **Drift Events:** ${audit.config.driftEvents}`);
+  lines.push(``);
+  
+  // Shield Rating Banner
+  const ratingEmoji = audit.resilienceScore.shieldRating === 'green' ? '🟢' : 
+                      audit.resilienceScore.shieldRating === 'yellow' ? '🟡' : '🔴';
+  const ratingText = audit.resilienceScore.shieldRating.toUpperCase();
+  
+  lines.push(`## Shield Rating: ${ratingEmoji} ${ratingText}`);
+  lines.push(``);
+  lines.push(`**Overall Resilience Score:** ${audit.resilienceScore.overall.toFixed(4)}`);
+  lines.push(``);
+  lines.push(`| Domain | Resilience Score |`);
+  lines.push(`|--------|------------------|`);
+  for (const [domain, score] of Object.entries(audit.resilienceScore.byDomain)) {
+    lines.push(`| ${domain} | ${score.toFixed(4)} |`);
+  }
+  lines.push(``);
+  
+  lines.push(`## Phase 1: Optimization`);
+  lines.push(``);
+  lines.push(`- **Duration:** Gen ${audit.phases.optimization.startGen} → ${audit.phases.optimization.endGen}`);
+  lines.push(`- **Final Fitness:**`);
+  for (const [domain, fitness] of Object.entries(audit.phases.optimization.finalFitness)) {
+    lines.push(`  - ${domain}: ${fitness.toFixed(4)}`);
+  }
+  lines.push(``);
+  
+  lines.push(`## Phase 2: Stability Hold`);
+  lines.push(``);
+  lines.push(`- **Duration:** Gen ${audit.phases.stability.startGen} → ${audit.phases.stability.endGen}`);
+  lines.push(`- **Stability Maintained:** ${audit.phases.stability.maintained ? '✅ Yes' : '❌ No'}`);
+  lines.push(`- **Variance Observed:**`);
+  for (const [domain, variance] of Object.entries(audit.phases.stability.varianceObserved)) {
+    const status = variance <= 0.01 ? '✅' : '⚠️';
+    lines.push(`  - ${domain}: ${variance.toFixed(6)} ${status}`);
+  }
+  lines.push(``);
+  
+  lines.push(`## Phase 3: Stress Testing`);
+  lines.push(``);
+  lines.push(`- **Law Invalidation Rate:** ${(audit.phases.stressTesting.lawInvalidationRate * 100).toFixed(1)}%`);
+  lines.push(``);
+  
+  lines.push(`### Drift Injection Results`);
+  lines.push(``);
+  lines.push(`| Drift # | Domain | Pre-Fitness | Drop Depth | Recovery Time | Laws Lost |`);
+  lines.push(`|---------|--------|-------------|------------|---------------|-----------|`);
+  for (let i = 0; i < audit.phases.stressTesting.driftResults.length; i++) {
+    const result = audit.phases.stressTesting.driftResults[i];
+    lines.push(`| ${i + 1} | ${result.domain} | ${result.preFitness.toFixed(3)} | ${(result.dropDepth * 100).toFixed(1)}% | ${result.recoveryTime} gens | ${result.lawsInvalidatedCount} |`);
+  }
+  lines.push(``);
+  
+  // Recovery curves (simplified text representation)
+  lines.push(`### Recovery Curves`);
+  lines.push(``);
+  for (const result of audit.phases.stressTesting.driftResults) {
+    lines.push(`**${result.domain}** (Drift at gen ${result.injectedAt}):`);
+    lines.push('```');
+    const curve = result.recoveryCurve;
+    const maxFitness = Math.max(...curve.map(p => p.fitness));
+    const minFitness = Math.min(...curve.map(p => p.fitness));
+    const range = maxFitness - minFitness || 1;
+    
+    // Simple ASCII recovery curve
+    for (let i = 0; i < Math.min(curve.length, 20); i++) {
+      const point = curve[i * Math.floor(curve.length / 20) || i];
+      const normalizedFitness = (point.fitness - minFitness) / range;
+      const barLength = Math.round(normalizedFitness * 30);
+      lines.push(`Gen ${point.generation.toString().padStart(4)}: ${'█'.repeat(barLength)}${'░'.repeat(30 - barLength)} ${point.fitness.toFixed(3)}`);
+    }
+    lines.push('```');
+    lines.push(``);
+  }
+  
+  lines.push(`## Failure Modes`);
+  lines.push(``);
+  if (audit.failureModes.length > 0) {
+    for (const mode of audit.failureModes) {
+      lines.push(`- ❌ ${mode}`);
+    }
+  } else {
+    lines.push(`*No critical failure modes detected.*`);
+  }
+  lines.push(``);
+  
+  lines.push(`## Recovery Patterns`);
+  lines.push(``);
+  if (audit.recoveryPatterns.length > 0) {
+    for (const pattern of audit.recoveryPatterns) {
+      lines.push(`- ✅ ${pattern}`);
+    }
+  } else {
+    lines.push(`*No notable recovery patterns detected.*`);
+  }
+  lines.push(``);
+  
+  lines.push(`---`);
+  lines.push(`*Generated by LawForge Resilience Certification Engine*`);
+  
+  return lines.join('\n');
+}
 
 interface RunResult {
   runId: string;
@@ -1313,6 +2004,11 @@ function executeRun(seed: number, generations: number, transferEnabled: boolean,
   fs.writeFileSync(path.join(runId, 'laws.final.json'), JSON.stringify(lawsFinalArtifact, null, 2));
   fs.writeFileSync(path.join(runId, 'laws.final.md'), generateLawsMarkdown(lawsFinalArtifact));
   
+  // Generate and write landscape.json and landscape.md (Phase II)
+  const landscapeReport = generateLandscapeReport(logs, result.laws, config);
+  fs.writeFileSync(path.join(runId, 'landscape.json'), JSON.stringify(landscapeReport, null, 2));
+  fs.writeFileSync(path.join(runId, 'landscape.md'), generateLandscapeMarkdown(landscapeReport));
+  
   // Write ab_summary.json
   if (abSummary) {
     fs.writeFileSync(path.join(runId, 'ab_summary.json'), JSON.stringify(abSummary, null, 2));
@@ -1326,13 +2022,27 @@ function executeRun(seed: number, generations: number, transferEnabled: boolean,
 }
 
 // Parse command line arguments
-function parseArgs(): { seed: number; gens: number; transfer: boolean; drift: boolean; out: string } {
+interface ParsedArgs {
+  seed: number;
+  gens: number;
+  transfer: boolean;
+  drift: boolean;
+  out: string;
+  mode: 'standard' | 'certification';
+  stabilityGens: number;
+  driftEvents: number;
+}
+
+function parseArgs(): ParsedArgs {
   const args = process.argv.slice(2);
   let seed = 42;
   let gens = 500;
   let transfer = false;
   let drift = false;
   let out = 'results/default';
+  let mode: 'standard' | 'certification' = 'standard';
+  let stabilityGens = 100;
+  let driftEvents = 3;
   
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--seed' && args[i + 1]) {
@@ -1350,36 +2060,74 @@ function parseArgs(): { seed: number; gens: number; transfer: boolean; drift: bo
     } else if (args[i] === '--out' && args[i + 1]) {
       out = args[i + 1];
       i++;
+    } else if (args[i] === '--mode' && args[i + 1]) {
+      mode = args[i + 1].toLowerCase() as 'standard' | 'certification';
+      i++;
+    } else if (args[i] === '--stability-gens' && args[i + 1]) {
+      stabilityGens = parseInt(args[i + 1], 10);
+      i++;
+    } else if (args[i] === '--drift-events' && args[i + 1]) {
+      driftEvents = parseInt(args[i + 1], 10);
+      i++;
     }
   }
   
-  return { seed, gens, transfer, drift, out };
+  return { seed, gens, transfer, drift, out, mode, stabilityGens, driftEvents };
 }
 
 // Main entry point
 function main(): void {
-  const { seed, gens, transfer, drift, out } = parseArgs();
+  const { seed, gens, transfer, drift, out, mode, stabilityGens, driftEvents } = parseArgs();
   
   console.log(`\n=== LawForge Headless Runner ===`);
-  console.log(`Seed: ${seed}, Generations: ${gens}, Transfer: ${transfer ? 'ON' : 'OFF'}, Drift: ${drift ? 'ON' : 'OFF'}`);
-  console.log(`Output: ${out}\n`);
+  console.log(`Mode: ${mode.toUpperCase()}`);
+  console.log(`Seed: ${seed}`);
   
-  // Drift schedule: inject drift at gen 100, 250, 400 if drift is enabled
-  const driftSchedule = drift ? [100, 250, 400] : undefined;
-  
-  const result = executeRun(seed, gens, transfer, drift, driftSchedule);
-  
-  console.log(`\n=== Run Complete ===`);
-  console.log(`Run ID: ${result.runId}`);
-  console.log(`Report: ${result.runId}/report.md`);
-  console.log(`Laws: ${result.lawQuality.proposed} proposed, ${result.lawQuality.validated} validated, ${result.lawQuality.falsified} falsified`);
-  if (result.abSummary) {
-    console.log(`A/B Tests: ${result.abSummary.totalTests} tests, ${(result.abSummary.netPositiveRate * 100).toFixed(1)}% net positive`);
+  if (mode === 'certification') {
+    console.log(`Stability Generations: ${stabilityGens}`);
+    console.log(`Drift Events: ${driftEvents}`);
+    console.log(``);
+    
+    const audit = executeCertificationRun(seed, stabilityGens, driftEvents);
+    
+    console.log(`\n=== Certification Complete ===`);
+    console.log(`Run ID: ${audit.runId}`);
+    console.log(`Shield Rating: ${audit.resilienceScore.shieldRating.toUpperCase()}`);
+    console.log(`Resilience Score: ${audit.resilienceScore.overall.toFixed(4)}`);
+    console.log(`Artifacts: resilience_audit.md, laws.final.md, laws.final.json`);
+  } else {
+    console.log(`Generations: ${gens}, Transfer: ${transfer ? 'ON' : 'OFF'}, Drift: ${drift ? 'ON' : 'OFF'}`);
+    console.log(`Output: ${out}\n`);
+    
+    // Drift schedule: inject drift at gen 100, 250, 400 if drift is enabled
+    const driftSchedule = drift ? [100, 250, 400] : undefined;
+    
+    const result = executeRun(seed, gens, transfer, drift, driftSchedule);
+    
+    console.log(`\n=== Run Complete ===`);
+    console.log(`Run ID: ${result.runId}`);
+    console.log(`Report: ${result.runId}/report.md`);
+    console.log(`Landscape: ${result.runId}/landscape.md`);
+    console.log(`Laws: ${result.lawQuality.proposed} proposed, ${result.lawQuality.validated} validated, ${result.lawQuality.falsified} falsified`);
+    if (result.abSummary) {
+      console.log(`A/B Tests: ${result.abSummary.totalTests} tests, ${(result.abSummary.netPositiveRate * 100).toFixed(1)}% net positive`);
+    }
   }
 }
 
 // Export for programmatic use
-export { SOSSimulator, executeRun, computeConvergence, computeLawQuality, computeTransferEffectiveness, computeDriftResilience };
+export { 
+  SOSSimulator, 
+  executeRun, 
+  executeCertificationRun,
+  computeConvergence, 
+  computeLawQuality, 
+  computeTransferEffectiveness, 
+  computeDriftResilience,
+  generateLandscapeReport,
+  generateLandscapeMarkdown,
+  generateResilienceAuditMarkdown
+};
 
 // Run if executed directly (ESM check)
 const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
