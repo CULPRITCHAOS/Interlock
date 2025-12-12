@@ -10,8 +10,9 @@ import CrossDomainPanel from './components/CrossDomainPanel';
 import ExportModal from './components/ExportModal';
 import SearchSpaceViz from './components/SearchSpaceViz';
 import ControlPanel from './components/ControlPanel'; // New Import
-import { Play, Pause, RefreshCw, Trophy, Download, Activity, Cpu } from 'lucide-react';
+import { Play, Pause, RefreshCw, Trophy, Download, Activity, Cpu, Wifi, WifiOff } from 'lucide-react';
 import { generateSimulatedInsight, generateDiscoveredLaw, generateCrossDomainInsight } from './services/ai';
+import { wsService, SOSEvent } from './services/websocket';
 
 // Utility for random ID
 const generateId = () => Math.random().toString(36).substring(2, 8);
@@ -32,6 +33,11 @@ const App: React.FC = () => {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<PanelTab>('blueprint');
   const [generation, setGeneration] = useState(0);
+  
+  // WebSocket state
+  const [isLiveMode, setIsLiveMode] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   
   // Simulation State
   const [domainBias, setDomainBias] = useState(INITIAL_BIAS);
@@ -76,6 +82,149 @@ const App: React.FC = () => {
   const intervalRef = useRef<number | null>(null);
   const isFetchingAI = useRef(false);
 
+  // --- WebSocket Integration ---
+  
+  // Attempt to connect to backend on mount
+  useEffect(() => {
+    const tryConnect = async () => {
+      setIsConnecting(true);
+      const connected = await wsService.connect();
+      setIsConnected(connected);
+      setIsConnecting(false);
+      
+      if (connected) {
+        setIsLiveMode(true);
+        addLog('Connected to Live Backend via WebSocket', 'system');
+      }
+    };
+    
+    tryConnect();
+    
+    return () => {
+      wsService.disconnect();
+    };
+  }, []);
+  
+  // Handle WebSocket events
+  useEffect(() => {
+    if (!isLiveMode) return;
+    
+    const unsubscribe = wsService.on('all', (event: SOSEvent) => {
+      switch (event.type) {
+        case 'genome_update': {
+          const data = event.data as { genomes: Record<string, SOSGenome>; generation: number };
+          setGenomes(data.genomes);
+          setGeneration(data.generation);
+          
+          // Update chart data
+          setChartData(prevChart => {
+            const point: ChartDataPoint = { generation: data.generation };
+            DOMAINS.forEach(d => {
+              if (data.genomes[d]) {
+                point[d] = data.genomes[d].fitness;
+                point[`${d}_alpha`] = data.genomes[d].alpha;
+              }
+            });
+            const newData = [...prevChart, point];
+            return newData.length > 50 ? newData.slice(newData.length - 50) : newData;
+          });
+          break;
+        }
+        
+        case 'law_discovered': {
+          // Handle both camelCase (JS) and snake_case (Python) field names
+          const lawData = event.data as { 
+            id: string; 
+            domain: string; 
+            description: string; 
+            confidence: number; 
+            discovered_at?: number;
+            discoveredAt?: number;
+          };
+          setLaws(prev => [...prev, {
+            id: lawData.id,
+            domain: lawData.domain,
+            description: lawData.description,
+            confidence: lawData.confidence,
+            discoveredAt: lawData.discoveredAt ?? lawData.discovered_at ?? generation
+          }]);
+          break;
+        }
+        
+        case 'log': {
+          const logData = event.data as { 
+            id: string; 
+            timestamp: string; 
+            level: SimulationLog['level']; 
+            message: string; 
+          };
+          setLogs(prev => {
+            const newLogs = [...prev, {
+              id: logData.id,
+              timestamp: logData.timestamp,
+              level: logData.level,
+              message: logData.message
+            }];
+            if (newLogs.length > 50) return newLogs.slice(newLogs.length - 50);
+            return newLogs;
+          });
+          break;
+        }
+        
+        case 'cross_pollination': {
+          const cpData = event.data as { source: string; target: string; strategy: string };
+          const insight: CrossDomainInsight = {
+            id: generateId(),
+            sourceDomain: cpData.source,
+            targetDomain: cpData.target,
+            strategy: cpData.strategy,
+            impact: 'Live transfer detected'
+          };
+          setCrossInsights(prev => [...prev, insight]);
+          break;
+        }
+        
+        case 'status': {
+          const statusData = event.data as { action: string; is_running?: boolean; generation?: number };
+          if (statusData.action === 'started') {
+            setIsRunning(true);
+          } else if (statusData.action === 'stopped') {
+            setIsRunning(false);
+          } else if (statusData.action === 'reset') {
+            setGeneration(0);
+            setChartData([]);
+            setCrossInsights([]);
+          }
+          break;
+        }
+      }
+    });
+    
+    return unsubscribe;
+  }, [isLiveMode, generation]);
+
+  // Toggle live mode
+  const toggleLiveMode = async () => {
+    if (isLiveMode) {
+      wsService.disconnect();
+      setIsConnected(false);
+      setIsLiveMode(false);
+      addLog('Disconnected from Live Backend - using simulated mode', 'system');
+    } else {
+      setIsConnecting(true);
+      const connected = await wsService.connect();
+      setIsConnected(connected);
+      setIsConnecting(false);
+      
+      if (connected) {
+        setIsLiveMode(true);
+        addLog('Reconnected to Live Backend via WebSocket', 'system');
+      } else {
+        addLog('Failed to connect to Live Backend - ensure backend is running on port 8001', 'warning');
+      }
+    }
+  };
+
   // --- Logic ---
 
   // Auto-switch to Kernel view when running
@@ -95,6 +244,12 @@ const App: React.FC = () => {
 
   // God Mode: Inject Drift
   const handleInjectDrift = (domain: string) => {
+     // Use WebSocket if in live mode
+     if (isLiveMode && isConnected) {
+       wsService.injectDrift(domain);
+       return;
+     }
+     
      addLog(`WARNING: Detected Data Drift in ${domain.toUpperCase()}`, 'warning');
      
      // 1. Shift Physics
@@ -264,15 +419,29 @@ const App: React.FC = () => {
   }, [generation, isRunning, genomes]); 
 
   useEffect(() => {
+    // Skip local simulation if in live mode - backend handles it
+    if (isLiveMode && isConnected) {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      return;
+    }
+    
     if (isRunning) {
       intervalRef.current = window.setInterval(runSimulationStep, 600);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isRunning, runSimulationStep]);
+  }, [isRunning, runSimulationStep, isLiveMode, isConnected]);
 
   const handleReset = () => {
+    // Use WebSocket if in live mode
+    if (isLiveMode && isConnected) {
+      wsService.reset();
+      setActiveTab('blueprint');
+      setLogs([{ id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'Tournament Reset (via Live Backend).' }]);
+      return;
+    }
+    
     setIsRunning(false);
     setActiveTab('blueprint');
     setGeneration(0);
@@ -295,6 +464,20 @@ const App: React.FC = () => {
     });
     setGenomes(initial);
     setLogs([{ id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'Tournament Reset.' }]);
+  };
+
+  // Toggle simulation running state
+  const handleToggleRunning = () => {
+    if (isLiveMode && isConnected) {
+      if (isRunning) {
+        wsService.stop();
+      } else {
+        wsService.start();
+      }
+      // State will be updated via WebSocket event
+    } else {
+      setIsRunning(!isRunning);
+    }
   };
 
   const leaderKey = Object.keys(genomes).reduce((a, b) => genomes[a].fitness > genomes[b].fitness ? a : b);
@@ -324,9 +507,31 @@ const App: React.FC = () => {
                 <Download size={14} />
                 Export Optimizers
             </button>
+            {/* Live Mode Indicator */}
+            <button
+                onClick={toggleLiveMode}
+                disabled={isConnecting}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs border transition-all ${
+                  isLiveMode && isConnected
+                    ? 'bg-emerald-900/30 text-emerald-400 border-emerald-500/50 hover:bg-emerald-900/50'
+                    : isConnecting
+                    ? 'bg-slate-800 text-slate-500 border-slate-700 cursor-wait'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white hover:border-slate-600'
+                }`}
+                title={isLiveMode ? 'Connected to Live Backend' : 'Click to connect to Live Backend'}
+            >
+                {isConnecting ? (
+                  <div className="w-3 h-3 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+                ) : isLiveMode && isConnected ? (
+                  <Wifi size={14} className="text-emerald-400" />
+                ) : (
+                  <WifiOff size={14} />
+                )}
+                {isLiveMode && isConnected ? 'LIVE' : 'Demo'}
+            </button>
             <div className="h-8 w-px bg-slate-800"></div>
             <button 
-                onClick={() => setIsRunning(!isRunning)}
+                onClick={handleToggleRunning}
                 className={`flex items-center gap-2 px-6 py-2 rounded-lg font-bold text-sm transition-all shadow-lg ${
                   isRunning 
                     ? 'bg-amber-500/10 text-amber-500 border border-amber-500/50 hover:bg-amber-500/20' 
