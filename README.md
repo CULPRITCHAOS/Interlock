@@ -1,73 +1,100 @@
-# AI Grower - SOS Dashboard 🧬
+# LawForge ⚗️
 
-> **Self-Optimizing Software (SOS)**: A visualization of a theoretical DevOps system where software optimizes its own parameters using evolutionary algorithms and Large Language Models.
+> **LawForge** is a deterministic optimization laboratory for discovering, validating, falsifying, and enforcing domain-scoped optimization laws.
+>
+> It provides reproducible convergence benchmarks, falsifiable law tracking, and resilience testing under drift — with explicit evidence, counterexamples, and failure modes.
 
-![Dashboard Preview](https://via.placeholder.com/800x400?text=SOS+Dashboard+Preview)
+![LawForge Preview](https://via.placeholder.com/800x400?text=LawForge+Dashboard)
 
-## 🧠 The Concept
+## 🔬 Core Concepts
 
-Modern software has thousands of tunable parameters (Database buffer sizes, Vector index construction args, Compression levels). Humans cannot tune these dynamically in real-time.
+LawForge formalizes the process of optimization law discovery:
 
-**AI Grower** simulates a biological approach to this problem:
-1.  **SDE Core (The Phenotype)**: The actual code running in production.
-2.  **AI Grower (The Genotype)**: An evolutionary agent that mutates parameters.
-3.  **The Environment**: Real-world constraints (Latency, Memory, Accuracy).
-
-This dashboard visualizes the "Tournament" where different optimization strategies compete to solve domain-specific problems.
+- **Laws** (not heuristics): Explicit, falsifiable statements about parameter-performance relationships with tracked confidence, evidence, and counterexamples.
+- **Falsification**: Laws are continuously tested against new evidence. When counterexamples accumulate, laws are demoted or falsified.
+- **Scope Signatures**: Every law has a defined scope (domain, workload fingerprint, metric set, constraint regime). Laws must not apply outside their scope.
+- **Resilience Under Drift**: The system tracks how laws behave when conditions change, measuring re-convergence time and stability.
 
 ## ⚡ Key Features
 
-### 1. Visual Kernel (`SearchSpaceViz`)
-See the "Ghost in the Machine." A real-time HTML5 Canvas rendering of the fitness landscape.
-- **Green Zones**: Optimal parameter configurations.
-- **Particles**: Candidate solutions exploring the space.
-- **Dynamic Physics**: Watch particles cluster (Gaussian strategy) or scatter (Uniform strategy).
+### 1. Falsifiable Law Tracking
+Laws are not just discovered — they are rigorously tracked:
+- **Confidence scoring** based on trial results and counterexamples
+- **Status progression**: hypothesis → validated → falsified → deprecated
+- **Scope signatures** that define exactly where a law applies
+- **Version tracking** for law evolution over time
 
-### 2. Evolutionary Simulation
-The system runs 4 parallel genetic algorithms for different domains:
-- **FAISS (Vector Search)**: Seeks high precision.
-- **Postgres**: Seeks balance between memory and speed.
-- **Compression**: Adaptive algorithms.
-- **Prompts**: Fragile, high-stakes optimization.
+### 2. Reproducible Benchmarks
+All experiments use deterministic seeded random number generation:
+- **Seed 42** is the default for reproducibility
+- Run-to-run variance is tracked and reported
+- Results are stored in structured JSON format for analysis
 
-### 3. "God Mode" Chaos Engineering
-Test the system's resilience using the Control Panel:
-- **Inject Data Drift**: Move the optimal targets and watch the AI scramble to re-converge.
-- **Flash Crash**: Temporarily drop fitness scores to simulate outages.
+### 3. Drift Resilience Testing
+Test system behavior under changing conditions:
+- **Scheduled drift injection** at configurable generations
+- **Re-convergence time measurement**
+- **Law stability tracking** before/after drift events
 
-### 4. Production Code Export
-The "Killer Feature." The dashboard doesn't just visualize; it **synthesizes**.
-- Click "Export Optimizers" to generate production-ready **Python/FastAPI** code.
-- Includes `Dockerfile`, `requirements.txt`, and modular logic based on the *current* evolved state of the simulation.
+### 4. Cross-Domain Transfer (Experimental)
+> ⚠️ **Note:** Transfer is experimental and not currently net-positive in aggregate benchmarks (27.4% success rate).
+
+The system can attempt to transfer successful strategies between domains, with A/B testing to measure actual impact.
+
+### 5. Law Export
+Export discovered laws as artifacts:
+- `laws.final.json` — Machine-readable law definitions
+- `laws.final.md` — Human-readable summary with evidence
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React 18, TypeScript, Vite
+- **Frontend**: React 19, TypeScript, Vite
 - **Styling**: Tailwind CSS
 - **Visualization**: Recharts, HTML5 Canvas
-- **AI Integration**: Google Gemini API (via `@google/genai`)
+- **Benchmark Runner**: Node.js with tsx
 - **Icons**: Lucide React
 
 ## 🚀 Getting Started
 
 1. **Clone the repository**
-2. **Install dependencies** (if porting to local Vite app)
+2. **Install dependencies**
    ```bash
    npm install
    ```
-3. **Set API Key**
-   Ensure `process.env.API_KEY` is available for the Google Gemini integration.
-4. **Run**
+3. **Run the dashboard**
    ```bash
    npm run dev
+   ```
+4. **Run benchmarks**
+   ```bash
+   # Full test matrix
+   npm run bench
+   
+   # Single run with custom parameters
+   npm run sim:run -- --seed 42 --gens 500 --transfer on --drift on
    ```
 
 ## 📂 Project Structure
 
-- `/components`: UI widgets (Charts, Terminal, Visualizers).
-- `/services`: Logic for Genetic Algorithms and Code Generation.
-- `/types`: TypeScript definitions for the Genome and Simulation laws.
+- `/components`: UI widgets (Charts, LawList, CrossDomainPanel, etc.)
+- `/services`: Benchmark harness, law validation, code generation
+- `/scripts`: Headless simulation runners for long-horizon experiments
+- `/results`: Benchmark outputs with per-run folders
+- `/types.ts`: TypeScript definitions for Laws, Genomes, and Benchmarks
+
+## 📊 Benchmark Results
+
+Latest benchmark findings (seed 42, 500 generations):
+
+| Metric | Value |
+|--------|-------|
+| Transfer Net-Positive Rate | 27.4% |
+| Avg Re-convergence Time (after drift) | 13.0 generations |
+| Law Falsification Rate | 33.3% |
+| System Stability | 99%+ |
+
+See `results/consolidated_report.md` for full details.
 
 ---
 
-*Generated by AI Grower System v2.0*
+*LawForge v3.0 — Deterministic Optimization Laboratory*

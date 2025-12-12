@@ -8,11 +8,17 @@
     "version": 1,
     "status": "falsified",
     "scopeSignature": {
+      "domain": "faiss",
       "datasetSize": 10000,
       "dimensions": 128,
       "queryPattern": "random",
       "targetMetric": "recall",
-      "k": 10
+      "k": 10,
+      "constraintRegime": {
+        "maxLatencyMs": 50,
+        "minRecall": 0.8,
+        "maxMemoryMb": 512
+      }
     },
     "trialResults": [
       {
@@ -121,11 +127,17 @@
         "id": "cx-3",
         "observedAt": 140,
         "workloadFingerprint": {
+          "domain": "faiss",
           "datasetSize": 10000,
           "dimensions": 128,
           "queryPattern": "random",
           "targetMetric": "recall",
-          "k": 10
+          "k": 10,
+          "constraintRegime": {
+            "maxLatencyMs": 50,
+            "minRecall": 0.8,
+            "maxMemoryMb": 512
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.8571",
@@ -135,11 +147,17 @@
         "id": "cx-4",
         "observedAt": 160,
         "workloadFingerprint": {
+          "domain": "faiss",
           "datasetSize": 10000,
           "dimensions": 128,
           "queryPattern": "random",
           "targetMetric": "recall",
-          "k": 10
+          "k": 10,
+          "constraintRegime": {
+            "maxLatencyMs": 50,
+            "minRecall": 0.8,
+            "maxMemoryMb": 512
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.9006",
@@ -149,11 +167,17 @@
         "id": "cx-5",
         "observedAt": 180,
         "workloadFingerprint": {
+          "domain": "faiss",
           "datasetSize": 10000,
           "dimensions": 128,
           "queryPattern": "random",
           "targetMetric": "recall",
-          "k": 10
+          "k": 10,
+          "constraintRegime": {
+            "maxLatencyMs": 50,
+            "minRecall": 0.8,
+            "maxMemoryMb": 512
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7991",
@@ -171,11 +195,16 @@
     "version": 1,
     "status": "falsified",
     "scopeSignature": {
+      "domain": "postgres",
       "datasetSize": 100000,
       "dimensions": 1,
       "queryPattern": "sequential",
       "targetMetric": "latency",
-      "k": 1
+      "k": 1,
+      "constraintRegime": {
+        "maxLatencyMs": 100,
+        "maxMemoryMb": 1024
+      }
     },
     "trialResults": [
       {
@@ -284,11 +313,16 @@
         "id": "cx-0",
         "observedAt": 40,
         "workloadFingerprint": {
+          "domain": "postgres",
           "datasetSize": 100000,
           "dimensions": 1,
           "queryPattern": "sequential",
           "targetMetric": "latency",
-          "k": 1
+          "k": 1,
+          "constraintRegime": {
+            "maxLatencyMs": 100,
+            "maxMemoryMb": 1024
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7883",
@@ -298,11 +332,16 @@
         "id": "cx-6",
         "observedAt": 180,
         "workloadFingerprint": {
+          "domain": "postgres",
           "datasetSize": 100000,
           "dimensions": 1,
           "queryPattern": "sequential",
           "targetMetric": "latency",
-          "k": 1
+          "k": 1,
+          "constraintRegime": {
+            "maxLatencyMs": 100,
+            "maxMemoryMb": 1024
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.9562",
@@ -312,11 +351,16 @@
         "id": "cx-19",
         "observedAt": 400,
         "workloadFingerprint": {
+          "domain": "postgres",
           "datasetSize": 100000,
           "dimensions": 1,
           "queryPattern": "sequential",
           "targetMetric": "latency",
-          "k": 1
+          "k": 1,
+          "constraintRegime": {
+            "maxLatencyMs": 100,
+            "maxMemoryMb": 1024
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7410",
@@ -334,11 +378,15 @@
     "version": 1,
     "status": "hypothesis",
     "scopeSignature": {
+      "domain": "prompts",
       "datasetSize": 1000,
       "dimensions": 512,
       "queryPattern": "clustered",
       "targetMetric": "recall",
-      "k": 5
+      "k": 5,
+      "constraintRegime": {
+        "minRecall": 0.9
+      }
     },
     "trialResults": [
       {
@@ -447,11 +495,15 @@
         "id": "cx-7",
         "observedAt": 180,
         "workloadFingerprint": {
+          "domain": "prompts",
           "datasetSize": 1000,
           "dimensions": 512,
           "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 5
+          "k": 5,
+          "constraintRegime": {
+            "minRecall": 0.9
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.8272",
@@ -461,11 +513,15 @@
         "id": "cx-10",
         "observedAt": 260,
         "workloadFingerprint": {
+          "domain": "prompts",
           "datasetSize": 1000,
           "dimensions": 512,
           "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 5
+          "k": 5,
+          "constraintRegime": {
+            "minRecall": 0.9
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.8805",
@@ -483,11 +539,15 @@
     "version": 1,
     "status": "deprecated",
     "scopeSignature": {
+      "domain": "compression",
       "datasetSize": 50000,
       "dimensions": 256,
       "queryPattern": "random",
       "targetMetric": "memory",
-      "k": 1
+      "k": 1,
+      "constraintRegime": {
+        "maxMemoryMb": 256
+      }
     },
     "trialResults": [
       {
@@ -506,11 +566,15 @@
         "id": "cx-1",
         "observedAt": 60,
         "workloadFingerprint": {
+          "domain": "compression",
           "datasetSize": 50000,
           "dimensions": 256,
           "queryPattern": "random",
           "targetMetric": "memory",
-          "k": 1
+          "k": 1,
+          "constraintRegime": {
+            "maxMemoryMb": 256
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7077",
@@ -528,11 +592,15 @@
     "version": 1,
     "status": "deprecated",
     "scopeSignature": {
+      "domain": "compression",
       "datasetSize": 50000,
       "dimensions": 256,
       "queryPattern": "random",
       "targetMetric": "memory",
-      "k": 1
+      "k": 1,
+      "constraintRegime": {
+        "maxMemoryMb": 256
+      }
     },
     "trialResults": [
       {
@@ -551,11 +619,15 @@
         "id": "cx-2",
         "observedAt": 100,
         "workloadFingerprint": {
+          "domain": "compression",
           "datasetSize": 50000,
           "dimensions": 256,
           "queryPattern": "random",
           "targetMetric": "memory",
-          "k": 1
+          "k": 1,
+          "constraintRegime": {
+            "maxMemoryMb": 256
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7920",
@@ -573,11 +645,15 @@
     "version": 1,
     "status": "falsified",
     "scopeSignature": {
+      "domain": "prompts",
       "datasetSize": 1000,
       "dimensions": 512,
       "queryPattern": "clustered",
       "targetMetric": "recall",
-      "k": 5
+      "k": 5,
+      "constraintRegime": {
+        "minRecall": 0.9
+      }
     },
     "trialResults": [
       {
@@ -686,11 +762,15 @@
         "id": "cx-9",
         "observedAt": 240,
         "workloadFingerprint": {
+          "domain": "prompts",
           "datasetSize": 1000,
           "dimensions": 512,
           "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 5
+          "k": 5,
+          "constraintRegime": {
+            "minRecall": 0.9
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.8610",
@@ -700,11 +780,15 @@
         "id": "cx-15",
         "observedAt": 340,
         "workloadFingerprint": {
+          "domain": "prompts",
           "datasetSize": 1000,
           "dimensions": 512,
           "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 5
+          "k": 5,
+          "constraintRegime": {
+            "minRecall": 0.9
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.8051",
@@ -714,11 +798,15 @@
         "id": "cx-20",
         "observedAt": 400,
         "workloadFingerprint": {
+          "domain": "prompts",
           "datasetSize": 1000,
           "dimensions": 512,
           "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 5
+          "k": 5,
+          "constraintRegime": {
+            "minRecall": 0.9
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7378",
@@ -736,11 +824,17 @@
     "version": 1,
     "status": "falsified",
     "scopeSignature": {
+      "domain": "faiss",
       "datasetSize": 10000,
       "dimensions": 128,
       "queryPattern": "random",
       "targetMetric": "recall",
-      "k": 10
+      "k": 10,
+      "constraintRegime": {
+        "maxLatencyMs": 50,
+        "minRecall": 0.8,
+        "maxMemoryMb": 512
+      }
     },
     "trialResults": [
       {
@@ -849,11 +943,17 @@
         "id": "cx-8",
         "observedAt": 200,
         "workloadFingerprint": {
+          "domain": "faiss",
           "datasetSize": 10000,
           "dimensions": 128,
           "queryPattern": "random",
           "targetMetric": "recall",
-          "k": 10
+          "k": 10,
+          "constraintRegime": {
+            "maxLatencyMs": 50,
+            "minRecall": 0.8,
+            "maxMemoryMb": 512
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.8466",
@@ -863,11 +963,17 @@
         "id": "cx-12",
         "observedAt": 280,
         "workloadFingerprint": {
+          "domain": "faiss",
           "datasetSize": 10000,
           "dimensions": 128,
           "queryPattern": "random",
           "targetMetric": "recall",
-          "k": 10
+          "k": 10,
+          "constraintRegime": {
+            "maxLatencyMs": 50,
+            "minRecall": 0.8,
+            "maxMemoryMb": 512
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7389",
@@ -877,11 +983,17 @@
         "id": "cx-16",
         "observedAt": 340,
         "workloadFingerprint": {
+          "domain": "faiss",
           "datasetSize": 10000,
           "dimensions": 128,
           "queryPattern": "random",
           "targetMetric": "recall",
-          "k": 10
+          "k": 10,
+          "constraintRegime": {
+            "maxLatencyMs": 50,
+            "minRecall": 0.8,
+            "maxMemoryMb": 512
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.8221",
@@ -899,11 +1011,16 @@
     "version": 1,
     "status": "hypothesis",
     "scopeSignature": {
+      "domain": "postgres",
       "datasetSize": 100000,
       "dimensions": 1,
       "queryPattern": "sequential",
       "targetMetric": "latency",
-      "k": 1
+      "k": 1,
+      "constraintRegime": {
+        "maxLatencyMs": 100,
+        "maxMemoryMb": 1024
+      }
     },
     "trialResults": [
       {
@@ -1012,11 +1129,16 @@
         "id": "cx-11",
         "observedAt": 260,
         "workloadFingerprint": {
+          "domain": "postgres",
           "datasetSize": 100000,
           "dimensions": 1,
           "queryPattern": "sequential",
           "targetMetric": "latency",
-          "k": 1
+          "k": 1,
+          "constraintRegime": {
+            "maxLatencyMs": 100,
+            "maxMemoryMb": 1024
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7762",
@@ -1026,11 +1148,16 @@
         "id": "cx-14",
         "observedAt": 320,
         "workloadFingerprint": {
+          "domain": "postgres",
           "datasetSize": 100000,
           "dimensions": 1,
           "queryPattern": "sequential",
           "targetMetric": "latency",
-          "k": 1
+          "k": 1,
+          "constraintRegime": {
+            "maxLatencyMs": 100,
+            "maxMemoryMb": 1024
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7972",
@@ -1048,11 +1175,16 @@
     "version": 1,
     "status": "hypothesis",
     "scopeSignature": {
+      "domain": "postgres",
       "datasetSize": 100000,
       "dimensions": 1,
       "queryPattern": "sequential",
       "targetMetric": "latency",
-      "k": 1
+      "k": 1,
+      "constraintRegime": {
+        "maxLatencyMs": 100,
+        "maxMemoryMb": 1024
+      }
     },
     "trialResults": [
       {
@@ -1161,11 +1293,16 @@
         "id": "cx-17",
         "observedAt": 340,
         "workloadFingerprint": {
+          "domain": "postgres",
           "datasetSize": 100000,
           "dimensions": 1,
           "queryPattern": "sequential",
           "targetMetric": "latency",
-          "k": 1
+          "k": 1,
+          "constraintRegime": {
+            "maxLatencyMs": 100,
+            "maxMemoryMb": 1024
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.9213",
@@ -1175,11 +1312,16 @@
         "id": "cx-26",
         "observedAt": 500,
         "workloadFingerprint": {
+          "domain": "postgres",
           "datasetSize": 100000,
           "dimensions": 1,
           "queryPattern": "sequential",
           "targetMetric": "latency",
-          "k": 1
+          "k": 1,
+          "constraintRegime": {
+            "maxLatencyMs": 100,
+            "maxMemoryMb": 1024
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.8040",
@@ -1197,11 +1339,15 @@
     "version": 1,
     "status": "falsified",
     "scopeSignature": {
+      "domain": "prompts",
       "datasetSize": 1000,
       "dimensions": 512,
       "queryPattern": "clustered",
       "targetMetric": "recall",
-      "k": 5
+      "k": 5,
+      "constraintRegime": {
+        "minRecall": 0.9
+      }
     },
     "trialResults": [
       {
@@ -1310,11 +1456,15 @@
         "id": "cx-22",
         "observedAt": 420,
         "workloadFingerprint": {
+          "domain": "prompts",
           "datasetSize": 1000,
           "dimensions": 512,
           "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 5
+          "k": 5,
+          "constraintRegime": {
+            "minRecall": 0.9
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7592",
@@ -1324,11 +1474,15 @@
         "id": "cx-23",
         "observedAt": 440,
         "workloadFingerprint": {
+          "domain": "prompts",
           "datasetSize": 1000,
           "dimensions": 512,
           "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 5
+          "k": 5,
+          "constraintRegime": {
+            "minRecall": 0.9
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.8170",
@@ -1338,11 +1492,15 @@
         "id": "cx-25",
         "observedAt": 480,
         "workloadFingerprint": {
+          "domain": "prompts",
           "datasetSize": 1000,
           "dimensions": 512,
           "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 5
+          "k": 5,
+          "constraintRegime": {
+            "minRecall": 0.9
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7196",
@@ -1360,11 +1518,15 @@
     "version": 1,
     "status": "validated",
     "scopeSignature": {
+      "domain": "prompts",
       "datasetSize": 1000,
       "dimensions": 512,
       "queryPattern": "clustered",
       "targetMetric": "recall",
-      "k": 5
+      "k": 5,
+      "constraintRegime": {
+        "minRecall": 0.9
+      }
     },
     "trialResults": [
       {
@@ -1480,11 +1642,17 @@
     "version": 1,
     "status": "deprecated",
     "scopeSignature": {
+      "domain": "faiss",
       "datasetSize": 10000,
       "dimensions": 128,
       "queryPattern": "random",
       "targetMetric": "recall",
-      "k": 10
+      "k": 10,
+      "constraintRegime": {
+        "maxLatencyMs": 50,
+        "minRecall": 0.8,
+        "maxMemoryMb": 512
+      }
     },
     "trialResults": [
       {
@@ -1503,11 +1671,17 @@
         "id": "cx-13",
         "observedAt": 300,
         "workloadFingerprint": {
+          "domain": "faiss",
           "datasetSize": 10000,
           "dimensions": 128,
           "queryPattern": "random",
           "targetMetric": "recall",
-          "k": 10
+          "k": 10,
+          "constraintRegime": {
+            "maxLatencyMs": 50,
+            "minRecall": 0.8,
+            "maxMemoryMb": 512
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7502",
@@ -1525,11 +1699,15 @@
     "version": 1,
     "status": "hypothesis",
     "scopeSignature": {
+      "domain": "compression",
       "datasetSize": 50000,
       "dimensions": 256,
       "queryPattern": "random",
       "targetMetric": "memory",
-      "k": 1
+      "k": 1,
+      "constraintRegime": {
+        "maxMemoryMb": 256
+      }
     },
     "trialResults": [
       {
@@ -1628,11 +1806,15 @@
         "id": "cx-24",
         "observedAt": 460,
         "workloadFingerprint": {
+          "domain": "compression",
           "datasetSize": 50000,
           "dimensions": 256,
           "queryPattern": "random",
           "targetMetric": "memory",
-          "k": 1
+          "k": 1,
+          "constraintRegime": {
+            "maxMemoryMb": 256
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.7973",
@@ -1650,11 +1832,15 @@
     "version": 1,
     "status": "hypothesis",
     "scopeSignature": {
+      "domain": "prompts",
       "datasetSize": 1000,
       "dimensions": 512,
       "queryPattern": "clustered",
       "targetMetric": "recall",
-      "k": 5
+      "k": 5,
+      "constraintRegime": {
+        "minRecall": 0.9
+      }
     },
     "trialResults": [
       {
@@ -1743,11 +1929,15 @@
         "id": "cx-18",
         "observedAt": 380,
         "workloadFingerprint": {
+          "domain": "prompts",
           "datasetSize": 1000,
           "dimensions": 512,
           "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 5
+          "k": 5,
+          "constraintRegime": {
+            "minRecall": 0.9
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.9936",
@@ -1765,11 +1955,15 @@
     "version": 1,
     "status": "deprecated",
     "scopeSignature": {
+      "domain": "prompts",
       "datasetSize": 1000,
       "dimensions": 512,
       "queryPattern": "clustered",
       "targetMetric": "recall",
-      "k": 5
+      "k": 5,
+      "constraintRegime": {
+        "minRecall": 0.9
+      }
     },
     "trialResults": [
       {
@@ -1788,11 +1982,15 @@
         "id": "cx-21",
         "observedAt": 400,
         "workloadFingerprint": {
+          "domain": "prompts",
           "datasetSize": 1000,
           "dimensions": 512,
           "queryPattern": "clustered",
           "targetMetric": "recall",
-          "k": 5
+          "k": 5,
+          "constraintRegime": {
+            "minRecall": 0.9
+          }
         },
         "expectedOutcome": "Value in range [0.7, 0.99]",
         "actualOutcome": "Observed: 0.9022",
@@ -1810,11 +2008,17 @@
     "version": 1,
     "status": "validated",
     "scopeSignature": {
+      "domain": "faiss",
       "datasetSize": 10000,
       "dimensions": 128,
       "queryPattern": "random",
       "targetMetric": "recall",
-      "k": 10
+      "k": 10,
+      "constraintRegime": {
+        "maxLatencyMs": 50,
+        "minRecall": 0.8,
+        "maxMemoryMb": 512
+      }
     },
     "trialResults": [
       {
@@ -1880,11 +2084,15 @@
     "version": 1,
     "status": "validated",
     "scopeSignature": {
+      "domain": "prompts",
       "datasetSize": 1000,
       "dimensions": 512,
       "queryPattern": "clustered",
       "targetMetric": "recall",
-      "k": 5
+      "k": 5,
+      "constraintRegime": {
+        "minRecall": 0.9
+      }
     },
     "trialResults": [
       {
@@ -1930,11 +2138,15 @@
     "version": 1,
     "status": "validated",
     "scopeSignature": {
+      "domain": "prompts",
       "datasetSize": 1000,
       "dimensions": 512,
       "queryPattern": "clustered",
       "targetMetric": "recall",
-      "k": 5
+      "k": 5,
+      "constraintRegime": {
+        "minRecall": 0.9
+      }
     },
     "trialResults": [
       {

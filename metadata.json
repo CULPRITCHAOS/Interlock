@@ -1,5 +1,5 @@
 {
-  "name": "AI Grower - SOS Dashboard",
-  "description": "Visual dashboard for Self-Optimizing Software. Features real-time evolutionary algorithms, fitness landscape visualization, and automated Python microservice generation.",
+  "name": "LawForge",
+  "description": "Deterministic optimization laboratory for discovering, validating, falsifying, and enforcing domain-scoped optimization laws. Features reproducible benchmarks, falsifiable law tracking, and resilience testing under drift.",
   "requestFramePermissions": []
 }

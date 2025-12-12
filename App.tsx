@@ -11,7 +11,7 @@ import ExportModal from './components/ExportModal';
 import SearchSpaceViz from './components/SearchSpaceViz';
 import ControlPanel from './components/ControlPanel';
 import BenchmarkPanel from './components/BenchmarkPanel';
-import { Play, Pause, RefreshCw, Trophy, Download, Activity, Cpu, Wifi, WifiOff, Gauge } from 'lucide-react';
+import { Play, Pause, RefreshCw, FlaskConical, Download, Activity, Cpu, Wifi, WifiOff, Gauge } from 'lucide-react';
 import { generateSimulatedInsight, generateDiscoveredLaw, generateCrossDomainInsight } from './services/ai';
 import { wsService, SOSEvent } from './services/websocket';
 import { 
@@ -89,8 +89,8 @@ const App: React.FC = () => {
   const [laws, setLaws] = useState<Law[]>(INITIAL_LAWS);
   const [crossInsights, setCrossInsights] = useState<CrossDomainInsight[]>([]);
   const [logs, setLogs] = useState<SimulationLog[]>([
-    { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'SOS Tournament Mode Initialized.' },
-    { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'info', message: '4 Parallel evolutionary channels active.' },
+    { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'LawForge Laboratory Initialized.' },
+    { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'info', message: '4 Parallel law discovery channels active.' },
     { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'info', message: `Benchmark seed locked: ${DEFAULT_BENCHMARK_CONFIG.seed}` },
   ]);
 
@@ -536,7 +536,7 @@ const App: React.FC = () => {
     if (isLiveMode && isConnected) {
       wsService.reset();
       setActiveTab('blueprint');
-      setLogs([{ id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'Tournament Reset (via Live Backend).' }]);
+      setLogs([{ id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'LawForge Reset (via Live Backend).' }]);
       return;
     }
     
@@ -567,7 +567,7 @@ const App: React.FC = () => {
     setGenomes(initial);
     setLaws(INITIAL_LAWS); // Reset laws to initial state
     setLogs([
-      { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'Tournament Reset.' },
+      { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'LawForge Reset.' },
       { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'info', message: `Benchmark seed re-locked: ${benchmarkConfig.seed}` }
     ]);
   };
@@ -595,13 +595,13 @@ const App: React.FC = () => {
       <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-br from-emerald-500 to-blue-600 rounded-lg">
-             <Trophy size={24} className="text-white" />
+             <FlaskConical size={24} className="text-white" />
           </div>
           <div>
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-blue-500">
-                SOS Tournament
+                LawForge
             </h1>
-            <p className="text-slate-500 text-xs mt-0.5 font-mono">Parallel Evolutionary Optimization • Gen {generation}</p>
+            <p className="text-slate-500 text-xs mt-0.5 font-mono">Optimization Law Laboratory • Gen {generation}</p>
           </div>
         </div>
 
@@ -645,7 +645,7 @@ const App: React.FC = () => {
                 }`}
             >
                 {isRunning ? <Pause size={16} /> : <Play size={16} />}
-                {isRunning ? "PAUSE" : "START TOURNAMENT"}
+                {isRunning ? "PAUSE" : "START LAWFORGE"}
             </button>
         </div>
       </header>

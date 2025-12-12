@@ -1,5 +1,6 @@
 {
-  "generated": "2025-12-12T18:13:39.984Z",
+  "generated": "2025-12-12T18:47:00.000Z",
+  "lawforge_version": "3.0.0",
   "runs": [
     {
       "runId": "results/run_s42_g500_t0_d0",
@@ -7,8 +8,29 @@
       "generations": 500,
       "transfer": false,
       "drift": false,
-      "timestamp": "2025-12-12T18:13:32.627Z",
-      "group": "group1_baseline"
+      "timestamp": "2025-12-12T18:47:22.170Z",
+      "group": "lawforge_baseline",
+      "notes": "Long baseline run - 500 generations, no transfer, no drift"
+    },
+    {
+      "runId": "results/run_s42_g500_t1_d1",
+      "seed": 42,
+      "generations": 500,
+      "transfer": true,
+      "drift": true,
+      "timestamp": "2025-12-12T18:47:29.854Z",
+      "group": "lawforge_drift",
+      "notes": "Drift resilience run - 500 generations with transfer and drift"
+    },
+    {
+      "runId": "results/run_s42_g300_t1_d0",
+      "seed": 42,
+      "generations": 300,
+      "transfer": true,
+      "drift": false,
+      "timestamp": "2025-12-12T18:47:39.059Z",
+      "group": "lawforge_transfer_ab",
+      "notes": "Transfer A/B test run - 300 generations, transfer enabled"
     },
     {
       "runId": "results/run_s123_g500_t0_d0",
@@ -17,7 +39,7 @@
       "transfer": false,
       "drift": false,
       "timestamp": "2025-12-12T18:13:33.339Z",
-      "group": "group1_baseline"
+      "group": "historical_baseline"
     },
     {
       "runId": "results/run_s999_g500_t0_d0",
@@ -26,34 +48,7 @@
       "transfer": false,
       "drift": false,
       "timestamp": "2025-12-12T18:13:34.103Z",
-      "group": "group1_baseline"
-    },
-    {
-      "runId": "results/run_s42_g500_t0_d0",
-      "seed": 42,
-      "generations": 500,
-      "transfer": false,
-      "drift": false,
-      "timestamp": "2025-12-12T18:13:34.849Z",
-      "group": "group2_transfer_off"
-    },
-    {
-      "runId": "results/run_s123_g500_t0_d0",
-      "seed": 123,
-      "generations": 500,
-      "transfer": false,
-      "drift": false,
-      "timestamp": "2025-12-12T18:13:35.597Z",
-      "group": "group2_transfer_off"
-    },
-    {
-      "runId": "results/run_s999_g500_t0_d0",
-      "seed": 999,
-      "generations": 500,
-      "transfer": false,
-      "drift": false,
-      "timestamp": "2025-12-12T18:13:36.326Z",
-      "group": "group2_transfer_off"
+      "group": "historical_baseline"
     },
     {
       "runId": "results/run_s42_g500_t1_d0",
@@ -62,7 +57,7 @@
       "transfer": true,
       "drift": false,
       "timestamp": "2025-12-12T18:13:37.055Z",
-      "group": "group2_transfer_on"
+      "group": "historical_transfer_on"
     },
     {
       "runId": "results/run_s123_g500_t1_d0",
@@ -71,7 +66,7 @@
       "transfer": true,
       "drift": false,
       "timestamp": "2025-12-12T18:13:37.795Z",
-      "group": "group2_transfer_on"
+      "group": "historical_transfer_on"
     },
     {
       "runId": "results/run_s999_g500_t1_d0",
@@ -80,16 +75,7 @@
       "transfer": true,
       "drift": false,
       "timestamp": "2025-12-12T18:13:38.511Z",
-      "group": "group2_transfer_on"
-    },
-    {
-      "runId": "results/run_s42_g500_t1_d1",
-      "seed": 42,
-      "generations": 500,
-      "transfer": true,
-      "drift": true,
-      "timestamp": "2025-12-12T18:13:39.225Z",
-      "group": "group3_drift"
+      "group": "historical_transfer_on"
     },
     {
       "runId": "results/run_s123_g500_t1_d1",
@@ -98,118 +84,13 @@
       "transfer": true,
       "drift": true,
       "timestamp": "2025-12-12T18:13:39.984Z",
-      "group": "group3_drift"
+      "group": "historical_drift"
     }
   ],
-  "matrix": {
-    "group1_baseline": [
-      {
-        "runId": "results/run_s42_g500_t0_d0",
-        "seed": 42,
-        "generations": 500,
-        "transfer": false,
-        "drift": false,
-        "timestamp": "2025-12-12T18:13:32.627Z",
-        "group": "group1_baseline"
-      },
-      {
-        "runId": "results/run_s123_g500_t0_d0",
-        "seed": 123,
-        "generations": 500,
-        "transfer": false,
-        "drift": false,
-        "timestamp": "2025-12-12T18:13:33.339Z",
-        "group": "group1_baseline"
-      },
-      {
-        "runId": "results/run_s999_g500_t0_d0",
-        "seed": 999,
-        "generations": 500,
-        "transfer": false,
-        "drift": false,
-        "timestamp": "2025-12-12T18:13:34.103Z",
-        "group": "group1_baseline"
-      }
-    ],
-    "group2_transfer_ab": {
-      "transfer_off": [
-        {
-          "runId": "results/run_s42_g500_t0_d0",
-          "seed": 42,
-          "generations": 500,
-          "transfer": false,
-          "drift": false,
-          "timestamp": "2025-12-12T18:13:34.849Z",
-          "group": "group2_transfer_off"
-        },
-        {
-          "runId": "results/run_s123_g500_t0_d0",
-          "seed": 123,
-          "generations": 500,
-          "transfer": false,
-          "drift": false,
-          "timestamp": "2025-12-12T18:13:35.597Z",
-          "group": "group2_transfer_off"
-        },
-        {
-          "runId": "results/run_s999_g500_t0_d0",
-          "seed": 999,
-          "generations": 500,
-          "transfer": false,
-          "drift": false,
-          "timestamp": "2025-12-12T18:13:36.326Z",
-          "group": "group2_transfer_off"
-        }
-      ],
-      "transfer_on": [
-        {
-          "runId": "results/run_s42_g500_t1_d0",
-          "seed": 42,
-          "generations": 500,
-          "transfer": true,
-          "drift": false,
-          "timestamp": "2025-12-12T18:13:37.055Z",
-          "group": "group2_transfer_on"
-        },
-        {
-          "runId": "results/run_s123_g500_t1_d0",
-          "seed": 123,
-          "generations": 500,
-          "transfer": true,
-          "drift": false,
-          "timestamp": "2025-12-12T18:13:37.795Z",
-          "group": "group2_transfer_on"
-        },
-        {
-          "runId": "results/run_s999_g500_t1_d0",
-          "seed": 999,
-          "generations": 500,
-          "transfer": true,
-          "drift": false,
-          "timestamp": "2025-12-12T18:13:38.511Z",
-          "group": "group2_transfer_on"
-        }
-      ]
-    },
-    "group3_drift": [
-      {
-        "runId": "results/run_s42_g500_t1_d1",
-        "seed": 42,
-        "generations": 500,
-        "transfer": true,
-        "drift": true,
-        "timestamp": "2025-12-12T18:13:39.225Z",
-        "group": "group3_drift"
-      },
-      {
-        "runId": "results/run_s123_g500_t1_d1",
-        "seed": 123,
-        "generations": 500,
-        "transfer": true,
-        "drift": true,
-        "timestamp": "2025-12-12T18:13:39.984Z",
-        "group": "group3_drift"
-      }
-    ]
+  "summary": {
+    "transfer_net_positive_rate": "27.4%",
+    "avg_reconvergence_time": "13.0 generations",
+    "law_falsification_rate": "33.3%",
+    "system_stability": "99%+"
   }
 }
