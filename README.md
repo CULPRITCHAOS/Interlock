@@ -53,7 +53,47 @@ Run LawForge in certification mode (`--mode=certification`) to:
 - **Compute Resilience Score**: `(1 - DropDepth) / RecoveryTime`
 - **Output**: `LawForge_Resilience_Audit.md` with recovery curves and shield rating (green/yellow/red)
 
-### 5. Cross-Domain Transfer (Experimental)
+### 5. Failure Forecasting (Phase III) 🆕
+> **LawForge does not prevent failure. It makes failure visible before it happens.**
+
+LawForge now includes a failure forecasting engine that predicts system failures based on observed historical data:
+
+#### Failure Boundary Detection
+- Automatically detects **failure boundaries** from phase transitions and drift events
+- Tracks **parameter ranges**, **abruptness scores**, and **historical drop depths**
+- Calculates **recovery slopes** based on observed recovery times
+- Exports: `boundaries.json` and `boundaries.md`
+
+#### Failure Prediction
+- `predictFailure(systemState, proposedChange)` function predicts:
+  - **Expected drop depth** — How much fitness will drop
+  - **Expected recovery time** — Generations to recover
+  - **Dominant failure mode** — Primary failure pattern
+  - **Confidence score** — Based on historical observations
+- **No stochastic guessing** — All predictions derived from observed data
+
+#### Early Warning UI
+The dashboard includes an **Early Warning Panel** with:
+- 🟢 **Safe Zone** — Operating within safe parameters
+- 🟡 **Yellow Zone** — Approaching boundary (monitor closely)
+- 🔴 **Red Zone** — Forecasted collapse (immediate action recommended)
+- **Tooltip explanations** — Every warning explains why it was triggered
+- **Mitigation suggestions** — Recommended actions to avoid failure
+
+#### Forecast Validation
+Run certification mode to validate forecast accuracy:
+- **Controlled boundary-crossing experiments**
+- **Compare predicted vs observed** failure metrics
+- **Track forecast error** rates
+- **Export**: `forecast_validation.md` with accuracy metrics
+
+#### Certification Extensions
+Certification reports now include:
+- **Failure Forecast Summary** — Total boundaries, high-risk count, accuracy
+- **Unsafe Operating Regions** — Domains and parameters to avoid
+- **Recommended Safety Margins** — Safe ranges for each parameter
+
+### 6. Cross-Domain Transfer (Experimental)
 > ⚠️ **Warning:** Transfer is experimental and not currently net-positive in aggregate benchmarks (27.4% success rate).
 > 
 > **LawForge does not attempt universal transfer. It measures where transfer fails.**
@@ -62,12 +102,14 @@ Run LawForge in certification mode (`--mode=certification`) to:
 - Aborts transfer if scope similarity < threshold
 - A/B testing to measure actual impact
 
-### 6. Artifact Export
+### 7. Artifact Export
 Every run produces explicit artifacts with no silent successes or hidden failures:
 - `laws.final.json` — Machine-readable law definitions
 - `laws.final.md` — Human-readable summary with evidence
 - `landscape.json` / `landscape.md` — Optimization landscape measurement
+- `boundaries.json` / `boundaries.md` — Failure boundary analysis (Phase III)
 - `resilience_audit.md` — Resilience certification report (when using `--mode=certification`)
+- `forecast_validation.md` — Forecast accuracy metrics (when using `--mode=certification`)
 - `results/index.json` — Updated run index
 
 ## 🛠️ Tech Stack
@@ -127,7 +169,9 @@ See `results/consolidated_report.md` for full details.
 ## 📐 Guiding Principle
 
 > **LawForge does not optimize systems. It reveals the physics they obey.**
+> 
+> **LawForge does not prevent failure. It makes failure visible before it happens.**
 
 ---
 
-*LawForge v3.1 — Optimization Microscope & Resilience Certification Engine*
+*LawForge v3.2.0 — Optimization Microscope, Resilience Certification & Failure Forecasting Engine*

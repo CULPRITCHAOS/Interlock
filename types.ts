@@ -329,3 +329,127 @@ export interface ResilienceAudit {
   failureModes: string[];              // Identified failure patterns
   recoveryPatterns: string[];          // Observed recovery behaviors
 }
+
+// ============= Failure Forecasting Types (Phase III) =============
+
+// Enhanced failure boundary with forecasting data
+export interface FailureBoundary {
+  id: string;
+  domain: string;
+  parameter: string;                   // Parameter that triggers the boundary
+  parameterRange: [number, number];    // Range where boundary exists
+  criticalValue: number;               // Value at which failure occurs
+  abruptnessScore: number;             // 0-1, how sharp is the transition
+  historicalDropDepth: number;         // Average observed fitness drop (0-1)
+  recoverySlope: number;               // Rate of recovery after boundary crossing
+  confidence: number;                  // 0-1, confidence in this boundary prediction
+  observedCrossings: number;           // Number of times this boundary was crossed
+  lawsAtRisk: string[];               // Law IDs that break at this boundary
+}
+
+// Boundaries artifact for export
+export interface BoundariesArtifact {
+  generated: string;
+  runId: string;
+  totalBoundaries: number;
+  summary: {
+    highRisk: number;      // abruptness > 0.7
+    mediumRisk: number;    // abruptness 0.4-0.7
+    lowRisk: number;       // abruptness < 0.4
+  };
+  boundaries: FailureBoundary[];
+}
+
+// System state for failure prediction
+export interface SystemState {
+  domain: string;
+  currentAlpha: number;
+  currentFitness: number;
+  currentStrategy: string;
+  generation: number;
+  recentVariance: number;              // Fitness variance over recent generations
+  proximityToBoundary: number;         // 0-1, how close to nearest boundary
+}
+
+// Proposed change for failure prediction
+export interface ProposedChange {
+  parameterName: string;
+  currentValue: number;
+  proposedValue: number;
+  changeType: 'mutation' | 'drift' | 'transfer';
+}
+
+// Failure forecast result
+export interface FailureForecast {
+  id: string;
+  timestamp: string;
+  systemState: SystemState;
+  proposedChange: ProposedChange;
+  // Predictions (no stochastic guessing - derived from observed data)
+  expectedDropDepth: number;           // Predicted fitness drop (0-1)
+  expectedRecoveryTime: number;        // Predicted generations to recover
+  dominantFailureMode: string;         // Primary failure pattern
+  // Risk assessment
+  riskLevel: 'safe' | 'yellow' | 'red';
+  confidenceScore: number;             // 0-1, confidence in this forecast
+  // Boundary data
+  nearestBoundary: FailureBoundary | null;
+  boundaryDistance: number;            // Distance to nearest boundary
+  // Explanation (critical for UI)
+  warningReason: string;               // Human-readable explanation
+  mitigationSuggestion: string;        // Suggested action
+}
+
+// Forecast validation result
+export interface ForecastValidation {
+  forecastId: string;
+  predictedDropDepth: number;
+  observedDropDepth: number;
+  predictedRecoveryTime: number;
+  observedRecoveryTime: number;
+  dropDepthError: number;              // |predicted - observed|
+  recoveryTimeError: number;           // |predicted - observed|
+  wasCorrectRiskLevel: boolean;
+  generation: number;
+}
+
+// Forecast validation summary
+export interface ForecastValidationSummary {
+  generated: string;
+  runId: string;
+  totalForecasts: number;
+  totalValidated: number;
+  accuracy: {
+    dropDepthMeanError: number;
+    dropDepthMedianError: number;
+    recoveryTimeMeanError: number;
+    recoveryTimeMedianError: number;
+    riskLevelAccuracy: number;         // % of correct risk level predictions
+  };
+  falsePositives: number;              // Predicted failure, didn't happen
+  falseNegatives: number;              // Didn't predict failure, it happened
+  limitsOfPrediction: string[];        // Known limitations
+  validations: ForecastValidation[];
+}
+
+// Extended certification report for Phase III
+export interface CertificationReport extends ResilienceAudit {
+  // Phase III additions
+  failureForecastSummary?: {
+    totalBoundariesDetected: number;
+    highRiskBoundaries: number;
+    forecastAccuracy: number;
+  };
+  unsafeOperatingRegions?: Array<{
+    domain: string;
+    parameterRanges: Record<string, [number, number]>;
+    riskLevel: 'yellow' | 'red';
+    reason: string;
+  }>;
+  recommendedSafetyMargins?: Array<{
+    parameter: string;
+    currentValue: number;
+    safeRange: [number, number];
+    margin: number;
+  }>;
+}
