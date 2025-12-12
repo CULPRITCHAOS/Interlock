@@ -19,6 +19,24 @@ import {
 } from '../types';
 import { DEFAULT_BENCHMARK_CONFIG, DEFAULT_FAISS_FINGERPRINT } from '../constants';
 
+// Configuration constants for law validation
+const LAW_CONFIDENCE_WEIGHTS = {
+  ORIGINAL_WEIGHT: 0.3,
+  TRIAL_WEIGHT: 0.7,
+  COUNTEREXAMPLE_PENALTY: 0.05
+};
+
+const LAW_STATUS_THRESHOLDS = {
+  COUNTEREXAMPLE_FALSIFICATION_COUNT: 3,
+  DEPRECATED_CONFIDENCE: 0.5,
+  VALIDATED_CONFIDENCE: 0.8
+};
+
+const SEVERITY_THRESHOLDS = {
+  CRITICAL_MULTIPLIER: 0.8,
+  MAJOR_MULTIPLIER: 0.9
+};
+
 // Seeded random number generator for reproducibility
 class SeededRandom {
   private seed: number;
@@ -228,8 +246,8 @@ export function createCounterexample(
     workloadFingerprint: fingerprint,
     expectedOutcome: `Value in range [${trialResult.expectedRange[0]}, ${trialResult.expectedRange[1]}]`,
     actualOutcome: `Observed: ${trialResult.observedValue.toFixed(4)}`,
-    severity: trialResult.observedValue < trialResult.expectedRange[0] * 0.8 ? 'critical' :
-              trialResult.observedValue < trialResult.expectedRange[0] * 0.9 ? 'major' : 'minor'
+    severity: trialResult.observedValue < trialResult.expectedRange[0] * SEVERITY_THRESHOLDS.CRITICAL_MULTIPLIER ? 'critical' :
+              trialResult.observedValue < trialResult.expectedRange[0] * SEVERITY_THRESHOLDS.MAJOR_MULTIPLIER ? 'major' : 'minor'
   };
 }
 
@@ -244,12 +262,13 @@ export function updateLawConfidence(law: Law): number {
   const successCount = law.trialResults.filter(t => t.success).length;
   const totalTrials = law.trialResults.length;
   
-  // Weighted confidence: original confidence * 0.3 + trial success rate * 0.7
+  // Weighted confidence: original confidence * ORIGINAL_WEIGHT + trial success rate * TRIAL_WEIGHT
   const trialConfidence = successCount / totalTrials;
-  const newConfidence = law.confidence * 0.3 + trialConfidence * 0.7;
+  const newConfidence = law.confidence * LAW_CONFIDENCE_WEIGHTS.ORIGINAL_WEIGHT + 
+                        trialConfidence * LAW_CONFIDENCE_WEIGHTS.TRIAL_WEIGHT;
   
   // Apply penalty for counterexamples
-  const counterexamplePenalty = (law.counterexamples?.length || 0) * 0.05;
+  const counterexamplePenalty = (law.counterexamples?.length || 0) * LAW_CONFIDENCE_WEIGHTS.COUNTEREXAMPLE_PENALTY;
   
   return Math.max(0, Math.min(1, newConfidence - counterexamplePenalty));
 }
@@ -261,15 +280,15 @@ export function determineLawStatus(law: Law): Law['status'] {
   const confidence = updateLawConfidence(law);
   const counterexampleCount = law.counterexamples?.length || 0;
   
-  if (counterexampleCount >= 3) {
+  if (counterexampleCount >= LAW_STATUS_THRESHOLDS.COUNTEREXAMPLE_FALSIFICATION_COUNT) {
     return 'falsified';
   }
   
-  if (confidence < 0.5) {
+  if (confidence < LAW_STATUS_THRESHOLDS.DEPRECATED_CONFIDENCE) {
     return 'deprecated';
   }
   
-  if (confidence >= 0.8 && counterexampleCount === 0) {
+  if (confidence >= LAW_STATUS_THRESHOLDS.VALIDATED_CONFIDENCE && counterexampleCount === 0) {
     return 'validated';
   }
   
@@ -333,10 +352,19 @@ export function runTransferABTest(
     transferCumulativeRegret += (0.95 - transferFitness);
   }
   
+  // Helper function to safely calculate percentage improvement
+  const safePercentageImprovement = (baseline: number, transfer: number, baselineDenom: number): number => {
+    if (baselineDenom === 0) return 0;
+    return ((baseline - transfer) / baselineDenom) * 100;
+  };
+  
   // Calculate improvements (positive = transfer is better)
-  const timeImprovement = ((baselineTimeToThreshold - transferTimeToThreshold) / baselineTimeToThreshold) * 100;
-  const bestImprovement = ((transferBestAchieved - baselineBestAchieved) / baselineBestAchieved) * 100;
-  const regretImprovement = ((baselineCumulativeRegret - transferCumulativeRegret) / baselineCumulativeRegret) * 100;
+  // For time and regret: lower is better, so (baseline - transfer) / baseline
+  // For best achieved: higher is better, so (transfer - baseline) / baseline
+  const timeImprovement = safePercentageImprovement(baselineTimeToThreshold, transferTimeToThreshold, baselineTimeToThreshold);
+  const bestImprovement = baselineBestAchieved === 0 ? 0 : 
+    ((transferBestAchieved - baselineBestAchieved) / baselineBestAchieved) * 100;
+  const regretImprovement = safePercentageImprovement(baselineCumulativeRegret, transferCumulativeRegret, baselineCumulativeRegret);
   
   // Determine if transfer is net positive (majority of metrics improved)
   const improvements = [timeImprovement, bestImprovement, regretImprovement];

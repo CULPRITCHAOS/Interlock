@@ -26,6 +26,22 @@ const ImprovementIndicator: React.FC<{ value: number; label: string }> = ({ valu
   );
 };
 
+// Helper to calculate average improvement across all A/B tests
+const calculateAverageImprovement = (results: TransferABTestResult[]): string => {
+  if (results.length === 0) return '0%';
+  
+  const totalImprovement = results.reduce((sum, test) => {
+    const avgTestImprovement = (
+      test.improvement.timeToThreshold + 
+      test.improvement.bestAchieved + 
+      test.improvement.regret
+    ) / 3;
+    return sum + avgTestImprovement;
+  }, 0);
+  
+  return `${(totalImprovement / results.length).toFixed(1)}%`;
+};
+
 const CrossDomainPanel: React.FC<CrossDomainPanelProps> = ({ insights, mutationRate, abTestResults = [] }) => {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 h-full flex flex-col">
@@ -111,10 +127,7 @@ const CrossDomainPanel: React.FC<CrossDomainPanelProps> = ({ insights, mutationR
           <div className="text-center">
             <div className="text-[10px] text-slate-500">Avg Improvement</div>
             <div className="text-sm font-bold text-blue-400">
-              {abTestResults.length > 0 
-                ? `${(abTestResults.reduce((s, t) => s + (t.improvement.timeToThreshold + t.improvement.bestAchieved + t.improvement.regret) / 3, 0) / abTestResults.length).toFixed(1)}%`
-                : '0%'
-              }
+              {calculateAverageImprovement(abTestResults)}
             </div>
           </div>
         </div>
