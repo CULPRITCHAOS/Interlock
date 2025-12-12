@@ -1,0 +1,14 @@
+{
+  "runId": "results/run_s123_g500_t1_d0",
+  "seed": 123,
+  "generations": 500,
+  "domains": [
+    "faiss",
+    "compression",
+    "postgres",
+    "prompts"
+  ],
+  "transferEnabled": true,
+  "driftEnabled": false,
+  "timestamp": "2025-12-12T18:13:37.735Z"
+}
