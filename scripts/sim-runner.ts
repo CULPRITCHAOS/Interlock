@@ -1462,8 +1462,8 @@ function generateLandscapeReport(
           transitionParameter: Math.abs(curr.alpha - prev.alpha) > 0.3 ? 'alpha' : 'fitness',
           transitionValue: curr.alpha,
           abruptness: Math.min(1, fitnessDelta / 0.3),  // Normalized abruptness
-          lawsInvalidated: falsifiedLaws.filter((_, idx) => {
-            const law = domainLaws.find(l => l.id === falsifiedLaws[idx]);
+          lawsInvalidated: falsifiedLaws.filter((lawId) => {
+            const law = domainLaws.find(l => l.id === lawId);
             return law && law.lastValidatedAt && law.lastValidatedAt < i && (law.counterexamples?.some(c => c.observedAt >= i) || false);
           })
         };

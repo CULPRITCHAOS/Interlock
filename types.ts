@@ -295,7 +295,7 @@ export interface DriftInjectionResult {
 export interface ResilienceScore {
   overall: number;              // (1 - DropDepth) / RecoveryTime
   byDomain: Record<string, number>;
-  shieldRating: 'green' | 'yellow' | 'red';  // green: ≥0.8, yellow: ≥0.5, red: <0.5
+  shieldRating: 'green' | 'yellow' | 'red';  // green: ≥0.08, yellow: ≥0.04, red: <0.04
 }
 
 // Resilience Audit Report
