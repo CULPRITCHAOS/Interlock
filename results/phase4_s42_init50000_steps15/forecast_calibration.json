@@ -1,0 +1,183 @@
+{
+  "runId": "results/phase4_s42_init50000_steps15",
+  "generated": "2025-12-13T00:07:00.552Z",
+  "totalForecasts": 15,
+  "validatedForecasts": 15,
+  "timeToFailureMeanError": 3.466666666666667,
+  "timeToFailureMedianError": 5,
+  "dropDepthMeanError": 0.19572338730425423,
+  "dropDepthMedianError": 0.21152430407308231,
+  "recoveryTimeMeanError": 10,
+  "recoveryTimeMedianError": 10,
+  "falsePositives": 5,
+  "falseNegatives": 0,
+  "truePositives": 6,
+  "trueNegatives": 4,
+  "precision": 0.5454545454545454,
+  "recall": 1,
+  "f1Score": 0.7058823529411764,
+  "predictions": [
+    {
+      "predictedTimeToFailure": 20,
+      "actualTimeToFailure": 15,
+      "predictedDropDepth": 0.1,
+      "actualDropDepth": 0.020853559971253155,
+      "predictedRecoveryTime": 8,
+      "actualRecoveryTime": 5,
+      "riskLevel": "safe",
+      "failureOccurred": false
+    },
+    {
+      "predictedTimeToFailure": 12,
+      "actualTimeToFailure": 14,
+      "predictedDropDepth": 0.13999999999999999,
+      "actualDropDepth": 0.039739584326622834,
+      "predictedRecoveryTime": 9,
+      "actualRecoveryTime": 5,
+      "riskLevel": "safe",
+      "failureOccurred": false
+    },
+    {
+      "predictedTimeToFailure": 8,
+      "actualTimeToFailure": 13,
+      "predictedDropDepth": 0.18000000000000002,
+      "actualDropDepth": 0.07500647783978209,
+      "predictedRecoveryTime": 10,
+      "actualRecoveryTime": 5,
+      "riskLevel": "safe",
+      "failureOccurred": false
+    },
+    {
+      "predictedTimeToFailure": 6,
+      "actualTimeToFailure": 12,
+      "predictedDropDepth": 0.22000000000000003,
+      "actualDropDepth": 0.07813247620972452,
+      "predictedRecoveryTime": 11,
+      "actualRecoveryTime": 5,
+      "riskLevel": "safe",
+      "failureOccurred": false
+    },
+    {
+      "predictedTimeToFailure": 4,
+      "actualTimeToFailure": 11,
+      "predictedDropDepth": 0.26,
+      "actualDropDepth": 0.09892338275859291,
+      "predictedRecoveryTime": 12,
+      "actualRecoveryTime": 5,
+      "riskLevel": "yellow",
+      "failureOccurred": false
+    },
+    {
+      "predictedTimeToFailure": 3,
+      "actualTimeToFailure": 10,
+      "predictedDropDepth": 0.3,
+      "actualDropDepth": 0.13362559557595555,
+      "predictedRecoveryTime": 13,
+      "actualRecoveryTime": 5,
+      "riskLevel": "yellow",
+      "failureOccurred": false
+    },
+    {
+      "predictedTimeToFailure": 2,
+      "actualTimeToFailure": 9,
+      "predictedDropDepth": 0.34,
+      "actualDropDepth": 0.13991988845165815,
+      "predictedRecoveryTime": 14,
+      "actualRecoveryTime": 5,
+      "riskLevel": "red",
+      "failureOccurred": false
+    },
+    {
+      "predictedTimeToFailure": 2,
+      "actualTimeToFailure": 8,
+      "predictedDropDepth": 0.38,
+      "actualDropDepth": 0.1684756959269177,
+      "predictedRecoveryTime": 15,
+      "actualRecoveryTime": 5,
+      "riskLevel": "red",
+      "failureOccurred": false
+    },
+    {
+      "predictedTimeToFailure": 1,
+      "actualTimeToFailure": 7,
+      "predictedDropDepth": 0.42000000000000004,
+      "actualDropDepth": 0.1784350216381415,
+      "predictedRecoveryTime": 16,
+      "actualRecoveryTime": 5,
+      "riskLevel": "red",
+      "failureOccurred": false
+    },
+    {
+      "predictedTimeToFailure": 1,
+      "actualTimeToFailure": 0,
+      "predictedDropDepth": 0.45999999999999996,
+      "actualDropDepth": 0.20090060472530347,
+      "predictedRecoveryTime": 17,
+      "actualRecoveryTime": 5,
+      "riskLevel": "red",
+      "failureOccurred": true
+    },
+    {
+      "predictedTimeToFailure": 0,
+      "actualTimeToFailure": 0,
+      "predictedDropDepth": 0.5,
+      "actualDropDepth": 0.22458898306106634,
+      "predictedRecoveryTime": 18,
+      "actualRecoveryTime": 5,
+      "riskLevel": "red",
+      "failureOccurred": true
+    },
+    {
+      "predictedTimeToFailure": 0,
+      "actualTimeToFailure": 0,
+      "predictedDropDepth": 0.5,
+      "actualDropDepth": 0.24091503143353155,
+      "predictedRecoveryTime": 19,
+      "actualRecoveryTime": 5,
+      "riskLevel": "red",
+      "failureOccurred": true
+    },
+    {
+      "predictedTimeToFailure": 0,
+      "actualTimeToFailure": 0,
+      "predictedDropDepth": 0.5,
+      "actualDropDepth": 0.2601976931142609,
+      "predictedRecoveryTime": 20,
+      "actualRecoveryTime": 5,
+      "riskLevel": "red",
+      "failureOccurred": true
+    },
+    {
+      "predictedTimeToFailure": 0,
+      "actualTimeToFailure": 0,
+      "predictedDropDepth": 0.5,
+      "actualDropDepth": 0.2475828713912437,
+      "predictedRecoveryTime": 21,
+      "actualRecoveryTime": 5,
+      "riskLevel": "red",
+      "failureOccurred": true
+    },
+    {
+      "predictedTimeToFailure": 0,
+      "actualTimeToFailure": 0,
+      "predictedDropDepth": 0.5,
+      "actualDropDepth": 0.2568523240121324,
+      "predictedRecoveryTime": 22,
+      "actualRecoveryTime": 5,
+      "riskLevel": "red",
+      "failureOccurred": true
+    }
+  ],
+  "confidenceInterval95": [
+    0.4281030638421943,
+    0.9052302694911389
+  ],
+  "limitations": [
+    "Predictions based on observed degradation gradients only",
+    "Novel failure modes not in training data cannot be predicted",
+    "Confidence degrades for configurations not previously observed",
+    "Recovery predictions assume no manual interventions",
+    "Cascade effects from concurrent operations not modeled",
+    "Memory pressure from system processes not accounted for"
+  ]
+}

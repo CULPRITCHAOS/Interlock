@@ -1,0 +1,170 @@
+{
+  "generated": "2025-12-13T00:06:25.365Z",
+  "runId": "results/phase4_s42_init10000_steps5",
+  "version": "4.0.0",
+  "overallVerdict": "NOT_CERTIFIED",
+  "summaryText": "The failure forecasting system does not meet minimum accuracy requirements (F1 score: 0.00). Additional calibration data is needed before production deployment.",
+  "keyFindings": [
+    "Forecast precision: 0.0%",
+    "Forecast recall: 0.0%",
+    "False positive rate: 0/5",
+    "False negative rate: 0/5",
+    "Tested index sizes up to 50,000 vectors"
+  ],
+  "calibration": {
+    "runId": "results/phase4_s42_init10000_steps5",
+    "generated": "2025-12-13T00:06:25.367Z",
+    "totalForecasts": 5,
+    "validatedForecasts": 5,
+    "timeToFailureMeanError": 46,
+    "timeToFailureMedianError": 31,
+    "dropDepthMeanError": 0.027468903778804832,
+    "dropDepthMedianError": 0.020260415673377073,
+    "recoveryTimeMeanError": 1.8,
+    "recoveryTimeMedianError": 2,
+    "falsePositives": 0,
+    "falseNegatives": 0,
+    "truePositives": 0,
+    "trueNegatives": 5,
+    "precision": 0,
+    "recall": 0,
+    "f1Score": 0,
+    "predictions": [
+      {
+        "predictedTimeToFailure": 116,
+        "actualTimeToFailure": 5,
+        "predictedDropDepth": 0.02,
+        "actualDropDepth": 0.010853559971253257,
+        "predictedRecoveryTime": 6,
+        "actualRecoveryTime": 5,
+        "riskLevel": "safe",
+        "failureOccurred": false
+      },
+      {
+        "predictedTimeToFailure": 52,
+        "actualTimeToFailure": 4,
+        "predictedDropDepth": 0.04,
+        "actualDropDepth": 0.019739584326622928,
+        "predictedRecoveryTime": 6,
+        "actualRecoveryTime": 5,
+        "riskLevel": "safe",
+        "failureOccurred": false
+      },
+      {
+        "predictedTimeToFailure": 34,
+        "actualTimeToFailure": 3,
+        "predictedDropDepth": 0.06,
+        "actualDropDepth": 0.04500647783978218,
+        "predictedRecoveryTime": 7,
+        "actualRecoveryTime": 5,
+        "riskLevel": "safe",
+        "failureOccurred": false
+      },
+      {
+        "predictedTimeToFailure": 25,
+        "actualTimeToFailure": 2,
+        "predictedDropDepth": 0.08,
+        "actualDropDepth": 0.0381324762097246,
+        "predictedRecoveryTime": 7,
+        "actualRecoveryTime": 5,
+        "riskLevel": "safe",
+        "failureOccurred": false
+      },
+      {
+        "predictedTimeToFailure": 18,
+        "actualTimeToFailure": 1,
+        "predictedDropDepth": 0.1,
+        "actualDropDepth": 0.04892338275859287,
+        "predictedRecoveryTime": 8,
+        "actualRecoveryTime": 5,
+        "riskLevel": "safe",
+        "failureOccurred": false
+      }
+    ],
+    "confidenceInterval95": [
+      1,
+      1
+    ],
+    "limitations": [
+      "Predictions based on observed degradation gradients only",
+      "Novel failure modes not in training data cannot be predicted",
+      "Confidence degrades for configurations not previously observed",
+      "Recovery predictions assume no manual interventions",
+      "Cascade effects from concurrent operations not modeled",
+      "Memory pressure from system processes not accounted for"
+    ]
+  },
+  "metricsHistory": [
+    {
+      "recallAtK": 0.9300616240571541,
+      "latencyP50Ms": 2.7988669115765337,
+      "latencyP95Ms": 4.221940871061219,
+      "latencyP99Ms": 5.258625872494001,
+      "memoryMb": 4.8828125,
+      "indexSize": 10000,
+      "queryCount": 100
+    },
+    {
+      "recallAtK": 0.9070914411554539,
+      "latencyP50Ms": 3.438917353990915,
+      "latencyP95Ms": 5.639582458877357,
+      "latencyP99Ms": 8.188255488201229,
+      "memoryMb": 9.765625,
+      "indexSize": 20000,
+      "queryCount": 100
+    },
+    {
+      "recallAtK": 0.9017404371531403,
+      "latencyP50Ms": 3.159114943155607,
+      "latencyP95Ms": 4.177590244688701,
+      "latencyP99Ms": 5.3502953590546145,
+      "memoryMb": 14.6484375,
+      "indexSize": 30000,
+      "queryCount": 100
+    },
+    {
+      "recallAtK": 0.8990402984684521,
+      "latencyP50Ms": 3.7872334297500707,
+      "latencyP95Ms": 6.154681959527883,
+      "latencyP99Ms": 7.810279996409888,
+      "memoryMb": 19.53125,
+      "indexSize": 40000,
+      "queryCount": 100
+    },
+    {
+      "recallAtK": 0.8755133962633617,
+      "latencyP50Ms": 2.6081889675502614,
+      "latencyP95Ms": 4.36828247628798,
+      "latencyP99Ms": 5.557650732884017,
+      "memoryMb": 24.4140625,
+      "indexSize": 50000,
+      "queryCount": 100
+    }
+  ],
+  "circuitBreakerConfig": {
+    "recallThreshold": 0.7,
+    "latencyThresholdMs": 50,
+    "hazardThreshold": 0.6,
+    "degradedNprobe": 1,
+    "optimalNprobe": 10
+  },
+  "whatCanPredict": [
+    "Approximate time-to-threshold-breach based on observed degradation gradients",
+    "Risk level classification (safe/yellow/red) with measured precision/recall",
+    "Order-of-magnitude recovery time estimates after degradation",
+    "Memory pressure trends from progressive index growth",
+    "Recall degradation patterns under increasing load",
+    "Latency spike probability based on historical data"
+  ],
+  "whatCannotPredict": [
+    "Novel failure modes not observed during calibration",
+    "Exact timing of failures (inherent stochastic variance)",
+    "System-level failures (OOM kills, disk full, network issues)",
+    "Concurrent workload interference effects",
+    "Hardware-specific performance cliffs",
+    "Effects of system updates or configuration changes",
+    "Cascade failures from dependent services",
+    "Human error or misconfiguration"
+  ],
+  "knownFailureCases": []
+}
