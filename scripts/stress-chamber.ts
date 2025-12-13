@@ -487,8 +487,12 @@ function renderStressChamberFrame(metrics: StressChamberMetrics, step: number, t
   console.log('╠════════════════════════════════════════════════════════════════════╣');
   console.log('║  THRESHOLDS                                                        ║');
   console.log('║  │ denotes threshold on progress bars                              ║');
-  const thresholdLine = `║  Memory limit: 80 MB | Latency limit: ${latencyThresholdMs} ms | Recall min: ${(recallThreshold * 100).toFixed(0)}%`;
-  console.log(thresholdLine.padEnd(72) + '║');
+  const memLimit = '80 MB';
+  const latLimit = `${latencyThresholdMs} ms`;
+  const recallMin = `${(recallThreshold * 100).toFixed(0)}%`;
+  const thresholdLine = `║  Memory limit: ${memLimit} | Latency limit: ${latLimit} | Recall min: ${recallMin}`;
+  const paddingNeeded = 72 - thresholdLine.length;
+  console.log(thresholdLine + ' '.repeat(Math.max(0, paddingNeeded)) + '║');
   console.log('╚════════════════════════════════════════════════════════════════════╝');
 }
 
@@ -848,7 +852,8 @@ function parseArgs(args: string[]): {
       i++;
     } else if (args[i] === '--profile' && args[i + 1]) {
       const requestedProfile = args[i + 1].toLowerCase();
-      if (Object.keys(STRESS_PROFILES).includes(requestedProfile)) {
+      // Check if profile exists in STRESS_PROFILES
+      if (requestedProfile in STRESS_PROFILES) {
         profile = requestedProfile as StressProfile;
       } else {
         console.error(`Invalid profile: ${args[i + 1]}. Valid options: ${Object.keys(STRESS_PROFILES).join(', ')}`);
