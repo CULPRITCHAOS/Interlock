@@ -459,8 +459,23 @@ def get_calibration_outcomes(func: Callable) -> list:
     return protector.get_calibration_outcomes()
 
 
+# Module-level namespace class for clean imports
+class Interlock:
+    """
+    Namespace class providing the @interlock.protect decorator.
+    
+    Usage:
+        from interlock import interlock
+        
+        @interlock.protect(domain="faiss")
+        def search_vectors(query):
+            return index.search(query)
+    """
+    protect = staticmethod(protect)
+
+
 # Convenience alias for module-level import
-interlock = type('interlock', (), {'protect': staticmethod(protect)})()
+interlock = Interlock()
 
 
 # Example usage and testing

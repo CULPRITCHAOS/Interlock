@@ -20,6 +20,19 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+// ============= Shared Constants =============
+const STRESS_CHAMBER_CONFIG = {
+  RECALL_THRESHOLD: 0.7,
+  LATENCY_THRESHOLD_MS: 50.0,
+  HAZARD_THRESHOLD: 0.6,
+  RECOVERY_CHECK_INTERVAL_S: 5.0,
+  CONSECUTIVE_SUCCESSES_FOR_CLOSE: 3,
+  DEGRADED_NPROBE: 1,
+  OPTIMAL_NPROBE: 10,
+  RECALL_MARGIN_DIVISOR: 0.3,
+  LATENCY_MARGIN_DIVISOR: 20
+} as const;
+
 // ============= Seeded Random Number Generator =============
 const LCG_MULTIPLIER = 1103515245;
 const LCG_INCREMENT = 12345;
@@ -174,14 +187,15 @@ class StressChamberCircuitBreaker {
   private recentLatencies: number[] = [];
   private interventions: Intervention[] = [];
   
+  // Use shared constants
   private config = {
-    recallThreshold: 0.7,
-    latencyThresholdMs: 50.0,
-    hazardThreshold: 0.6,
-    recoveryCheckIntervalS: 5.0,
-    consecutiveSuccessesForClose: 3,
-    degradedNprobe: 1,
-    optimalNprobe: 10
+    recallThreshold: STRESS_CHAMBER_CONFIG.RECALL_THRESHOLD,
+    latencyThresholdMs: STRESS_CHAMBER_CONFIG.LATENCY_THRESHOLD_MS,
+    hazardThreshold: STRESS_CHAMBER_CONFIG.HAZARD_THRESHOLD,
+    recoveryCheckIntervalS: STRESS_CHAMBER_CONFIG.RECOVERY_CHECK_INTERVAL_S,
+    consecutiveSuccessesForClose: STRESS_CHAMBER_CONFIG.CONSECUTIVE_SUCCESSES_FOR_CLOSE,
+    degradedNprobe: STRESS_CHAMBER_CONFIG.DEGRADED_NPROBE,
+    optimalNprobe: STRESS_CHAMBER_CONFIG.OPTIMAL_NPROBE
   };
 
   constructor(private harness: StressChamberHarness) {}
@@ -192,12 +206,12 @@ class StressChamberCircuitBreaker {
     const avgRecall = this.recentRecalls.slice(-5).reduce((a, b) => a + b, 0) / 
                       Math.min(5, this.recentRecalls.length);
     const recallMargin = avgRecall - this.config.recallThreshold;
-    const recallHazard = Math.max(0, 1 - (recallMargin / 0.3));
+    const recallHazard = Math.max(0, 1 - (recallMargin / STRESS_CHAMBER_CONFIG.RECALL_MARGIN_DIVISOR));
     
     const avgLatency = this.recentLatencies.slice(-5).reduce((a, b) => a + b, 0) /
                        Math.min(5, this.recentLatencies.length);
     const latencyMargin = this.config.latencyThresholdMs - avgLatency;
-    const latencyHazard = Math.max(0, 1 - (latencyMargin / 20));
+    const latencyHazard = Math.max(0, 1 - (latencyMargin / STRESS_CHAMBER_CONFIG.LATENCY_MARGIN_DIVISOR));
     
     return Math.min(1.0, 0.6 * recallHazard + 0.4 * latencyHazard);
   }
@@ -562,14 +576,11 @@ async function runStressChamber(
 }
 
 function calculateUnprotectedHazard(metrics: StressChamberMetrics): number {
-  const recallThreshold = 0.7;
-  const latencyThreshold = 50;
+  const recallMargin = metrics.recallAtK - STRESS_CHAMBER_CONFIG.RECALL_THRESHOLD;
+  const recallHazard = Math.max(0, 1 - (recallMargin / STRESS_CHAMBER_CONFIG.RECALL_MARGIN_DIVISOR));
   
-  const recallMargin = metrics.recallAtK - recallThreshold;
-  const recallHazard = Math.max(0, 1 - (recallMargin / 0.3));
-  
-  const latencyMargin = latencyThreshold - metrics.latencyP95Ms;
-  const latencyHazard = Math.max(0, 1 - (latencyMargin / 20));
+  const latencyMargin = STRESS_CHAMBER_CONFIG.LATENCY_THRESHOLD_MS - metrics.latencyP95Ms;
+  const latencyHazard = Math.max(0, 1 - (latencyMargin / STRESS_CHAMBER_CONFIG.LATENCY_MARGIN_DIVISOR));
   
   return Math.min(1.0, 0.6 * recallHazard + 0.4 * latencyHazard);
 }
@@ -578,12 +589,12 @@ function calculateUnprotectedForecast(metrics: StressChamberMetrics, currentSize
   const recallDegradationPerStep = 0.01 * (currentSize / 50000);
   const latencyDegradationPerStep = 0.5 * (currentSize / 50000);
   
-  const recallMargin = metrics.recallAtK - 0.7;
+  const recallMargin = metrics.recallAtK - STRESS_CHAMBER_CONFIG.RECALL_THRESHOLD;
   const timeToRecallFailure = recallDegradationPerStep > 0 
     ? Math.ceil(recallMargin / recallDegradationPerStep)
     : 100;
   
-  const latencyMargin = 50 - metrics.latencyP95Ms;
+  const latencyMargin = STRESS_CHAMBER_CONFIG.LATENCY_THRESHOLD_MS - metrics.latencyP95Ms;
   const timeToLatencyFailure = latencyDegradationPerStep > 0
     ? Math.ceil(latencyMargin / latencyDegradationPerStep)
     : 100;
@@ -886,9 +897,8 @@ async function main(): Promise<void> {
   }
 }
 
-// Run if executed directly
-const isMainModule = import.meta.url === `file://${process.argv[1]}` || 
-                     process.argv[1]?.endsWith('stress-chamber.ts');
+// Run if executed directly - match the pattern from sim-runner.ts
+const isMainModule = process.argv[1]?.includes('stress-chamber');
 if (isMainModule) {
   main().catch(console.error);
 }

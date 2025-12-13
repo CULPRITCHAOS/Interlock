@@ -2882,6 +2882,16 @@ interface PhaseIVCalibration {
   reliabilityCurve: Array<{ predicted: number; observed: number; count: number }>;
 }
 
+// Phase III Constants: Risk level probability mappings for Brier score
+const RISK_LEVEL_PROBABILITIES = {
+  red: 0.9,
+  yellow: 0.6,
+  safe: 0.2
+} as const;
+
+// Cost-sensitive evaluation: FN costs 7x FP (biased toward safety)
+const FALSE_NEGATIVE_COST_MULTIPLIER = 7;
+
 // Operational Warranty (Phase IV output artifact)
 interface OperationalWarranty {
   generated: string;
@@ -3186,7 +3196,7 @@ class PhaseIVCalibrator {
       
       // Brier score: (forecast probability - outcome)^2
       // Convert risk level to probability
-      const forecastProb = pred.riskLevel === 'red' ? 0.9 : pred.riskLevel === 'yellow' ? 0.6 : 0.2;
+      const forecastProb = RISK_LEVEL_PROBABILITIES[pred.riskLevel];
       const outcome = obs.failureOccurred ? 1 : 0;
       brierScores.push(Math.pow(forecastProb - outcome, 2));
       
@@ -3230,8 +3240,8 @@ class PhaseIVCalibrator {
     const brierSkillScore = baselineBrier > 0 ? 1 - (brierScore / baselineBrier) : 0;
     
     // Cost-sensitive loss: FN costs 7x FP (biased toward safety)
-    // Cost = 7 * FN + FP (normalized by total)
-    const costSensitiveLoss = n > 0 ? (7 * fn + fp) / n : 0;
+    // Cost = FN_COST * FN + FP (normalized by total)
+    const costSensitiveLoss = n > 0 ? (FALSE_NEGATIVE_COST_MULTIPLIER * fn + fp) / n : 0;
     
     // Reliability curve: group predictions by risk level and compute observed failure rate
     const reliabilityCurve = this.computeReliabilityCurve(calibrationData);
@@ -3491,14 +3501,15 @@ function generateOperationalWarranty(
   const guaranteedFailureRegion = Math.ceil(circuitBreakerTriggerPoint * 1.1);
   
   // Safety margin: percentage between safe load and trigger point
-  const safetyMargin = circuitBreakerTriggerPoint > certifiedSafeLoad 
+  const safetyMargin = circuitBreakerTriggerPoint > certifiedSafeLoad && certifiedSafeLoad > 0
     ? ((circuitBreakerTriggerPoint - certifiedSafeLoad) / certifiedSafeLoad) * 100
     : 0;
   
   // Resilience Half-Life: estimate vectors until safety margin degrades by 50%
   // Based on observed degradation rate
-  const degradationRate = metricsHistory.length > 1
-    ? (recalls[0] - recalls[recalls.length - 1]) / (sizes[sizes.length - 1] - sizes[0])
+  const sizeDelta = sizes[sizes.length - 1] - sizes[0];
+  const degradationRate = metricsHistory.length > 1 && sizeDelta > 0
+    ? (recalls[0] - recalls[recalls.length - 1]) / sizeDelta
     : 0.00001;
   
   const halfLifeVectors = degradationRate > 0 
