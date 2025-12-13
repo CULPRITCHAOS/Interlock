@@ -152,6 +152,8 @@ export interface InterlockShield {
   test_suite_version: string;
   /** Git commit hash (if available) */
   repo_commit: string | null;
+  /** Repository name (from GITHUB_REPOSITORY) */
+  repository: string;
   
   // Legacy audit information (for backwards compatibility)
   lastAuditDate: string;
@@ -228,6 +230,7 @@ function generateHardwareFingerprint(): string {
  * - interlock_class
  * - load_rating
  * - valid_until
+ * - repository
  * - repo_commit
  * - config_fingerprint
  * - hardware_fingerprint
@@ -237,6 +240,7 @@ export interface SignedClaims {
   interlock_class: string;
   load_rating: string;
   valid_until: string;
+  repository: string;
   repo_commit: string | null;
   config_fingerprint: string;
   hardware_fingerprint: string;
@@ -252,6 +256,7 @@ export function extractSignedClaims(shield: InterlockShield): SignedClaims {
     interlock_class: shield.interlockClass,
     load_rating: shield.loadRating,
     valid_until: shield.valid_until,
+    repository: shield.repository,
     repo_commit: shield.repo_commit,
     config_fingerprint: shield.config_fingerprint,
     hardware_fingerprint: shield.hardware_fingerprint,
@@ -271,6 +276,7 @@ export function buildCanonicalString(claims: SignedClaims): string {
     `interlock_class=${claims.interlock_class}`,
     `load_rating=${claims.load_rating}`,
     `repo_commit=${claims.repo_commit ?? 'null'}`,
+    `repository=${claims.repository}`,
     `test_suite_version=${claims.test_suite_version}`,
     `valid_until=${claims.valid_until}`
   ];
@@ -482,6 +488,7 @@ export function generateShield(options: {
   const configFingerprint = generateConfigFingerprint({ hysteresisConfig, circuitBreakerConfig });
   const hardwareFingerprint = generateHardwareFingerprint();
   const repoCommit = getGitCommit();
+  const repository = process.env.GITHUB_REPOSITORY || 'unknown/repository';
   
   // Generate test suite hash
   const testSuiteHash = options.testSuiteHash ?? 
@@ -531,6 +538,7 @@ export function generateShield(options: {
     hardware_fingerprint: hardwareFingerprint,
     test_suite_version: testSuiteHash,
     repo_commit: repoCommit,
+    repository,
     
     lastAuditDate: now.toISOString().split('T')[0],
     testSuiteHash,
@@ -550,9 +558,45 @@ export function generateShield(options: {
     evidence: classResult.evidence
   };
   
+  // ============= VALIDATION: Fail hard if required fields are undefined =============
+  const requiredFields: Array<{ field: keyof InterlockShield; name: string; allowNull?: boolean }> = [
+    { field: 'interlockClass', name: 'Interlock Class' },
+    { field: 'loadRating', name: 'Load Rating' },
+    { field: 'repository', name: 'Repository' },
+    { field: 'repo_commit', name: 'Commit', allowNull: true }, // Can be null when no git repo
+    { field: 'valid_until', name: 'Valid Until' },
+    { field: 'config_fingerprint', name: 'Config Fingerprint' },
+    { field: 'hardware_fingerprint', name: 'Hardware Fingerprint' }
+  ];
+  
+  const missingFields: string[] = [];
+  for (const { field, name, allowNull } of requiredFields) {
+    const value = shield[field];
+    // Check for undefined or empty string
+    // Allow null only for fields that explicitly allow it (like repo_commit)
+    if (value === undefined || value === '' || (!allowNull && value === null)) {
+      missingFields.push(name);
+    }
+  }
+  
+  if (missingFields.length > 0) {
+    throw new Error(
+      `CERTIFICATION FAILURE: Required field(s) missing or undefined: ${missingFields.join(', ')}. ` +
+      `Cannot generate badge. This indicates a critical error in the certification pipeline.`
+    );
+  }
+  
   // Generate cryptographic signature for tamper-evidence
   const claims = extractSignedClaims(shield);
   shield.signature = generateBadgeSignature(claims);
+  
+  // Validate signature was generated
+  if (!shield.signature || shield.signature === '') {
+    throw new Error(
+      `CERTIFICATION FAILURE: Failed to generate cryptographic signature. ` +
+      `Cannot generate badge without signature.`
+    );
+  }
   
   return shield;
 }

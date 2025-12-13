@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "generated": "2025-12-13T20:16:34.391Z",
+  "generated": "2025-12-13T20:45:21.501Z",
   "interlockVersion": "5.0.0",
   "interlockClass": "V",
   "interlockClassName": "Cognitive",
@@ -40,14 +40,15 @@
   "qualityFloorThreshold": 0.5,
   "certificationTier": "SAFETY_CERTIFIED",
   "certificationF1": 1,
-  "issued_at": "2025-12-13T20:16:34.391Z",
-  "valid_until": "2026-01-12T20:16:34.391Z",
+  "issued_at": "2025-12-13T20:45:21.501Z",
+  "valid_until": "2026-01-12T20:45:21.501Z",
   "validity_days": 30,
   "is_stale": false,
   "config_fingerprint": "cfg_63797c18",
   "hardware_fingerprint": "9917bfa7bdf61d00",
   "test_suite_version": "v5.0.0-20251213",
-  "repo_commit": "12a96016",
+  "repo_commit": "b26fcebe",
+  "repository": "CULPRITCHAOS/Interlock",
   "lastAuditDate": "2025-12-13",
   "testSuiteHash": "v5.0.0-20251213",
   "hardwareFingerprint": {
@@ -61,7 +62,7 @@
     "failed": 0
   },
   "evidence": [
-    "Test suite version: 2025-12-13T20:16:33.425Z",
+    "Test suite version: 2025-12-13T18:56:29.632Z",
     "Tests passed: 12/12",
     "✓ Flapping Prevention test passed",
     "✓ Incident Quality test passed",
@@ -72,5 +73,5 @@
     "✓ Quality Floor Enforcement test passed (Class V requirement)",
     "✓ No False Certainty test passed (Class V requirement)"
   ],
-  "signature": "1b729418b70ca11767748deaa535b44c9d81be40f3497bed0ac9385da2b6e3d8"
+  "signature": "6ac3689083b12f4c0e6fb94572b1bb91f0c136df04f30293c8911c980ca836de"
 }

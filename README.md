@@ -163,6 +163,52 @@ Every certification includes:
 
 > **Principle**: "Refuse capability rather than lie about safety."
 
+### 🎯 Source of Truth
+
+The Interlock Shield badge, release tag, and certification metadata are generated from a **single derived certification result**.
+
+- All certification metadata comes from `deriveInterlockClass()` 
+- No partial reconstruction or recomputation occurs
+- If certification metadata is incomplete or inconsistent, badge generation **fails hard**
+- This prevents ambiguous or misleading certification claims
+
+**Zero tolerance for `undefined` values in production certification.**
+
+#### Badge Generation Pipeline
+
+```javascript
+// 1. Derive certification object ONCE (contains everything)
+const derived = deriveInterlockClass(config, circuitConfig, capabilities, validation)
+// Already contains: interlock_class, load_rating, capabilities, test counts, expiry
+
+// 2. Build badge metadata from derived object (no recomputation)
+const badgeMetadata = {
+  interlockClass: derived.class,
+  loadRating: derived.loadRating,
+  repository: process.env.GITHUB_REPOSITORY,
+  repo_commit: getGitCommit(),
+  config_fingerprint: configFingerprint,
+  hardware_fingerprint: hardwareFingerprint,
+  valid_until: expiryDate.toISOString(),
+  test_suite_version: testSuiteVersion,
+  // ... more fields from derived object
+}
+
+// 3. Validate - FAIL HARD if required fields missing
+const requiredFields = ['interlockClass', 'loadRating', 'repository', 'repo_commit', 'valid_until']
+for (const field of requiredFields) {
+  if (!badgeMetadata[field]) {
+    throw new Error(`CERTIFICATION FAILURE: Required field '${field}' is undefined`)
+  }
+}
+
+// 4. Sign complete metadata and emit outputs
+```
+
+> 📊 **[View Live Test Results →](docs/TEST_RESULTS.md)**
+>
+> See detailed results from daily production monitoring, weekly stability tests, and stress testing.
+
 ---
 
 ## 🔬 Proof: Key Components

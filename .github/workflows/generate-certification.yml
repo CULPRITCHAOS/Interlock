@@ -47,24 +47,59 @@ jobs:
         run: npx tsx scripts/generate-badge.ts
         env:
           INTERLOCK_SIGNING_KEY: ${{ secrets.INTERLOCK_SIGNING_KEY || 'github-actions-default-key' }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
 
-      - name: Extract badge metadata
+      - name: Validate badge metadata (fail hard on undefined)
         id: badge_metadata
         run: |
-          if [ -f results/badge/interlock_shield.json ]; then
-            INTERLOCK_CLASS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).interlock_class)")
-            LOAD_RATING=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).load_rating)")
-            VALID_UNTIL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).valid_until)")
-
-            echo "interlock_class=$INTERLOCK_CLASS" >> $GITHUB_OUTPUT
-            echo "load_rating=$LOAD_RATING" >> $GITHUB_OUTPUT
-            echo "valid_until=$VALID_UNTIL" >> $GITHUB_OUTPUT
-
-            echo "Badge generated: Class $INTERLOCK_CLASS, Load Rating $LOAD_RATING"
-          else
+          if [ ! -f results/badge/interlock_shield.json ]; then
             echo "ERROR: Badge file not found"
             exit 1
           fi
+
+          # Use camelCase field names (interlockClass, loadRating, etc.)
+          INTERLOCK_CLASS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).interlockClass)")
+          LOAD_RATING=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).loadRating)")
+          VALID_UNTIL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).valid_until)")
+          REPOSITORY=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).repository)")
+          COMMIT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).repo_commit || 'unknown')")
+
+          # Validate required fields - FAIL HARD if undefined
+          if [ "$INTERLOCK_CLASS" == "undefined" ] || [ -z "$INTERLOCK_CLASS" ]; then
+            echo "CERTIFICATION FAILURE: Interlock Class is undefined or empty"
+            exit 1
+          fi
+
+          if [ "$LOAD_RATING" == "undefined" ] || [ -z "$LOAD_RATING" ]; then
+            echo "CERTIFICATION FAILURE: Load Rating is undefined or empty"
+            exit 1
+          fi
+
+          if [ "$REPOSITORY" == "undefined" ] || [ -z "$REPOSITORY" ]; then
+            echo "CERTIFICATION FAILURE: Repository is undefined or empty"
+            exit 1
+          fi
+
+          if [ "$COMMIT" == "undefined" ] || [ -z "$COMMIT" ]; then
+            echo "CERTIFICATION FAILURE: Commit is undefined or empty"
+            exit 1
+          fi
+
+          if [ "$VALID_UNTIL" == "undefined" ] || [ -z "$VALID_UNTIL" ]; then
+            echo "CERTIFICATION FAILURE: Valid Until is undefined or empty"
+            exit 1
+          fi
+
+          # All validations passed
+          echo "interlock_class=$INTERLOCK_CLASS" >> $GITHUB_OUTPUT
+          echo "load_rating=$LOAD_RATING" >> $GITHUB_OUTPUT
+          echo "valid_until=$VALID_UNTIL" >> $GITHUB_OUTPUT
+          echo "repository=$REPOSITORY" >> $GITHUB_OUTPUT
+          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
+
+          echo "✅ Badge generated: Class $INTERLOCK_CLASS, Load Rating $LOAD_RATING"
+          echo "✅ Repository: $REPOSITORY"
+          echo "✅ Commit: $COMMIT"
 
       - name: Commit badge files
         run: |
@@ -105,11 +140,11 @@ jobs:
               console.log('');
               console.log('| Property | Value |');
               console.log('|----------|-------|');
-              console.log('| **Interlock Class** | ' + badge.interlock_class + ' |');
-              console.log('| **Load Rating** | ' + badge.load_rating + ' |');
-              console.log('| **Valid Until** | ' + badge.valid_until + ' |');
-              console.log('| **Repository** | ' + badge.repo + ' |');
-              console.log('| **Commit** | \`' + badge.repo_commit.substring(0, 8) + '\` |');
+              console.log('| **Interlock Class** | ' + badge.interlockClass + ' (' + badge.interlockClassName + ')' + ' |');
+              console.log('| **Load Rating** | Class ' + badge.loadRating + ' (' + badge.loadRatingLabel + ')' + ' |');
+              console.log('| **Repository** | ' + badge.repository + ' |');
+              console.log('| **Commit** | \`' + (badge.repo_commit ? badge.repo_commit.substring(0, 8) : 'null') + '\` |');
+              console.log('| **Valid Until** | ' + badge.valid_until.split('T')[0] + ' |');
               console.log('| **Config Fingerprint** | \`' + badge.config_fingerprint.substring(0, 16) + '...\` |');
               console.log('');
 
@@ -117,10 +152,11 @@ jobs:
               console.log('');
 
               const capabilities = [];
-              if (badge.reflex_active) capabilities.push('✅ Flash Crowd Reflex');
-              if (badge.quality_floor_enabled) capabilities.push('✅ Quality Floor Enforcement');
-              if (badge.drift_tolerance_pct) capabilities.push('✅ Drift Tolerance (' + badge.drift_tolerance_pct + '%)');
-              if (badge.trust_decay_enabled) capabilities.push('✅ Trust Decay');
+              if (badge.reflexStatus === 'Active') capabilities.push('✅ Flash Crowd Reflex');
+              if (badge.qualityFloorEnforced) capabilities.push('✅ Quality Floor Enforcement');
+              if (badge.driftTolerancePercent) capabilities.push('✅ Drift Tolerance (' + badge.driftTolerancePercent + '%)');
+              // Trust decay is implied for Class V
+              if (badge.interlockClass === 'V') capabilities.push('✅ Trust Decay');
 
               if (capabilities.length > 0) {
                 capabilities.forEach(cap => console.log('- ' + cap));
@@ -186,29 +222,40 @@ jobs:
           pattern: certification-badge-*
           path: release-artifacts
 
-      - name: Extract badge metadata
+      - name: Extract badge metadata for release
         id: release_metadata
         run: |
           BADGE_FILE=$(find release-artifacts -name "interlock_shield.json" | head -1)
-          if [ -f "$BADGE_FILE" ]; then
-            INTERLOCK_CLASS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$BADGE_FILE', 'utf8')).interlock_class)")
-            VALID_UNTIL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$BADGE_FILE', 'utf8')).valid_until)")
-
-            # Generate release tag
-            DATE_TAG=$(date -u +"%Y%m%d")
-            if [ "${{ github.event.inputs.release_class }}" == "auto" ]; then
-              RELEASE_TAG="cert-${DATE_TAG}-class-${INTERLOCK_CLASS}"
-            else
-              RELEASE_TAG="cert-${DATE_TAG}-${{ github.event.inputs.release_class }}"
-            fi
-
-            echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
-            echo "interlock_class=$INTERLOCK_CLASS" >> $GITHUB_OUTPUT
-            echo "valid_until=$VALID_UNTIL" >> $GITHUB_OUTPUT
-          else
+          if [ ! -f "$BADGE_FILE" ]; then
             echo "ERROR: Badge file not found"
             exit 1
           fi
+
+          # Use camelCase field names
+          INTERLOCK_CLASS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$BADGE_FILE', 'utf8')).interlockClass)")
+          VALID_UNTIL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$BADGE_FILE', 'utf8')).valid_until)")
+
+          # Validate fields
+          if [ "$INTERLOCK_CLASS" == "undefined" ] || [ -z "$INTERLOCK_CLASS" ]; then
+            echo "CERTIFICATION FAILURE: Interlock Class is undefined in badge"
+            exit 1
+          fi
+
+          # Generate release tag using lowercase class name
+          INTERLOCK_CLASS_LOWER=$(echo "$INTERLOCK_CLASS" | tr '[:upper:]' '[:lower:]')
+          DATE_TAG=$(date -u +"%Y%m%d")
+          if [ "${{ github.event.inputs.release_class }}" == "auto" ]; then
+            RELEASE_TAG="cert-${DATE_TAG}-class-${INTERLOCK_CLASS_LOWER}"
+          else
+            RELEASE_TAG="cert-${DATE_TAG}-${{ github.event.inputs.release_class }}"
+          fi
+
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "interlock_class=$INTERLOCK_CLASS" >> $GITHUB_OUTPUT
+          echo "valid_until=$VALID_UNTIL" >> $GITHUB_OUTPUT
+
+          echo "✅ Release tag: $RELEASE_TAG"
+          echo "✅ Interlock Class: $INTERLOCK_CLASS"
 
       - name: Create release notes
         run: |
