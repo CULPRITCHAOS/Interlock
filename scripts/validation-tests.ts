@@ -45,7 +45,11 @@ import {
   StatePersistenceManager,
   validatePersistedState,
   STATE_SCHEMA_VERSION,
-  PersistedState
+  PersistedState,
+  HardwareFingerprint,
+  collectHardwareFingerprint,
+  compareHardwareFingerprints,
+  DEFAULT_FINGERPRINT_TOLERANCE
 } from '../services/state_persistence';
 import {
   createSemanticFingerprint,
@@ -1426,6 +1430,202 @@ function runDataSanitizationTest(seed: number): TestSeriesResult {
   };
 }
 
+// ============= Test Series 11: Hardware Fingerprint (v2.x Hardening) =============
+
+/**
+ * Test Series 11: Hardware Fingerprint Test
+ * 
+ * Problem: interlock_state.json may contain thresholds learned on a large machine
+ * and then be reused on a smaller one, causing immediate acceptance of unsafe load.
+ * This is the "hardware lottery" failure mode.
+ * 
+ * Success Criteria:
+ * - Hardware fingerprint is collected on first boot
+ * - Persisted thresholds load normally on same hardware
+ * - Thresholds are invalidated on changed memory (beyond tolerance)
+ * - System resumes conservatively after invalidation (OPEN state)
+ * - Single low-frequency log explains invalidation
+ */
+function runHardwareFingerprintTest(seed: number): TestSeriesResult {
+  const details: string[] = [];
+  
+  // Use a temp directory for test state files
+  const testStateDir = `/tmp/interlock-hwfp-test-${seed}`;
+  if (!fs.existsSync(testStateDir)) {
+    fs.mkdirSync(testStateDir, { recursive: true });
+  }
+  
+  let fingerprintCollectedPassed = false;
+  let sameHardwareLoadsPassed = false;
+  let changedMemoryInvalidatesPassed = false;
+  let conservativeBootPassed = false;
+  let fingerprintComparisonPassed = false;
+  
+  // Test 1: Hardware fingerprint is collected on first boot
+  {
+    const stateFile = path.join(testStateDir, 'test1_state.json');
+    const manager = new StatePersistenceManager({ stateFilePath: stateFile, autoPersist: false });
+    manager.initialize();
+    
+    const state = manager.getState();
+    const fingerprint = manager.getHardwareFingerprint();
+    
+    fingerprintCollectedPassed = 
+      state.hardwareFingerprint !== undefined &&
+      state.hardwareFingerprint.totalSystemMemoryMb > 0 &&
+      fingerprint.totalSystemMemoryMb > 0;
+    
+    details.push(`Test 1 (Fingerprint collected): ${fingerprintCollectedPassed ? '✓' : '✗'} ` +
+                 `Memory=${fingerprint.totalSystemMemoryMb}MB, Cores=${fingerprint.cpuCores || 'N/A'}`);
+    
+    manager.saveState();
+    manager.deleteStateFile();
+  }
+  
+  // Test 2: Persisted thresholds load normally on same hardware
+  {
+    const stateFile = path.join(testStateDir, 'test2_state.json');
+    const manager = new StatePersistenceManager({ stateFilePath: stateFile, autoPersist: false });
+    manager.initialize();
+    
+    // Add some learned state (simulate learning)
+    manager.updateConfidenceHistory(0.85);
+    manager.updateConfidenceHistory(0.90);
+    manager.updateBreakerState('closed', 'Manual test');
+    manager.saveState();
+    
+    // Create new manager (simulating restart on same hardware)
+    const manager2 = new StatePersistenceManager({ stateFilePath: stateFile, autoPersist: false });
+    const bootInfo = manager2.initialize();
+    
+    // Should load normally (state preserved, no hardware mismatch)
+    const state = manager2.getState();
+    const info = manager2.getBootInfo();
+    
+    // Note: Even with same hardware, CLOSED state triggers safe boot (by design)
+    // The key test is that there's NO hardware mismatch
+    sameHardwareLoadsPassed = !info.hardwareMismatch;
+    
+    details.push(`Test 2 (Same hardware loads): ${sameHardwareLoadsPassed ? '✓' : '✗'} ` +
+                 `HardwareMismatch=${info.hardwareMismatch}, BootState=${info.bootState}`);
+    
+    manager2.deleteStateFile();
+  }
+  
+  // Test 3: Fingerprint comparison function works correctly
+  {
+    const currentFingerprint = collectHardwareFingerprint();
+    
+    // Test with same fingerprint
+    const sameResult = compareHardwareFingerprints(currentFingerprint, currentFingerprint);
+    
+    // Test with different memory (50% less - should trigger invalidation)
+    const smallerFingerprint: HardwareFingerprint = {
+      totalSystemMemoryMb: Math.round(currentFingerprint.totalSystemMemoryMb * 0.4),  // 40% of current
+      cpuCores: currentFingerprint.cpuCores
+    };
+    const differentResult = compareHardwareFingerprints(currentFingerprint, smallerFingerprint);
+    
+    // Test with slightly different memory (10% - should NOT trigger with 20% tolerance)
+    const slightlyDifferentFingerprint: HardwareFingerprint = {
+      totalSystemMemoryMb: Math.round(currentFingerprint.totalSystemMemoryMb * 0.9),  // 90% of current
+      cpuCores: currentFingerprint.cpuCores
+    };
+    const slightResult = compareHardwareFingerprints(currentFingerprint, slightlyDifferentFingerprint);
+    
+    fingerprintComparisonPassed = 
+      sameResult.matches === true &&
+      differentResult.matches === false &&
+      slightResult.matches === true;  // 10% difference should be within 20% tolerance
+    
+    details.push(`Test 3 (Fingerprint comparison): ${fingerprintComparisonPassed ? '✓' : '✗'} ` +
+                 `Same=${sameResult.matches}, 60%Less=${differentResult.matches}, 10%Less=${slightResult.matches}`);
+    
+    if (!differentResult.matches) {
+      details.push(`  Mismatch reasons: ${differentResult.reasons.join('; ')}`);
+    }
+  }
+  
+  // Test 4: Changed memory invalidates cached state
+  {
+    const stateFile = path.join(testStateDir, 'test4_state.json');
+    const currentFingerprint = collectHardwareFingerprint();
+    
+    // Manually create a state file with different hardware fingerprint
+    const oldState: PersistedState = {
+      schemaVersion: STATE_SCHEMA_VERSION,
+      hardwareFingerprint: {
+        totalSystemMemoryMb: Math.round(currentFingerprint.totalSystemMemoryMb * 0.3),  // 30% of current (70% smaller)
+        cpuCores: currentFingerprint.cpuCores
+      },
+      breakerState: 'closed',
+      lastTransitionTimestamp: Date.now() - 1000,
+      reflexCooldownRemaining: 0,
+      lastReflexTripTimestamp: null,
+      confidenceHistory: [0.85, 0.90, 0.95],
+      lastIncidentId: null,
+      interventionCount: 0,
+      totalRefusals: 0,
+      persistedAt: Date.now() - 1000,
+      checksum: ''
+    };
+    
+    // Write the state file directly
+    fs.writeFileSync(stateFile, JSON.stringify(oldState, null, 2));
+    
+    // Create manager - should detect hardware mismatch
+    const manager = new StatePersistenceManager({ stateFilePath: stateFile, autoPersist: false });
+    const bootInfo = manager.initialize();
+    
+    const state = manager.getState();
+    const info = manager.getBootInfo();
+    
+    changedMemoryInvalidatesPassed = 
+      info.hardwareMismatch === true &&
+      info.hardwareMismatchReasons.length > 0;
+    
+    conservativeBootPassed = 
+      state.breakerState === 'open' &&  // Should start in OPEN (conservative)
+      state.confidenceHistory.length === 0;  // Confidence history should be cleared
+    
+    details.push(`Test 4 (Memory change invalidates): ${changedMemoryInvalidatesPassed ? '✓' : '✗'} ` +
+                 `HardwareMismatch=${info.hardwareMismatch}`);
+    details.push(`Test 5 (Conservative boot): ${conservativeBootPassed ? '✓' : '✗'} ` +
+                 `State=${state.breakerState}, ConfidenceCleared=${state.confidenceHistory.length === 0}`);
+    
+    if (info.hardwareMismatchReasons.length > 0) {
+      details.push(`  Mismatch warning: ${info.hardwareMismatchReasons[0].substring(0, 80)}...`);
+    }
+    
+    manager.deleteStateFile();
+  }
+  
+  // Cleanup test directory
+  try {
+    fs.rmSync(testStateDir, { recursive: true, force: true });
+  } catch {
+    // Ignore cleanup errors
+  }
+  
+  const passed = fingerprintCollectedPassed && sameHardwareLoadsPassed && 
+                 fingerprintComparisonPassed && changedMemoryInvalidatesPassed && 
+                 conservativeBootPassed;
+  
+  return {
+    name: 'Hardware Fingerprint',
+    description: 'Verify hardware mismatch invalidates cached state',
+    passed,
+    metrics: {
+      fingerprintCollected: fingerprintCollectedPassed ? 1 : 0,
+      sameHardwareLoads: sameHardwareLoadsPassed ? 1 : 0,
+      fingerprintComparison: fingerprintComparisonPassed ? 1 : 0,
+      changedMemoryInvalidates: changedMemoryInvalidatesPassed ? 1 : 0,
+      conservativeBoot: conservativeBootPassed ? 1 : 0
+    },
+    details
+  };
+}
+
 // ============= Main Test Runner =============
 
 function runValidationTests(seed: number = 42): ValidationReport {
@@ -1494,6 +1694,12 @@ function runValidationTests(seed: number = 42): ValidationReport {
   const dataSanitizationResult = runDataSanitizationTest(seed);
   testSeries.push(dataSanitizationResult);
   console.log(`  Result: ${dataSanitizationResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  
+  // Test Series 11: Hardware Fingerprint (v2.x Hardening)
+  console.log('Running Test Series 11: Hardware Fingerprint...');
+  const hardwareFingerprintResult = runHardwareFingerprintTest(seed);
+  testSeries.push(hardwareFingerprintResult);
+  console.log(`  Result: ${hardwareFingerprintResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
   
   const overallPassed = testSeries.every(t => t.passed);
   
@@ -1566,7 +1772,8 @@ function generateValidationMarkdown(report: ValidationReport): string {
     ['No false certainty is guaranteed', report.testSeries[6]?.passed],
     ['Shadow mode (dry run) logs without interfering', report.testSeries[7]?.passed],
     ['State persistence survives restarts safely', report.testSeries[8]?.passed],
-    ['Forensic data sanitization protects PII', report.testSeries[9]?.passed]
+    ['Forensic data sanitization protects PII', report.testSeries[9]?.passed],
+    ['Hardware fingerprint prevents "hardware lottery" crashes', report.testSeries[10]?.passed]
   ];
   
   for (const [criterion, passed] of criteriaResults) {
@@ -1620,6 +1827,7 @@ Test Series:
   8. Shadow Mode (Dry Run) - Verify shadow mode logs without interfering
   9. State Persistence - Verify state survives restarts safely
  10. Forensic Data Sanitization - Verify incident reports protect PII
+ 11. Hardware Fingerprint - Verify hardware mismatch invalidates cached state
 `);
       process.exit(0);
     }

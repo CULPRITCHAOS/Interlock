@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "generated": "2025-12-13T17:48:56.459Z",
+  "interlockVersion": "5.0.0",
+  "loadClass": "III",
+  "loadClassLabel": "Heavy",
+  "reflexStatus": "Active",
+  "reflexLatencyMs": 30,
+  "driftTolerancePercent": 20,
+  "qualityFloorEnforced": true,
+  "qualityFloorThreshold": 0.5,
+  "certificationTier": "SAFETY_CERTIFIED",
+  "certificationF1": 1,
+  "lastAuditDate": "2025-12-13",
+  "testSuiteHash": "v5.0.0-20251213",
+  "hardwareFingerprint": {
+    "memoryGb": 8,
+    "cpuCores": 2,
+    "platform": "linux"
+  },
+  "testsSummary": {
+    "total": 11,
+    "passed": 11,
+    "failed": 0
+  }
+}
