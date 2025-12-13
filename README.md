@@ -32,6 +32,127 @@ What this means in practice:
 
 ---
 
+## 🔌 Framework Integrations
+
+Interlock provides lightweight adapters for popular AI frameworks and vector databases. These adapters add safety guardrails without changing your existing code structure.
+
+### LangChain Integration
+
+Wrap LangChain chains and retrievers with Interlock safety checks:
+
+```typescript
+import { wrapChain, wrapRetriever } from './adapters/langchain';
+import { DEFAULT_HYSTERESIS_CONFIG } from './services/hysteresis';
+
+// Wrap a chain with safety guardrails
+const safeChain = wrapChain(myChainFunction, DEFAULT_HYSTERESIS_CONFIG);
+
+// Execute with automatic safety checks
+const result = await safeChain.execute(input);
+
+// Monitor safety metrics
+const metrics = safeChain.getMetrics();
+console.log(`Confidence: ${metrics.confidenceScore}, Refusals: ${metrics.refusalCount}`);
+```
+
+**Protection provided:**
+- Pre-execution safety checks with trust decay
+- Post-execution validation
+- Automatic refusal when confidence drops below quality floor
+- Shadow mode for trust acquisition (dry-run testing)
+
+### LlamaIndex Integration
+
+Identical interface for LlamaIndex query engines and retrievers:
+
+```typescript
+import { wrapChain, wrapRetriever } from './adapters/llamaindex';
+import { DEFAULT_HYSTERESIS_CONFIG } from './services/hysteresis';
+
+// Wrap a query engine
+const safeQueryEngine = wrapChain(myQueryEngine, DEFAULT_HYSTERESIS_CONFIG);
+
+// Execute with guardrails
+const response = await safeQueryEngine.query(userQuery);
+```
+
+**What Interlock does NOT do:**
+- Does not optimize chain/query performance
+- Does not modify LlamaIndex internals
+- Does not abstract away framework APIs
+- Only adds observation + safety hooks
+
+### Vector Database Integrations
+
+#### Pinecone Adapter
+
+Production-ready adapter with comprehensive monitoring:
+
+```typescript
+import { createPineconeAdapter } from './adapters/pinecone';
+
+const adapter = createPineconeAdapter(0.5); // 0.5 = quality floor
+
+// Wrap query function
+const safeQuery = adapter.wrapQuery(pineconeClient.query);
+
+// Execute with full monitoring
+const results = await safeQuery({ vector, topK: 10 });
+
+// Observe adapter state
+const metrics = adapter.observe();
+console.log(`Latency P95: ${metrics.latencyP95Ms}ms, Confidence: ${metrics.confidenceScore}`);
+```
+
+**What this provides:**
+- Latency cliff detection (sudden spikes)
+- Failure signal tracking
+- Confidence-based refusal
+- Controlled degradation hooks
+- Shadow mode support
+
+#### Elasticsearch Vector Search (EXPERIMENTAL)
+
+Lightweight adapter for Elasticsearch vector/hybrid search:
+
+```typescript
+import { createElasticsearchAdapter } from './adapters/elasticsearch';
+
+const adapter = createElasticsearchAdapter(200); // 200ms latency threshold
+
+// Wrap search function
+const safeSearch = adapter.wrapQuery(esClient.search);
+
+// Detect silent degradation
+const results = await safeSearch(searchParams);
+```
+
+**Status:** Experimental — demonstrates Interlock's enterprise applicability
+
+---
+
+## 🏅 What Certification Means
+
+### "Certified on Pinecone" / "Certified on Elasticsearch"
+
+**What it guarantees:**
+- Adapter survived stress testing without crashing
+- Latency monitoring detected degradation correctly
+- Confidence-based refusal worked as designed
+- No false certainty (degraded confidence when appropriate)
+
+**What it does NOT guarantee:**
+- Perfect recall or zero latency spikes
+- Protection against Pinecone/ES infrastructure failures
+- Optimization of vector search performance
+- Universal applicability to all query patterns
+
+**Analogy:** Like a bridge load rating — it certifies survival under defined stress, not invincibility.
+
+**Certification expires:** Default 30 days, because system conditions change.
+
+---
+
 ## ⚡ What Interlock Is
 
 Interlock is a **failure forecasting and circuit-breaker system** for AI infrastructure:
