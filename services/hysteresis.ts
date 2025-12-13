@@ -28,6 +28,7 @@ export interface HysteresisConfig {
   // Recovery thresholds (derived from calibration, not magic constants)
   safetyMarginRecoveryPercent: number;      // X% recovery relative to trigger point
   minimumConfidenceThreshold: number;       // Minimum forecast confidence to trust
+  safeHazardMarginFactor: number;           // Factor to multiply hazard threshold for "safe" (e.g., 0.7 = 30% margin)
   
   // Probe traffic settings for HALF_OPEN
   probeTrafficFraction: number;             // Fraction of traffic to route (1-5%)
@@ -44,6 +45,7 @@ export const DEFAULT_HYSTERESIS_CONFIG: HysteresisConfig = {
   consecutiveWindowsForClose: 5,            // N = 5 windows of safe probe traffic
   safetyMarginRecoveryPercent: 0.20,        // 20% recovery relative to trigger point
   minimumConfidenceThreshold: 0.6,          // 60% minimum confidence
+  safeHazardMarginFactor: 0.7,              // 30% margin below threshold for "safe" (derived from typical noise levels)
   probeTrafficFraction: 0.05,               // 5% probe traffic
   probeObservationWindows: 5,               // 5 observation windows
   minimumOpenDurationMs: 10000,             // 10 second minimum OPEN duration
@@ -254,7 +256,8 @@ export class HysteresisLock {
    * Check if metrics indicate safe operating conditions
    */
   private isMetricsSafe(metrics: HysteresisMetrics): boolean {
-    const hazardBelowThreshold = metrics.hazardScore < this.circuitConfig.hazardThreshold * 0.7; // Hysteresis margin
+    // Use configurable hysteresis margin factor (default 0.7 = 30% margin below threshold)
+    const hazardBelowThreshold = metrics.hazardScore < this.circuitConfig.hazardThreshold * this.config.safeHazardMarginFactor;
     const recallAboveThreshold = metrics.recall >= this.circuitConfig.recallThreshold;
     const latencyBelowThreshold = metrics.latencyMs <= this.circuitConfig.latencyThresholdMs;
     

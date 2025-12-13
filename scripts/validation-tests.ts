@@ -627,7 +627,7 @@ function runValidationTests(seed: number = 42): ValidationReport {
     testSeries,
     overallPassed,
     summary: overallPassed 
-      ? 'All Phase V validation tests passed. Interlock v2.0 criteria met.'
+      ? 'All Phase V validation tests passed. Interlock v5.0 criteria met.'
       : `${testSeries.filter(t => t.passed).length}/${testSeries.length} tests passed. Review failures.`
   };
   
@@ -677,9 +677,9 @@ function generateValidationMarkdown(report: ValidationReport): string {
   
   lines.push('---');
   lines.push('');
-  lines.push('## Success Criteria (v2.0 Bar)');
+  lines.push('## Success Criteria (v5.0 Bar)');
   lines.push('');
-  lines.push('Interlock v2.0 is complete when:');
+  lines.push('Interlock v5.0 is complete when:');
   lines.push('');
   const criteriaResults = [
     ['Breaker hysteresis is evidence-based and stable', report.testSeries[0]?.passed],
