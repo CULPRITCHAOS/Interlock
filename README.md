@@ -1,213 +1,158 @@
-# LawForge ⚗️
+# Interlock 🔒
 
-> **LawForge** is an optimization microscope for discovering, falsifying, and stress-testing domain-scoped laws.
->
-> It provides reproducible convergence measurement, falsifiable law tracking, and resilience certification under drift — with explicit evidence, counterexamples, and failure modes.
->
-> **LawForge does not attempt universal transfer. It measures where transfer fails.**
+> **The Circuit Breaker for AI Infrastructure**
 
-![LawForge Preview](https://via.placeholder.com/800x400?text=LawForge+Instrument)
+Interlock is a failure forecasting and circuit-breaker system for AI infrastructure. It detects unsafe operating regions, forecasts collapse before it happens, and actively prevents catastrophic failure.
 
-## 🔬 Core Concepts
+---
 
-LawForge is a rigorous measurement instrument for optimization law discovery:
+## ⚡ What Interlock Is
 
-- **Laws** (not heuristics): Explicit, falsifiable statements about parameter-performance relationships with tracked confidence, evidence, and counterexamples.
-- **Law Taxonomy**: Laws are classified as Structural (hard constraints), Soft (performance gradients), or Regime-bound (valid under certain drift conditions).
-- **Falsification**: Laws are continuously tested against new evidence. When counterexamples accumulate, laws are demoted or falsified.
-- **Scope Signatures**: Every law has a defined scope (domain, workload fingerprint, metric set, constraint regime). Laws must not apply outside their scope.
-- **Resilience Measurement**: The instrument tracks how laws behave when conditions change, measuring re-convergence time, half-life under perturbation, and churn rate under drift.
+Interlock is a **failure forecasting and circuit-breaker system** for AI infrastructure:
 
-## ⚡ Key Features
+- **Failure Boundary Detection** — Automatically identifies unsafe operating regions
+- **Collapse Forecasting** — Predicts system failures before they happen
+- **Circuit Breaker Protection** — Actively prevents catastrophic failure
+- **Operational Warranty** — Certifies safe operating limits for AI systems
 
-### 1. Falsifiable Law Tracking
-Laws are not just discovered — they are rigorously measured:
-- **Confidence scoring** based on trial results and counterexamples
-- **Status progression**: hypothesis → validated → falsified → deprecated
-- **Scope signatures** that define exactly where a law applies
-- **Version tracking** for law evolution over time
-- **Law Taxonomy**: Structural, Soft, and Regime-bound classifications
-- **Half-life metrics**: Generations a law survives under perturbation
-- **Churn rate**: Law invalidation rate under drift conditions
+> If your AI infrastructure can fail, Interlock tells you when and how.
 
-### 2. Optimization Landscape Measurement
-LawForge maps the optimization landscape:
-- **Stable Regions**: Where laws hold and behavior is predictable
-- **Brittle Regions**: Where laws break or behavior is unpredictable
-- **Phase Transitions**: Sharp behavior changes at parameter boundaries
-- **Invariants**: Laws that hold across all measured regions
-- Exports: `landscape.json` and `landscape.md`
+---
 
-### 3. Reproducible Measurement
-All experiments use deterministic seeded random number generation:
-- **Seed 42** is the default for reproducibility
-- Run-to-run variance is tracked and reported
-- Results are stored in structured JSON format for analysis
+## 🚫 What Interlock Is NOT
 
-### 4. Resilience Certification Mode
-Run LawForge in certification mode (`--mode=certification`) to:
-- **Optimize to stability** — Reach stable fitness levels
-- **Hold steady** for N generations — Verify consistency
-- **Inject drift events** — Multiple perturbations
-- **Measure resilience** — Drop Depth, Recovery Time, Law invalidation rate
-- **Compute Resilience Score**: `(1 - DropDepth) / RecoveryTime`
-- **Output**: `LawForge_Resilience_Audit.md` with recovery curves and shield rating (green/yellow/red)
+- **Not an optimizer** — Interlock does not tune or improve system performance
+- **Not universal intelligence** — Interlock works within calibrated domains only
+- **Not predictive magic** — All forecasts are derived from observed data, not speculation
 
-### 5. Failure Forecasting (Phase III) 🆕
-> **LawForge does not prevent failure. It makes failure visible before it happens.**
+> Interlock does not optimize systems. It prevents them from breaking.
 
-LawForge now includes a failure forecasting engine that predicts system failures based on observed historical data:
+---
 
-#### Failure Boundary Detection
-- Automatically detects **failure boundaries** from phase transitions and drift events
-- Tracks **parameter ranges**, **abruptness scores**, and **historical drop depths**
-- Calculates **recovery slopes** based on observed recovery times
-- Exports: `boundaries.json` and `boundaries.md`
+## ✅ Core Guarantees
 
-#### Failure Prediction
-- `predictFailure(systemState, proposedChange)` function predicts:
-  - **Expected drop depth** — How much fitness will drop
-  - **Expected recovery time** — Generations to recover
-  - **Dominant failure mode** — Primary failure pattern
-  - **Confidence score** — Based on historical observations
-- **No stochastic guessing** — All predictions derived from observed data
+| Guarantee | Description |
+|-----------|-------------|
+| **Detects unsafe operating regions** | Maps failure boundaries in parameter space |
+| **Forecasts collapse before it happens** | Predicts time-to-failure, drop depth, recovery time |
+| **Actively prevents catastrophic failure** | Circuit breaker triggers before system collapse |
+| **Certifies safe operating limits** | Generates operational warranties with safety margins |
 
-#### Early Warning UI
-The dashboard includes an **Early Warning Panel** with:
-- 🟢 **Safe Zone** — Operating within safe parameters
-- 🟡 **Yellow Zone** — Approaching boundary (monitor closely)
-- 🔴 **Red Zone** — Forecasted collapse (immediate action recommended)
-- **Tooltip explanations** — Every warning explains why it was triggered
-- **Mitigation suggestions** — Recommended actions to avoid failure
+---
 
-#### Forecast Validation
-Run certification mode to validate forecast accuracy:
-- **Controlled boundary-crossing experiments**
-- **Compare predicted vs observed** failure metrics
-- **Track forecast error** rates
-- **Export**: `forecast_validation.md` with accuracy metrics
+## 🔬 Proof: Key Components
 
-#### Certification Extensions
-Certification reports now include:
-- **Failure Forecast Summary** — Total boundaries, high-risk count, accuracy
-- **Unsafe Operating Regions** — Domains and parameters to avoid
-- **Recommended Safety Margins** — Safe ranges for each parameter
+### FailureForecastCalibrator
+Calibrates failure forecasts against observed outcomes:
+- Predicts time-to-failure based on degradation gradients
+- Measures prediction error (precision, recall, F1)
+- Tracks false positives/negatives for continuous improvement
+- **Location**: `backend/faiss_harness.py`
 
-### 6. Cross-Domain Transfer (Experimental)
-> ⚠️ **Warning:** Transfer is experimental and not currently net-positive in aggregate benchmarks (27.4% success rate).
-> 
-> **LawForge does not attempt universal transfer. It measures where transfer fails.**
+### PhysicalDriftInjector
+Injects physical drift through load-based stress:
+- Progressive vector injection (memory pressure)
+- Query rate spikes (latency stress)
+- Index rebuild pressure
+- **Location**: `backend/faiss_harness.py`
 
-- **Law-Gated Transfer**: Transfers constraints, not strategies
-- Aborts transfer if scope similarity < threshold
-- A/B testing to measure actual impact
+### Circuit Breaker Export
+Generates self-defending clients:
+- Automatic degraded mode when hazard detected
+- Three states: CLOSED (normal), OPEN (degraded), HALF_OPEN (recovering)
+- Logs all interventions for audit
+- **Location**: `backend/circuit_breaker.py`
 
-### 7. Artifact Export
-Every run produces explicit artifacts with no silent successes or hidden failures:
-- `laws.final.json` — Machine-readable law definitions
-- `laws.final.md` — Human-readable summary with evidence
-- `landscape.json` / `landscape.md` — Optimization landscape measurement
-- `boundaries.json` / `boundaries.md` — Failure boundary analysis (Phase III)
-- `resilience_audit.md` — Resilience certification report (when using `--mode=certification`)
-- `forecast_validation.md` — Forecast accuracy metrics (when using `--mode=certification`)
-- `results/index.json` — Updated run index
+---
+
+## 🚀 Getting Started
+
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Run the dashboard**
+   ```bash
+   npm run dev
+   ```
+
+3. **Run failure certification**
+   ```bash
+   # FAISS Ground-Truth Certification
+   npm run sim:run -- --seed 42 --mode phase4 --initial-size 10000 --growth-steps 10 --vectors-per-step 10000
+   ```
+
+---
+
+## 📋 Output Artifacts
+
+Every certification run produces:
+
+| Artifact | Description |
+|----------|-------------|
+| `certification_report.md` | Executive summary with verdict (CERTIFIED / CONDITIONAL / NOT_CERTIFIED) |
+| `forecast_calibration.json` | Predicted vs actual failure metrics |
+| `circuit_breaker.ts` | Runnable self-defending client code |
+| `operational_warranty.json` | Machine-readable safety guarantees |
+
+---
+
+## 🛡️ Circuit Breaker States
+
+| State | Icon | Behavior |
+|-------|------|----------|
+| **CLOSED** | 🟢 | Normal operation — optimal settings |
+| **OPEN** | 🔴 | Degraded mode — reduced accuracy for stability |
+| **HALF_OPEN** | 🟡 | Recovery testing — cautiously returning to normal |
+
+---
+
+## 📊 What Interlock CAN Predict
+
+- ✅ Approximate time-to-threshold-breach based on observed degradation gradients
+- ✅ Risk level classification (safe/yellow/red) with measured precision/recall
+- ✅ Order-of-magnitude recovery time estimates after degradation
+- ✅ Memory pressure trends from progressive index growth
+- ✅ Recall degradation patterns under increasing load
+- ✅ Latency spike probability based on historical data
+
+## ❌ What Interlock CANNOT Predict
+
+- ❌ Novel failure modes not observed during calibration
+- ❌ Exact timing of failures (inherent stochastic variance)
+- ❌ System-level failures (OOM kills, disk full, network issues)
+- ❌ Concurrent workload interference effects
+- ❌ Hardware-specific performance cliffs
+- ❌ Effects of system updates or configuration changes
+
+---
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 19, TypeScript, Vite
-- **Styling**: Tailwind CSS
+- **Backend**: Python (FAISS harness, circuit breaker, certification)
 - **Visualization**: Recharts, HTML5 Canvas
-- **Benchmark Runner**: Node.js with tsx
-- **Icons**: Lucide React
+- **Runtime**: Node.js with tsx
 
-## 🚀 Getting Started
-
-1. **Clone the repository**
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-3. **Run the dashboard**
-   ```bash
-   npm run dev
-   ```
-4. **Run benchmarks**
-   ```bash
-   # Full test matrix
-   npm run bench
-   
-   # Single run with custom parameters
-   npm run sim:run -- --seed 42 --gens 500 --transfer on --drift on
-   
-   # Resilience certification mode
-   npm run sim:run -- --seed 42 --mode certification --stability-gens 100 --drift-events 3
-   
-   # Phase IV: FAISS Ground-Truth Certification
-   npm run sim:run -- --seed 42 --mode phase4 --initial-size 10000 --growth-steps 10 --vectors-per-step 10000
-   ```
-
-## 🆕 Phase IV: FAISS Ground-Truth Certification
-
-LawForge Phase IV provides real calibrated failure-forecasting using FAISS as the ground-truth domain.
-
-### Key Features
-
-1. **Real FAISS Harness** - Progressive index growth with actual recall@k, latency (p95), memory measurement
-2. **Physical Drift Injection** - Load-based drift (vector injection, query spikes), not parameter noise
-3. **Forecast Calibration** - Predicts time-to-failure, drop depth, recovery time with measured accuracy
-4. **Circuit Breaker Export** - Generates runnable self-defending FAISS client code
-5. **Certification Report** - Professional report with honest assessment of capabilities and limitations
-
-### Running Phase IV
-
-```bash
-npm run sim:run -- --seed 42 --mode phase4 --initial-size 10000 --growth-steps 10 --vectors-per-step 10000
-```
-
-### Output Artifacts
-
-- `certification_report.md` - Executive summary, forecast accuracy, honest assessment
-- `forecast_calibration.json` / `.md` - Predicted vs actual failure metrics
-- `circuit_breaker.ts` - Runnable self-defending FAISS client
-
-### Honest Assessment
-
-Phase IV reports explicitly state:
-- ✅ What LawForge CAN predict (degradation trends, risk levels)
-- ❌ What LawForge CANNOT predict (novel failures, exact timing, system-level issues)
-- Confidence bounds for all predictions
-- Known failure cases from calibration
+---
 
 ## 📂 Project Structure
 
-- `/components`: UI widgets (Charts, LawList, CrossDomainPanel, etc.)
-- `/services`: Benchmark harness, law validation, code generation, Phase IV services
-- `/scripts`: Headless simulation runners for long-horizon experiments
-- `/backend`: Python FAISS harness, circuit breaker, certification report generators
-- `/results`: Benchmark outputs with per-run folders
-- `/types.ts`: TypeScript definitions for Laws, Genomes, and Benchmarks
-
-## 📊 Benchmark Results
-
-Latest benchmark findings (seed 42, 500 generations):
-
-| Metric | Value |
-|--------|-------|
-| Transfer Net-Positive Rate | 27.4% |
-| Avg Re-convergence Time (after drift) | 13.0 generations |
-| Law Falsification Rate | 33.3% |
-| System Stability | 99%+ |
-
-See `results/consolidated_report.md` for full details.
+- `/backend` — Python FAISS harness, circuit breaker, certification report generators
+- `/components` — UI widgets (Early Warning Panel, Charts)
+- `/services` — Failure forecasting, circuit breaker logic
+- `/scripts` — Headless simulation runners
+- `/results` — Certification outputs
 
 ---
 
 ## 📐 Guiding Principle
 
-> **LawForge does not optimize systems. It reveals the physics they obey.**
-> 
-> **LawForge does not prevent failure. It makes failure visible before it happens.**
+> **Interlock does not optimize systems. It prevents them from breaking.**
+>
+> **Interlock does not prevent failure. It makes failure visible before it happens.**
 
 ---
 
-*LawForge v4.0.0 — Optimization Microscope, Resilience Certification, Failure Forecasting & FAISS Ground-Truth Certification Engine*
+*Interlock v4.0.0 — The Circuit Breaker for AI Infrastructure*

@@ -284,7 +284,7 @@ const EarlyWarningPanel: React.FC<EarlyWarningPanelProps> = ({
           <span className="text-slate-600">
             {forecast ? `Updated: ${new Date(forecast.timestamp).toLocaleTimeString()}` : 'No forecast'}
           </span>
-          <Tooltip content="LawForge does not prevent failure. It makes failure visible before it happens.">
+          <Tooltip content="Interlock does not prevent failure. It makes failure visible before it happens.">
             <span className="text-slate-500 cursor-help flex items-center gap-1">
               <Info size={10} />
               Phase III Forecasting
