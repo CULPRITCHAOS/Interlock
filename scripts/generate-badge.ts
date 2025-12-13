@@ -590,6 +590,14 @@ export function generateShield(options: {
   const claims = extractSignedClaims(shield);
   shield.signature = generateBadgeSignature(claims);
   
+  // Validate signature was generated
+  if (!shield.signature || shield.signature === '') {
+    throw new Error(
+      `CERTIFICATION FAILURE: Failed to generate cryptographic signature. ` +
+      `Cannot generate badge without signature.`
+    );
+  }
+  
   return shield;
 }
 
