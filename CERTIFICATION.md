@@ -195,6 +195,44 @@ Re-certification is required when:
 2. **Configuration Changes**: Circuit breaker thresholds modified
 3. **Version Updates**: Interlock version changed
 4. **Workload Changes**: Production load profile significantly differs from test profile
+5. **Badge Expiry**: Default validity is 30 days; expired badges require re-validation
+
+---
+
+## Scope of Certification (Non-Warranty)
+
+### What This Certification Is
+
+This certification is **evidence of past test results**, not a warranty of future behavior.
+
+> "Interlock certifies this configuration survived the following stress tests under controlled conditions."
+
+This statement means:
+- The specific configuration was tested
+- Under the specific conditions documented
+- With the results shown in the report
+
+### What This Certification Is NOT
+
+This certification is **NOT**:
+- A guarantee of uptime or availability
+- A promise that failures will never occur
+- A warranty of fitness for any particular purpose
+- A prediction of behavior under novel conditions
+- An assurance of safety under different hardware or load profiles
+
+### Certification Is a Past Fact
+
+> **Important**: Certification certifies what happened during testing, not what will happen in production.
+
+The certification badge includes:
+- `issued_at`: When the test was run
+- `valid_until`: When the certification expires (default: 30 days)
+- `config_fingerprint`: Hash of the configuration tested
+- `hardware_fingerprint`: Hash of the hardware used
+- `test_suite_version`: Version of the test suite
+
+Any change to these factors may invalidate the certification.
 
 ---
 
@@ -206,17 +244,21 @@ This certification system is designed to provide evidence-based assurance, not a
 - Guarantee system availability
 - Promise zero failures
 - Warrant fitness for any particular purpose beyond tested conditions
+- Guarantee protection against novel failure modes
+- Promise behavior under conditions not tested
 
 **Interlock DOES:**
 - Provide transparent test evidence
 - Document tested conditions explicitly
 - Identify limitations honestly
+- Expire certifications to prevent "badge rot"
+- Enforce anti-gaming rules for class ratings
 
 ---
 
 ## Contact
 
-For questions about certification or interpretation of results, refer to the [README](./README.md) or open an issue in the repository.
+For questions about certification or interpretation of results, refer to the [README](./README.md) or [INTERLOCK_CLASSES.md](./INTERLOCK_CLASSES.md) or open an issue in the repository.
 
 ---
 

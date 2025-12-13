@@ -1,0 +1,336 @@
+{
+  "generated": "2025-12-13T18:22:17.114Z",
+  "testSeries": [
+    {
+      "name": "Flapping Prevention",
+      "description": "Prove hysteresis prevents instability",
+      "passed": true,
+      "metrics": {
+        "noInterlockCrashes": 0,
+        "withoutHysteresisTransitions": 2,
+        "withHysteresisTransitions": 1,
+        "transitionReduction": 50,
+        "withHysteresisUnstableTime": 15400
+      },
+      "details": [
+        "No Interlock: 0 crashes (during high hazard periods)",
+        "Without Hysteresis: 2 transitions, 2 interventions",
+        "With Hysteresis: 1 transitions, 1 interventions"
+      ]
+    },
+    {
+      "name": "Incident Quality",
+      "description": "Prove forensic reports are actionable",
+      "passed": true,
+      "metrics": {
+        "reportsGenerated": 5,
+        "validReports": 5,
+        "hasWhyOccurred": 5,
+        "hasWhatPrevented": 5,
+        "hasWhatToChange": 5
+      },
+      "details": [
+        "Report 1: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 2: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 3: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 4: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 5: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "JSON format valid: true",
+        "Markdown readable: true"
+      ]
+    },
+    {
+      "name": "Counterfactual Survival",
+      "description": "Prove Interlock prevents failure",
+      "passed": true,
+      "metrics": {
+        "controlSurvived": 0,
+        "protectedSurvived": 1,
+        "controlCrashPoint": 77,
+        "maxLoadControl": 0,
+        "maxLoadProtected": 99,
+        "loadImprovement": 99
+      },
+      "details": [
+        "Control (no Interlock): Crashed at step 77",
+        "Protected: Survived",
+        "Max survivable load - Control: 0%",
+        "Max survivable load - Protected: 99%"
+      ]
+    },
+    {
+      "name": "Trust Decay",
+      "description": "Prove Interlock knows when it does not know",
+      "passed": true,
+      "metrics": {
+        "earlyConfidence": 85.00000000000007,
+        "lateConfidence": 25.249999999999982,
+        "confidenceDropPercent": 70.29411764705887,
+        "confidenceDropped": 1,
+        "escalatedConservatively": 1,
+        "noFalseCertainty": 1
+      },
+      "details": [
+        "Early average confidence: 85.0%",
+        "Late average confidence: 25.2%",
+        "Confidence dropped: Yes",
+        "Escalated conservatively: Yes",
+        "No false certainty: Yes"
+      ]
+    },
+    {
+      "name": "Flash Crowd Reflex",
+      "description": "Prove reflexive safety override bypasses forecast on load spikes",
+      "passed": true,
+      "metrics": {
+        "reflexTripped": 1,
+        "totalReflexTrips": 1,
+        "enteredCooldown": 1,
+        "bypassedForecast": 1,
+        "cooldownPreventsRecovery": 1
+      },
+      "details": [
+        "Step 30: REFLEX TRIP - Load spike detected",
+        "Total reflex trips: 1",
+        "Bypassed forecast logic: Yes",
+        "Entered cooldown: Yes",
+        "Cooldown prevented premature recovery: Yes"
+      ]
+    },
+    {
+      "name": "Quality Floor Enforcement",
+      "description": "Prove refusal is safer than corruption",
+      "passed": true,
+      "metrics": {
+        "qualityFloorTriggered": 1,
+        "totalRefusals": 39,
+        "refusalLogged": 1,
+        "enteredDegradedMode": 1,
+        "qualityFloor": 50
+      },
+      "details": [
+        "Step 40: QUALITY FLOOR BREACH - Recall 40.0% < floor 50%",
+        "Step 41: QUALITY FLOOR BREACH - Recall 39.0% < floor 50%",
+        "Step 42: QUALITY FLOOR BREACH - Recall 38.0% < floor 50%",
+        "Step 43: QUALITY FLOOR BREACH - Recall 37.0% < floor 50%",
+        "Step 44: QUALITY FLOOR BREACH - Recall 36.0% < floor 50%",
+        "Step 45: QUALITY FLOOR BREACH - Recall 35.0% < floor 50%",
+        "Step 46: QUALITY FLOOR BREACH - Recall 34.0% < floor 50%",
+        "Step 47: QUALITY FLOOR BREACH - Recall 33.0% < floor 50%",
+        "Step 48: QUALITY FLOOR BREACH - Recall 32.0% < floor 50%",
+        "Step 49: QUALITY FLOOR BREACH - Recall 31.0% < floor 50%",
+        "Step 50: QUALITY FLOOR BREACH - Recall 30.0% < floor 50%",
+        "Step 51: QUALITY FLOOR BREACH - Recall 29.0% < floor 50%",
+        "Step 52: QUALITY FLOOR BREACH - Recall 28.0% < floor 50%",
+        "Step 53: QUALITY FLOOR BREACH - Recall 27.0% < floor 50%",
+        "Step 54: QUALITY FLOOR BREACH - Recall 26.0% < floor 50%",
+        "Step 55: QUALITY FLOOR BREACH - Recall 25.0% < floor 50%",
+        "Step 56: QUALITY FLOOR BREACH - Recall 24.0% < floor 50%",
+        "Step 57: QUALITY FLOOR BREACH - Recall 23.0% < floor 50%",
+        "Step 58: QUALITY FLOOR BREACH - Recall 22.0% < floor 50%",
+        "Step 59: QUALITY FLOOR BREACH - Recall 21.0% < floor 50%",
+        "Step 60: QUALITY FLOOR BREACH - Recall 31.8% < floor 50%",
+        "Step 61: QUALITY FLOOR BREACH - Recall 34.1% < floor 50%",
+        "Step 62: QUALITY FLOOR BREACH - Recall 34.1% < floor 50%",
+        "Step 63: QUALITY FLOOR BREACH - Recall 33.1% < floor 50%",
+        "Step 64: QUALITY FLOOR BREACH - Recall 37.8% < floor 50%",
+        "Step 65: QUALITY FLOOR BREACH - Recall 37.2% < floor 50%",
+        "Step 66: QUALITY FLOOR BREACH - Recall 40.1% < floor 50%",
+        "Step 67: QUALITY FLOOR BREACH - Recall 37.9% < floor 50%",
+        "Step 68: QUALITY FLOOR BREACH - Recall 41.4% < floor 50%",
+        "Step 69: QUALITY FLOOR BREACH - Recall 41.6% < floor 50%",
+        "Step 70: QUALITY FLOOR BREACH - Recall 43.8% < floor 50%",
+        "Step 71: QUALITY FLOOR BREACH - Recall 44.1% < floor 50%",
+        "Step 72: QUALITY FLOOR BREACH - Recall 44.4% < floor 50%",
+        "Step 73: QUALITY FLOOR BREACH - Recall 45.1% < floor 50%",
+        "Step 74: QUALITY FLOOR BREACH - Recall 45.2% < floor 50%",
+        "Step 75: QUALITY FLOOR BREACH - Recall 45.1% < floor 50%",
+        "Step 76: QUALITY FLOOR BREACH - Recall 47.6% < floor 50%",
+        "Step 77: QUALITY FLOOR BREACH - Recall 49.7% < floor 50%",
+        "Step 78: QUALITY FLOOR BREACH - Recall 49.4% < floor 50%",
+        "Refusals logged: 39",
+        "First refusal reason: Recall 40.0% below quality floor 50% - refusing request to p...",
+        "Quality floor enforcement: Enabled",
+        "Entered degraded mode: Yes"
+      ]
+    },
+    {
+      "name": "No False Certainty",
+      "description": "Verify Interlock explicitly says \"I don't know\"",
+      "passed": true,
+      "metrics": {
+        "earlyConfidence": 34.122862411068226,
+        "lateConfidence": 25.35653685282755,
+        "confidenceDropPercent": 25.690475355306646,
+        "escalatedConservatively": 1,
+        "noFalseCertainty": 1,
+        "escalatedWhenUncertain": 1
+      },
+      "details": [
+        "Step 54: Escalated conservatively at 50.0% confidence",
+        "Early confidence: 34.1%",
+        "Late confidence: 25.4%",
+        "Confidence drop: 25.7%",
+        "Escalated conservatively: Yes",
+        "No false certainty: Yes",
+        "Confidence history length: 50"
+      ]
+    },
+    {
+      "name": "Shadow Mode (Dry Run)",
+      "description": "Verify Interlock logs decisions without interfering with traffic",
+      "passed": true,
+      "metrics": {
+        "shadowBlocksRecorded": 40,
+        "totalShadowBlocks": 40,
+        "shadowStateNeverChanged": 1,
+        "activeStateChanged": 1,
+        "shadowBlockHasReason": 1,
+        "isShadowModeEnabled": 1
+      },
+      "details": [
+        "Step 30: Shadow block recorded - PROJECTED_FAILURE_WINDOW: reflex_trip",
+        "Step 31: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 32: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 33: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 34: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 35: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 36: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 37: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 38: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 39: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 40: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 41: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 42: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 43: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 44: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 45: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 46: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 47: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 48: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 49: Shadow block recorded - SAFETY_MARGIN_VIOLATION: hazard_threshold",
+        "Step 50: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 51: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 52: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 53: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 54: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 55: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 56: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 57: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 58: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 59: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 60: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 61: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 62: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 63: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 64: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 65: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 66: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 67: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 68: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Step 69: Shadow block recorded - QUALITY_DEGRADATION: quality_floor",
+        "Shadow mode enabled: true",
+        "Total shadow blocks: 40",
+        "Shadow state never changed: true",
+        "Active mode changed state: true",
+        "Shadow blocks by trigger: {\"reflex_trip\":1,\"hazard_threshold\":19,\"quality_floor\":20}"
+      ]
+    },
+    {
+      "name": "State Persistence",
+      "description": "Verify Interlock survives restarts safely",
+      "passed": true,
+      "metrics": {
+        "restartDuringOpen": 1,
+        "restartDuringCooldown": 1,
+        "corruptStateFile": 1,
+        "schemaValidation": 1
+      },
+      "details": [
+        "Test 1 (Restart during OPEN): ✓ State=open",
+        "Test 2 (Restart during cooldown): ✓ Cooldown=29999ms",
+        "Test 3 (Corrupt state file): ✓ SafeBoot=true",
+        "Test 4 (State validation): ✓ Valid=true, Invalid=true"
+      ]
+    },
+    {
+      "name": "Forensic Data Sanitization",
+      "description": "Verify incident reports are SRE-useful without PII",
+      "passed": true,
+      "metrics": {
+        "piiDetection": 1,
+        "piiRedaction": 1,
+        "vectorFingerprinting": 1,
+        "incidentSanitization": 1,
+        "noRawPayloadSurvives": 1
+      },
+      "details": [
+        "Test 1 (PII Detection): ✓",
+        "Test 2 (PII Redaction): ✓ - 2 items redacted",
+        "Test 3 (Vector Fingerprinting): ✓",
+        "  - Norm: 4.395, Sparsity: 0.008",
+        "  - Entropy: 4.160, Centroid: centroid-45b5286...",
+        "Test 4 (Incident Sanitization): ✓",
+        "  - Fields redacted: query, result, error.stack, error.message, sessionId, rawPayload",
+        "  - Size reduction: 2836 → 1341",
+        "Test 5 (No Raw Payload Survives): ✓"
+      ]
+    },
+    {
+      "name": "Hardware Fingerprint",
+      "description": "Verify hardware mismatch invalidates cached state",
+      "passed": true,
+      "metrics": {
+        "fingerprintCollected": 1,
+        "sameHardwareLoads": 1,
+        "fingerprintComparison": 1,
+        "changedMemoryInvalidates": 1,
+        "conservativeBoot": 1
+      },
+      "details": [
+        "Test 1 (Fingerprint collected): ✓ Memory=7944MB, Cores=2",
+        "Test 2 (Same hardware loads): ✓ HardwareMismatch=false, BootState=normal",
+        "Test 3 (Fingerprint comparison): ✓ Same=true, 60%Less=false, 10%Less=true",
+        "  Mismatch reasons: Memory changed from 7944MB to 3178MB (60.0% difference exceeds 20% tolerance)",
+        "Test 4 (Memory change invalidates): ✓ HardwareMismatch=true",
+        "Test 5 (Conservative boot): ✓ State=open, ConfidenceCleared=true",
+        "  Mismatch warning: Memory changed from 2383MB to 7944MB (233.4% difference exceeds 20% tolerance)..."
+      ]
+    },
+    {
+      "name": "Class Certification Integrity",
+      "description": "Verify Interlock class derivation, anti-gaming, and badge expiry",
+      "passed": false,
+      "metrics": {
+        "qualityFloorDowngrade": 0,
+        "reflexOverrideDowngrade": 0,
+        "expiryTriggers": 1,
+        "deterministicOutput": 1,
+        "classStability": 1
+      },
+      "details": [
+        "Test 1 (qualityFloor disable → downgrade): ✗",
+        "  With qualityFloor: Class V",
+        "  Without qualityFloor: Class IV (downgraded=false)",
+        "  With qualityFloor=0: Class IV (downgraded=false) ✗",
+        "Test 2 (reflex/hysteresis disable → downgrade): ✗",
+        "  With reflexOverride: Class IV",
+        "  Without reflexOverride: Class III (downgraded=false)",
+        "  Without hysteresis: Class III (downgraded=false)",
+        "Test 3 (expiry triggers staleness): ✓",
+        "  Expired (-30 days): isStale=true, hasWarning=true",
+        "  Valid (+30 days): isStale=false, hasWarning=false",
+        "  Soon (+5 days): isStale=false, hasWarning=true",
+        "Test 4 (deterministic output): ✓",
+        "  Run 1: Class V, reasons=19",
+        "  Run 2: Class V, reasons=19",
+        "  Config fingerprint: deterministic (cfg_7ae772f7)",
+        "Test 5 (class stability): ✓",
+        "  Config A: Class V",
+        "  Config B (reordered): Class V"
+      ]
+    }
+  ],
+  "overallPassed": false,
+  "summary": "11/12 tests passed. Review failures."
+}
