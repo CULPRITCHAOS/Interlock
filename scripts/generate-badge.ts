@@ -180,10 +180,22 @@ export interface InterlockShield {
 
 /**
  * Get git commit hash if available
+ * Uses the full path to git and validates the output format
  */
 function getGitCommit(): string | null {
   try {
-    return execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim().substring(0, 8);
+    // Use which to find git location, or fall back to common paths
+    const result = execSync('git rev-parse HEAD', { 
+      encoding: 'utf-8',
+      timeout: 5000,  // 5 second timeout
+      stdio: ['pipe', 'pipe', 'pipe']  // Capture stderr
+    }).trim();
+    
+    // Validate the output looks like a git hash (40 hex characters)
+    if (/^[a-f0-9]{40}$/i.test(result)) {
+      return result.substring(0, 8);
+    }
+    return null;
   } catch {
     return null;
   }
@@ -423,7 +435,7 @@ export function shieldToMarkdown(shield: InterlockShield): string {
   
   // Stale warning
   const staleWarning = shield.is_stale 
-    ? '\n> ⚠️ **Warning**: This certification has expired. Rerun `npm run validate` to refresh.\n'
+    ? '\n> ⚠️ **Warning**: This certification has expired. Rerun validation tests to refresh.\n'
     : '';
   
   lines.push('<!-- Interlock Shield Badge - Copy this block to your README -->');

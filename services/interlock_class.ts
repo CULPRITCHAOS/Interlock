@@ -704,7 +704,7 @@ export function checkCertificationStaleness(validUntil: string): {
     return {
       isStale: true,
       daysUntilExpiry,
-      warningMessage: `Certification stale — expired ${Math.abs(daysUntilExpiry)} days ago. Rerun stress test with 'npm run validate'.`
+      warningMessage: `Certification stale — expired ${Math.abs(daysUntilExpiry)} days ago. Rerun validation tests.`
     };
   }
   
@@ -712,7 +712,7 @@ export function checkCertificationStaleness(validUntil: string): {
     return {
       isStale: false,
       daysUntilExpiry,
-      warningMessage: `Certification expiring soon — ${daysUntilExpiry} days remaining. Consider rerunning stress test.`
+      warningMessage: `Certification expiring soon — ${daysUntilExpiry} days remaining. Consider rerunning validation tests.`
     };
   }
   
@@ -733,14 +733,29 @@ export function calculateExpiryDate(issuedAt: Date, validityDays: number = 30): 
 }
 
 /**
- * Generate a simple hash fingerprint for a configuration object
+ * Generate a deterministic hash fingerprint for a configuration object
+ * Uses a simple but effective approach for configuration comparison.
+ * 
+ * Note: This is NOT cryptographically secure, but is sufficient for
+ * configuration comparison purposes. For security-critical applications,
+ * consider using crypto.createHash('sha256').
  */
 export function generateConfigFingerprint(config: object): string {
-  const str = JSON.stringify(config, Object.keys(config).sort());
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+  // Sort keys recursively to ensure deterministic ordering
+  const sortedStr = JSON.stringify(config, (key, value) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return Object.keys(value).sort().reduce((sorted: Record<string, unknown>, k) => {
+        sorted[k] = value[k];
+        return sorted;
+      }, {});
+    }
+    return value;
+  });
+  
+  // Simple hash function - djb2 algorithm
+  let hash = 5381;
+  for (let i = 0; i < sortedStr.length; i++) {
+    hash = ((hash << 5) + hash) + sortedStr.charCodeAt(i);
     hash = hash & hash; // Convert to 32bit integer
   }
   return `cfg_${Math.abs(hash).toString(16).padStart(8, '0')}`;
