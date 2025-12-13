@@ -487,7 +487,8 @@ function renderStressChamberFrame(metrics: StressChamberMetrics, step: number, t
   console.log('╠════════════════════════════════════════════════════════════════════╣');
   console.log('║  THRESHOLDS                                                        ║');
   console.log('║  │ denotes threshold on progress bars                              ║');
-  console.log(`║  Memory limit: 80 MB | Latency limit: ${latencyThresholdMs} ms | Recall min: ${(recallThreshold * 100).toFixed(0)}%     ║`);
+  const thresholdLine = `║  Memory limit: 80 MB | Latency limit: ${latencyThresholdMs} ms | Recall min: ${(recallThreshold * 100).toFixed(0)}%`;
+  console.log(thresholdLine.padEnd(72) + '║');
   console.log('╚════════════════════════════════════════════════════════════════════╝');
 }
 
@@ -810,8 +811,8 @@ function generateStressChamberReport(protectedResult: StressChamberResult, contr
 function parseArgs(args: string[]): {
   seed: number;
   initialSize: number;
-  growthSteps: number;
-  vectorsPerStep: number;
+  growthSteps?: number;
+  vectorsPerStep?: number;
   control: boolean;
   both: boolean;
   noVisualize: boolean;
@@ -822,8 +823,8 @@ function parseArgs(args: string[]): {
 } {
   let seed = 42;
   let initialSize = 10000;
-  let growthSteps = 25; // Updated default from 15
-  let vectorsPerStep = 15000; // Updated default from 10000
+  let growthSteps: number | undefined;
+  let vectorsPerStep: number | undefined;
   let control = false;
   let both = false;
   let noVisualize = false;
@@ -847,10 +848,10 @@ function parseArgs(args: string[]): {
       i++;
     } else if (args[i] === '--profile' && args[i + 1]) {
       const requestedProfile = args[i + 1].toLowerCase();
-      if (requestedProfile === 'light' || requestedProfile === 'medium' || requestedProfile === 'heavy') {
-        profile = requestedProfile;
+      if (Object.keys(STRESS_PROFILES).includes(requestedProfile)) {
+        profile = requestedProfile as StressProfile;
       } else {
-        console.error(`Invalid profile: ${args[i + 1]}. Valid options: light, medium, heavy`);
+        console.error(`Invalid profile: ${args[i + 1]}. Valid options: ${Object.keys(STRESS_PROFILES).join(', ')}`);
         process.exit(1);
       }
       i++;
@@ -913,8 +914,8 @@ async function main(): Promise<void> {
   
   // Apply profile settings (can be overridden by explicit CLI args)
   const profileSettings = STRESS_PROFILES[config.profile];
-  const growthSteps = config.growthSteps;
-  const vectorsPerStep = config.vectorsPerStep;
+  const growthSteps = config.growthSteps ?? profileSettings.growthSteps;
+  const vectorsPerStep = config.vectorsPerStep ?? profileSettings.vectorsPerStep;
   const recallThreshold = config.recallThreshold ?? profileSettings.recallThreshold;
   const latencyThresholdMs = config.latencyThresholdMs ?? profileSettings.latencyThresholdMs;
   

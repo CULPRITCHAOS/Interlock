@@ -49,8 +49,11 @@ jobs:
       - name: Determine stress profile
         id: profile
         run: |
-          # Use heavy profile for weekly Sunday run, medium for daily runs
-          if [ "${{ github.event.schedule }}" == "0 3 * * 0" ]; then
+          # Check if this is the weekly Sunday run (use GitHub's day of week)
+          DAY_OF_WEEK=$(date -u +%u)  # 1=Monday, 7=Sunday
+          HOUR=$(date -u +%H)
+          
+          if [ "$DAY_OF_WEEK" == "7" ] && [ "$HOUR" == "3" ] && [ "${{ github.event_name }}" == "schedule" ]; then
             echo "profile=heavy" >> $GITHUB_OUTPUT
           elif [ "${{ github.event.inputs.stress_profile }}" != "" ]; then
             echo "profile=${{ github.event.inputs.stress_profile }}" >> $GITHUB_OUTPUT
