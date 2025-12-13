@@ -1,0 +1,161 @@
+name: Competitive Benchmark
+
+# Run competitive benchmarks: Interlock vs alternatives
+on:
+  schedule:
+    # Run weekly on Sundays at 3 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      stress_multiplier:
+        description: 'Peak stress multiplier'
+        required: false
+        default: '2.5'
+      total_steps:
+        description: 'Total simulation steps'
+        required: false
+        default: '200'
+
+# Only run one benchmark at a time
+concurrency:
+  group: competitive-benchmark
+  cancel-in-progress: false
+
+jobs:
+  competitive-benchmark:
+    name: Competitive Benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run competitive benchmark
+        run: |
+          echo "Running competitive benchmark..."
+          npx tsx scripts/comparative-benchmark.ts \
+            --seed 42 \
+            --total-steps ${{ github.event.inputs.total_steps || '200' }} \
+            --peak-stress ${{ github.event.inputs.stress_multiplier || '2.5' }}
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "# 🏆 Competitive Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -d results/benchmark ]; then
+            LATEST_RESULT=$(ls -t results/benchmark/comparison_report_*.md 2>/dev/null | head -1)
+            if [ -f "$LATEST_RESULT" ]; then
+              echo "## Latest Benchmark" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              cat "$LATEST_RESULT" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            # Check for JSON data
+            LATEST_JSON=$(ls -t results/benchmark/comparison_data_*.json 2>/dev/null | head -1)
+            if [ -f "$LATEST_JSON" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "## Key Metrics" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              node -e "
+                const fs = require('fs');
+                try {
+                  const data = JSON.parse(fs.readFileSync('$LATEST_JSON', 'utf8'));
+
+                  console.log('| Protection Mode | Survived | Max Load | Red Zone Time |');
+                  console.log('|----------------|----------|----------|---------------|');
+
+                  if (data.results) {
+                    for (const result of data.results) {
+                      const survived = result.didSurvive ? '✅' : '❌';
+                      const maxLoad = (result.maxSurvivableLoad * 100).toFixed(1) + '%';
+                      const redZone = result.timeInRedZone + ' steps';
+                      console.log('| ' + result.modeName + ' | ' + survived + ' | ' + maxLoad + ' | ' + redZone + ' |');
+                    }
+                  }
+
+                  if (data.summary && data.summary.interlockAdvantage) {
+                    console.log('');
+                    console.log('### Interlock Advantage');
+                    console.log('');
+                    const adv = data.summary.interlockAdvantage;
+                    
+                    if (adv.survivedWhereOthersFailed) {
+                      console.log('✅ **Survived where alternatives failed**');
+                    }
+                    
+                    if (adv.redZoneReduction > 0) {
+                      console.log('- Red zone time reduced by ' + adv.redZoneReduction.toFixed(1) + '%');
+                    }
+                    
+                    if (adv.latencyReduction > 0) {
+                      console.log('- Latency degradation reduced by ' + adv.latencyReduction.toFixed(1) + '%');
+                    }
+                  }
+                } catch (e) {
+                  console.log('Could not parse benchmark data');
+                }
+              " >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Benchmark completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload benchmark artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: competitive-benchmark-results-${{ github.run_number }}
+          path: |
+            results/benchmark/**/*.md
+            results/benchmark/**/*.json
+            results/benchmark/**/*.svg
+          retention-days: 90
+
+  benchmark-summary:
+    name: Benchmark Summary
+    runs-on: ubuntu-latest
+    needs: [competitive-benchmark]
+    if: always()
+
+    permissions: {}
+
+    steps:
+      - name: Generate final summary
+        run: |
+          echo "# 🎯 Competitive Benchmark Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Job Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Competitive Benchmark | ${{ needs.competitive-benchmark.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.competitive-benchmark.result }}" == "success" ]; then
+            echo "✅ **Competitive benchmark completed successfully**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Competitive benchmark did not complete as expected**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Workflow run: #${{ github.run_number }}*" >> $GITHUB_STEP_SUMMARY
