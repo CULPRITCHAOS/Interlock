@@ -249,6 +249,10 @@ export class HysteresisLock {
     // ============= REFLEXIVE SAFETY OVERRIDE (Flash Crowd Protection) =============
     // This is a spinal reflex - it bypasses forecast logic entirely
     // It must be deterministic, fast, and non-configurable to zero
+    // 
+    // NOTE: The check `this.state.previousLoad > 0` intentionally skips reflex detection
+    // on the first update when we don't have baseline load data. This prevents false
+    // positives during system initialization. The first load value establishes the baseline.
     if (metrics.load !== undefined && this.state.previousLoad > 0) {
       const loadDelta = metrics.load - this.state.previousLoad;
       const loadRatio = metrics.load / this.state.previousLoad;
@@ -580,8 +584,12 @@ export class HysteresisLock {
     const earlyConfidence = history.slice(0, halfPoint).reduce((a, b) => a + b, 0) / halfPoint;
     const lateConfidence = history.slice(halfPoint).reduce((a, b) => a + b, 0) / (history.length - halfPoint);
     
+    // Calculate confidence change as percentage
+    // Positive value = confidence dropped (decay)
+    // Negative value = confidence increased (improvement)
+    // We use Math.max(0, ...) to only track decay, not improvement
     const confidenceDropPercent = earlyConfidence > 0 
-      ? ((earlyConfidence - lateConfidence) / earlyConfidence) * 100 
+      ? Math.max(0, ((earlyConfidence - lateConfidence) / earlyConfidence) * 100)
       : 0;
     
     // Check for false certainty: claiming high confidence when we shouldn't

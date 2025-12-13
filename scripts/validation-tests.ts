@@ -639,9 +639,10 @@ function runFlashCrowdReflexTest(seed: number): TestSeriesResult {
       load = 100 + rng.next() * 20;
       hazard = 0.3 + rng.next() * 0.1;
     }
-    // Flash crowd at step 30: sudden 3x spike
+    // Flash crowd at step 30: sudden spike
+    // Previous load is ~100-120, this creates a 3-3.5x spike which exceeds flashThreshold (2.0)
     else if (step === 30) {
-      load = 350; // 3.5x spike from ~100
+      load = 350;
       hazard = 0.4;
     }
     // Sustained high load
@@ -908,8 +909,8 @@ function runNoFalseCertaintyTest(seed: number): TestSeriesResult {
     confidenceDropDetected = true;
   }
   
-  details.push(`Early confidence: ${decayMetrics.earlyConfidence.toFixed(1)}%`);
-  details.push(`Late confidence: ${decayMetrics.lateConfidence.toFixed(1)}%`);
+  details.push(`Early confidence: ${(decayMetrics.earlyConfidence * 100).toFixed(1)}%`);
+  details.push(`Late confidence: ${(decayMetrics.lateConfidence * 100).toFixed(1)}%`);
   details.push(`Confidence drop: ${decayMetrics.confidenceDropPercent.toFixed(1)}%`);
   details.push(`Escalated conservatively: ${decayMetrics.escalatedConservatively ? 'Yes' : 'No'}`);
   details.push(`No false certainty: ${decayMetrics.noFalseCertainty ? 'Yes' : 'No'}`);
