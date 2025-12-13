@@ -318,6 +318,78 @@ ELSE:
 
 ---
 
+## 👁️ Shadow Mode (Trust Acquisition / Dry Run)
+
+**Problem**: No Enterprise CTO will let you install an active circuit breaker that degrades their customer experience on Day 1. They're scared of false positives.
+
+**Solution**: A "Log Only" or "Shadow Mode" where Interlock pretends to trip the breaker and logs "I WOULD have downgraded precision here" but doesn't actually touch the traffic.
+
+### Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `dryRun` | false | If true, log decisions but don't interfere with traffic |
+
+### TypeScript Usage
+
+```typescript
+const shadowConfig: HysteresisConfig = {
+  ...DEFAULT_HYSTERESIS_CONFIG,
+  dryRun: true  // Enable shadow mode
+};
+
+const breaker = new HysteresisLock(shadowConfig, circuitBreakerConfig);
+const result = breaker.update(metrics);
+
+// In shadow mode:
+// - result.isShadowMode === true
+// - result.shadowBlock contains what WOULD have happened
+// - result.newState stays at 'closed' (no actual intervention)
+```
+
+### Python Usage
+
+```python
+from interlock import protect, get_shadow_blocks
+
+@protect(
+    domain="faiss",
+    dry_run=True  # Shadow Mode enabled
+)
+def search_vectors(query):
+    return index.search(query)
+
+# After running queries, audit the decisions
+shadow_blocks = get_shadow_blocks(search_vectors)
+for block in shadow_blocks:
+    print(f"Would have: {block['trigger']}")
+    print(f"Reason: {block['reason']}")
+```
+
+### Shadow Block Record
+
+| Field | Description |
+|-------|-------------|
+| `timestamp` | When the shadow block was recorded |
+| `wouldHaveTransitioned` | `true` if state would have changed |
+| `fromState` | Current state |
+| `toState` | State that would have been entered |
+| `trigger` | What triggered the virtual intervention |
+| `reason` | Human-readable explanation |
+
+### Use Case: Trust Acquisition
+
+1. **Week 1**: Deploy Interlock in shadow mode
+2. **Week 2**: Audit shadow blocks - review "I WOULD have..." decisions
+3. **Week 3**: If decisions align with expectations, enable active mode
+4. **Ongoing**: Keep shadow mode running on a subset for continuous validation
+
+### Market Language
+
+> **"Shadow mode lets you audit Interlock's decisions for a week before giving it control."**
+
+---
+
 ## 📉 Adaptive Risk Escalation (Confidence Decay Logic)
 
 **Problem**: Systems may claim false certainty when they should be uncertain.
@@ -428,6 +500,7 @@ npm run validate
 | 5 | **Flash Crowd Reflex** | Verify reflexive safety override on load spikes |
 | 6 | **Quality Floor Enforcement** | Verify refusal when recall < quality floor |
 | 7 | **No False Certainty** | Verify Interlock never claims certainty it doesn't have |
+| 8 | **Shadow Mode (Dry Run)** | Verify Interlock logs decisions without interfering with traffic |
 
 ### Success Criteria
 
@@ -438,6 +511,7 @@ npm run validate
 | Reports generated before failure | Incident Quality |
 | No silent degradation | Quality Floor Enforcement |
 | Conservative escalation verified | Trust Decay, No False Certainty |
+| Shadow mode logs without interfering | Shadow Mode |
 
 ---
 

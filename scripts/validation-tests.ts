@@ -25,7 +25,8 @@ import {
   HysteresisConfig,
   ReflexTripRecord,
   QualityFloorRefusal,
-  ConfidenceDecayMetrics
+  ConfidenceDecayMetrics,
+  ShadowBlockRecord
 } from '../services/hysteresis';
 import {
   generateIncidentReport,
@@ -940,6 +941,165 @@ function runNoFalseCertaintyTest(seed: number): TestSeriesResult {
   };
 }
 
+// ============= Test Series 8: Shadow Mode (Dry Run / Trust Acquisition) =============
+
+/**
+ * Test Series 8: Shadow Mode (Dry Run) Test
+ * 
+ * Problem: No Enterprise CTO will let you install an active circuit breaker
+ * that degrades their customer experience on Day 1. They're scared of false positives.
+ * 
+ * Solution: Shadow Mode where Interlock pretends to trip the breaker and logs
+ * "I WOULD have downgraded precision here" but doesn't actually touch the traffic.
+ * 
+ * Success Criteria:
+ * - dryRun=true mode calculates hazards normally
+ * - "Virtual" interventions are logged as Shadow Blocks
+ * - Actual execution is NOT interfered with
+ * - Shadow blocks include reason for what WOULD have happened
+ */
+function runShadowModeTest(seed: number): TestSeriesResult {
+  const rng = new SeededRandom(seed);
+  const details: string[] = [];
+  
+  // Create breaker in shadow/dry-run mode
+  const shadowConfig: HysteresisConfig = {
+    ...DEFAULT_HYSTERESIS_CONFIG,
+    dryRun: true,                          // SHADOW MODE ENABLED
+    flashThreshold: 2.0,
+    qualityFloor: 0.5,
+    qualityFloorEnabled: true,
+    minimumConfidenceThreshold: 0.5,
+    minimumOpenDurationMs: 500
+  };
+  
+  // Create active breaker for comparison
+  const activeConfig: HysteresisConfig = {
+    ...shadowConfig,
+    dryRun: false                          // ACTIVE MODE
+  };
+  
+  const shadowBreaker = new HysteresisLock(shadowConfig, DEFAULT_CIRCUIT_BREAKER_CONFIG);
+  const activeBreaker = new HysteresisLock(activeConfig, DEFAULT_CIRCUIT_BREAKER_CONFIG);
+  
+  let shadowBlocksRecorded = 0;
+  let shadowStateNeverChanged = true;
+  let activeStateChanged = false;
+  let shadowBlockHasReason = false;
+  
+  const steps = 100;
+  
+  for (let step = 0; step < steps; step++) {
+    let hazard: number;
+    let load: number;
+    let recall: number;
+    let confidence: number;
+    
+    // Normal operation for first 30 steps
+    if (step < 30) {
+      hazard = 0.3 + rng.next() * 0.1;
+      load = 100 + rng.next() * 20;
+      recall = 0.8 + rng.next() * 0.1;
+      confidence = 0.8 + rng.next() * 0.1;
+    }
+    // Flash crowd at step 30 - should trigger shadow block in shadow mode
+    else if (step === 30) {
+      hazard = 0.4;
+      load = 350;  // 3x spike from ~110
+      recall = 0.7;
+      confidence = 0.75;
+    }
+    // High hazard period - should trigger shadow block
+    else if (step < 50) {
+      hazard = 0.7 + rng.next() * 0.1;  // Above threshold
+      load = 200 + rng.next() * 50;
+      recall = 0.6;
+      confidence = 0.7;
+    }
+    // Quality floor breach - should trigger shadow block
+    else if (step < 70) {
+      hazard = 0.5;
+      load = 150;
+      recall = 0.3 + rng.next() * 0.1;  // Below quality floor
+      confidence = 0.7;
+    }
+    // Recovery phase
+    else {
+      hazard = 0.3 + rng.next() * 0.1;
+      load = 100 + rng.next() * 20;
+      recall = 0.8 + rng.next() * 0.1;
+      confidence = 0.8 + rng.next() * 0.1;
+    }
+    
+    const metrics: HysteresisMetrics = {
+      hazardScore: Math.min(1, Math.max(0, hazard)),
+      recall: Math.min(1, Math.max(0, recall)),
+      latencyMs: 20 + hazard * 40,
+      confidence: Math.min(1, Math.max(0, confidence)),
+      timestamp: Date.now() + step * 100,
+      load: Math.max(0, load)
+    };
+    
+    // Run both breakers with same metrics
+    const shadowResult = shadowBreaker.update(metrics);
+    const activeResult = activeBreaker.update(metrics);
+    
+    // Track shadow mode behavior
+    if (shadowResult.shadowBlock) {
+      shadowBlocksRecorded++;
+      if (shadowResult.shadowBlock.reason && shadowResult.shadowBlock.reason.includes('SHADOW BLOCK')) {
+        shadowBlockHasReason = true;
+      }
+      details.push(`Step ${step}: Shadow block recorded - ${shadowResult.shadowBlock.trigger}`);
+    }
+    
+    // Shadow mode should NEVER change actual state (always stay closed)
+    if (shadowBreaker.getCurrentCircuitState() !== 'closed') {
+      shadowStateNeverChanged = false;
+    }
+    
+    // Active mode should change state under hazard
+    if (activeResult.intervention && activeBreaker.getCurrentCircuitState() !== 'closed') {
+      activeStateChanged = true;
+    }
+  }
+  
+  // Get final shadow mode summary
+  const shadowSummary = shadowBreaker.getShadowModeSummary();
+  const totalShadowBlocks = shadowBreaker.getTotalShadowBlocks();
+  
+  details.push(`Shadow mode enabled: ${shadowBreaker.isShadowMode()}`);
+  details.push(`Total shadow blocks: ${totalShadowBlocks}`);
+  details.push(`Shadow state never changed: ${shadowStateNeverChanged}`);
+  details.push(`Active mode changed state: ${activeStateChanged}`);
+  details.push(`Shadow blocks by trigger: ${JSON.stringify(shadowSummary.blocksByTrigger)}`);
+  
+  // Success criteria:
+  // 1. Shadow mode recorded shadow blocks
+  // 2. Shadow mode never actually changed state (stayed closed)
+  // 3. Active mode did change state (for comparison)
+  // 4. Shadow blocks include proper reason text
+  const passed = shadowBlocksRecorded > 0 && 
+                 shadowStateNeverChanged && 
+                 activeStateChanged &&
+                 shadowBlockHasReason;
+  
+  return {
+    name: 'Shadow Mode (Dry Run)',
+    description: 'Verify Interlock logs decisions without interfering with traffic',
+    passed,
+    metrics: {
+      shadowBlocksRecorded,
+      totalShadowBlocks,
+      shadowStateNeverChanged: shadowStateNeverChanged ? 1 : 0,
+      activeStateChanged: activeStateChanged ? 1 : 0,
+      shadowBlockHasReason: shadowBlockHasReason ? 1 : 0,
+      isShadowModeEnabled: shadowBreaker.isShadowMode() ? 1 : 0
+    },
+    details
+  };
+}
+
 // ============= Main Test Runner =============
 
 function runValidationTests(seed: number = 42): ValidationReport {
@@ -990,6 +1150,12 @@ function runValidationTests(seed: number = 42): ValidationReport {
   const noFalseCertaintyResult = runNoFalseCertaintyTest(seed);
   testSeries.push(noFalseCertaintyResult);
   console.log(`  Result: ${noFalseCertaintyResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  
+  // Test Series 8: Shadow Mode (Dry Run) (NEW - Phase A4)
+  console.log('Running Test Series 8: Shadow Mode (Dry Run)...');
+  const shadowModeResult = runShadowModeTest(seed);
+  testSeries.push(shadowModeResult);
+  console.log(`  Result: ${shadowModeResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
   
   const overallPassed = testSeries.every(t => t.passed);
   
@@ -1059,7 +1225,8 @@ function generateValidationMarkdown(report: ValidationReport): string {
     ['Trust decay is properly handled', report.testSeries[3]?.passed],
     ['Flash crowd reflex protection works', report.testSeries[4]?.passed],
     ['Quality floor enforcement prevents corruption', report.testSeries[5]?.passed],
-    ['No false certainty is guaranteed', report.testSeries[6]?.passed]
+    ['No false certainty is guaranteed', report.testSeries[6]?.passed],
+    ['Shadow mode (dry run) logs without interfering', report.testSeries[7]?.passed]
   ];
   
   for (const [criterion, passed] of criteriaResults) {
