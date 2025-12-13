@@ -1,7 +1,7 @@
 {
   "name": "interlock",
   "private": true,
-  "version": "4.0.0",
+  "version": "5.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "bench": "npx tsx scripts/bench-runner.ts",
     "sim:run": "npx tsx scripts/sim-runner.ts",
+    "validate": "npx tsx scripts/validation-tests.ts",
     "test": "echo 'No unit tests configured yet'",
     "lint": "npx tsc --noEmit"
   },

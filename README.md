@@ -149,6 +149,114 @@ Every certification run produces:
 
 ---
 
+## 🚫 What Interlock Refuses to Do
+
+Interlock is designed with explicit boundaries. These are not limitations to be "fixed" — they are intentional constraints that ensure honest, trustworthy operation.
+
+### Interlock WILL NOT:
+
+| Refusal | Rationale |
+|---------|-----------|
+| **Predict novel failure modes** | Forecasts are based on observed data only. Claiming to predict unseen failures would be dishonest. |
+| **Guarantee uptime** | No system can guarantee uptime. Interlock reduces failure probability, it doesn't eliminate it. |
+| **Replace load testing** | Interlock monitors production, it doesn't simulate all possible scenarios. Load test separately. |
+| **Optimize performance** | Interlock prevents breaking, not optimizes. Use dedicated tuning tools for optimization. |
+| **Claim universal safety** | Safety margins are calibration-specific. New configurations require new calibration. |
+
+### Interlock WILL:
+
+| Commitment | Implementation |
+|------------|----------------|
+| **Escalate conservatively when confidence degrades** | When forecast confidence drops below threshold, Interlock biases toward protective action, not permissive action. |
+| **Prefer false positives over false negatives** | Better to trigger degraded mode unnecessarily than to miss a real failure. |
+| **Record uncertainty explicitly** | All forecasts include confidence intervals. No false certainty is emitted. |
+| **Generate forensic incident reports** | Every intervention produces a post-mortem-ready artifact explaining what happened and why. |
+
+### Trust Boundaries
+
+Interlock operates within these explicit trust boundaries:
+
+1. **Calibration-Bound**: Predictions are only valid for configurations observed during calibration
+2. **Evidence-Driven**: All thresholds and hysteresis parameters are derived from measured behavior, not magic constants
+3. **Uncertainty-Aware**: When Interlock doesn't know, it says so and escalates conservatively
+4. **Honest Assessment**: Certification reports include "What We Cannot Predict" sections
+
+> **If Interlock is uncertain, it will tell you. If Interlock can't help, it will say so.**
+
+---
+
+## 🔄 Hysteresis Lock (Anti-Flapping)
+
+Circuit breakers without hysteresis flap under noisy recovery conditions, destroying trust. Interlock v5.0 implements evidence-driven hysteresis:
+
+### State Transitions
+
+```
+CLOSED ─── hazard exceeds threshold ───> OPEN
+   ^                                       │
+   │                                       │
+   └── N safe probe windows ── HALF_OPEN <─┘
+                                    │
+                                    │ K consecutive safe intervals
+                                    │ X% safety margin recovery  
+                                    │ Minimum confidence threshold
+                                    │
+                                    └── (all conditions must be met)
+```
+
+### OPEN → HALF_OPEN Requirements
+
+All of the following must be true before Interlock considers recovery:
+
+1. **K consecutive safe intervals** (hazard below threshold)
+2. **X% safety margin recovery** relative to trigger point (derived from calibration)
+3. **Forecast confidence exceeds minimum threshold**
+
+### HALF_OPEN Behavior
+
+- Routes only 1-5% probe traffic
+- Observes hazard delta and recovery trend
+- Promotes to CLOSED only if probe remains safe across N windows
+- Otherwise reverts to OPEN
+
+### What This Prevents
+
+- ❌ Hard-coded cooldown times
+- ❌ Magic constants not tied to measured behavior
+- ❌ Premature recovery attempts
+- ❌ State oscillation (flapping)
+
+---
+
+## 📝 Forensic Incident Reports
+
+When Interlock intervenes, it generates a post-mortem-ready forensic artifact:
+
+### Report Contents (JSON + Markdown)
+
+| Field | Description |
+|-------|-------------|
+| **Timestamp** | Exact moment of intervention |
+| **Trigger conditions** | Which thresholds were breached |
+| **Forecasted failure type** | What kind of failure was predicted |
+| **Time-to-failure** | Predicted intervals until failure (with uncertainty bounds) |
+| **Observed metrics** | System state at intervention time |
+| **Mitigation action** | What Interlock did |
+| **Counterfactual estimate** | What would have happened without intervention |
+| **Time to stabilization** | How long until system recovered |
+| **Final system state** | Current status after intervention |
+| **Forecast confidence** | How certain was the prediction |
+
+### Optional Fields
+
+- Unsafe operating region encountered
+- Recommended configuration changes
+- Historical comparison to prior incidents
+
+> **These reports are usable by an SRE without reading Interlock source code.**
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 19, TypeScript, Vite
@@ -176,4 +284,4 @@ Every certification run produces:
 
 ---
 
-*Interlock v4.0.0 — The Circuit Breaker for AI Infrastructure*
+*Interlock v5.0.0 — The Circuit Breaker for AI Infrastructure*

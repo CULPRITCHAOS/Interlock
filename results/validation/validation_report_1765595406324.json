@@ -1,0 +1,113 @@
+{
+  "generated": "2025-12-13T03:10:06.324Z",
+  "testSeries": [
+    {
+      "name": "Flapping Prevention",
+      "description": "Prove hysteresis prevents instability",
+      "passed": false,
+      "metrics": {
+        "noInterlockCrashes": 15,
+        "withoutHysteresisTransitions": 1,
+        "withHysteresisTransitions": 1,
+        "transitionReduction": 0,
+        "withHysteresisUnstableTime": 17600
+      },
+      "details": [
+        "No Interlock: 15 crashes",
+        "Without Hysteresis: 1 transitions",
+        "With Hysteresis: 1 transitions"
+      ]
+    },
+    {
+      "name": "Incident Quality",
+      "description": "Prove forensic reports are actionable",
+      "passed": true,
+      "metrics": {
+        "reportsGenerated": 5,
+        "validReports": 5,
+        "hasWhyOccurred": 5,
+        "hasWhatPrevented": 5,
+        "hasWhatToChange": 5
+      },
+      "details": [
+        "Report 1: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 2: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 3: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 4: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 5: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "JSON format valid: true",
+        "Markdown readable: true"
+      ]
+    },
+    {
+      "name": "Counterfactual Survival",
+      "description": "Prove Interlock prevents failure",
+      "passed": true,
+      "metrics": {
+        "controlSurvived": 0,
+        "protectedSurvived": 1,
+        "controlCrashPoint": 77,
+        "maxLoadControl": 0,
+        "maxLoadProtected": 99,
+        "loadImprovement": 99
+      },
+      "details": [
+        "Control (no Interlock): Crashed at step 77",
+        "Protected: Survived",
+        "Max survivable load - Control: 0%",
+        "Max survivable load - Protected: 99%"
+      ]
+    },
+    {
+      "name": "Trust Decay",
+      "description": "Prove Interlock knows when it does not know",
+      "passed": false,
+      "metrics": {
+        "earlyConfidence": 85.00000000000007,
+        "lateConfidence": 25.249999999999982,
+        "confidenceDropPercent": 70.29411764705887,
+        "confidenceDropped": 1,
+        "escalatedConservatively": 0,
+        "noFalseCertainty": 0
+      },
+      "details": [
+        "Warning: Remained closed with only 29% confidence",
+        "Warning: Remained closed with only 28% confidence",
+        "Warning: Remained closed with only 27% confidence",
+        "Warning: Remained closed with only 26% confidence",
+        "Warning: Remained closed with only 25% confidence",
+        "Warning: Remained closed with only 24% confidence",
+        "Warning: Remained closed with only 23% confidence",
+        "Warning: Remained closed with only 22% confidence",
+        "Warning: Remained closed with only 21% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Warning: Remained closed with only 20% confidence",
+        "Early average confidence: 85.0%",
+        "Late average confidence: 25.2%",
+        "Confidence dropped: Yes",
+        "Escalated conservatively: No",
+        "No false certainty: No"
+      ]
+    }
+  ],
+  "overallPassed": false,
+  "summary": "2/4 tests passed. Review failures."
+}

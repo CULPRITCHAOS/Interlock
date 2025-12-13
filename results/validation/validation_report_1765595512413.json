@@ -1,0 +1,84 @@
+{
+  "generated": "2025-12-13T03:11:52.413Z",
+  "testSeries": [
+    {
+      "name": "Flapping Prevention",
+      "description": "Prove hysteresis prevents instability",
+      "passed": false,
+      "metrics": {
+        "noInterlockCrashes": 0,
+        "withoutHysteresisTransitions": 2,
+        "withHysteresisTransitions": 1,
+        "transitionReduction": 50,
+        "withHysteresisUnstableTime": 15400
+      },
+      "details": [
+        "No Interlock: 0 crashes",
+        "Without Hysteresis: 2 transitions",
+        "With Hysteresis: 1 transitions"
+      ]
+    },
+    {
+      "name": "Incident Quality",
+      "description": "Prove forensic reports are actionable",
+      "passed": true,
+      "metrics": {
+        "reportsGenerated": 5,
+        "validReports": 5,
+        "hasWhyOccurred": 5,
+        "hasWhatPrevented": 5,
+        "hasWhatToChange": 5
+      },
+      "details": [
+        "Report 1: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 2: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 3: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 4: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "Report 5: ✓ Why occurred, ✓ What prevented, ✓ What to change",
+        "JSON format valid: true",
+        "Markdown readable: true"
+      ]
+    },
+    {
+      "name": "Counterfactual Survival",
+      "description": "Prove Interlock prevents failure",
+      "passed": true,
+      "metrics": {
+        "controlSurvived": 0,
+        "protectedSurvived": 1,
+        "controlCrashPoint": 77,
+        "maxLoadControl": 0,
+        "maxLoadProtected": 99,
+        "loadImprovement": 99
+      },
+      "details": [
+        "Control (no Interlock): Crashed at step 77",
+        "Protected: Survived",
+        "Max survivable load - Control: 0%",
+        "Max survivable load - Protected: 99%"
+      ]
+    },
+    {
+      "name": "Trust Decay",
+      "description": "Prove Interlock knows when it does not know",
+      "passed": true,
+      "metrics": {
+        "earlyConfidence": 85.00000000000007,
+        "lateConfidence": 25.249999999999982,
+        "confidenceDropPercent": 70.29411764705887,
+        "confidenceDropped": 1,
+        "escalatedConservatively": 1,
+        "noFalseCertainty": 1
+      },
+      "details": [
+        "Early average confidence: 85.0%",
+        "Late average confidence: 25.2%",
+        "Confidence dropped: Yes",
+        "Escalated conservatively: Yes",
+        "No false certainty: Yes"
+      ]
+    }
+  ],
+  "overallPassed": false,
+  "summary": "3/4 tests passed. Review failures."
+}
