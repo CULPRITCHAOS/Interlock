@@ -159,7 +159,7 @@ function runScenario1_RandomLoadSpikes(rng: SeededRandom): ScenarioMetrics {
     const result = breaker.update(metrics);
     
     // Track detection
-    if (detectionTime === -1 && result.reflexTrip) {
+    if (detectionTime === -1 && result.reflexTripped) {
       detectionTime = timestamp - spikeInjectedAt;
       console.log(`  ✅ Detected spike in ${detectionTime}ms`);
     }
@@ -243,7 +243,7 @@ function runScenario2_GradualMemoryPressure(rng: SeededRandom): ScenarioMetrics 
     const result = breaker.update(metrics);
     
     // Track detection
-    if (detectionTime === -1 && (result.intervention || result.qualityFloorRefusal)) {
+    if (detectionTime === -1 && (result.intervention || result.qualityFloorRefused)) {
       detectionTime = timestamp - pressureStartedAt;
       console.log(`  ✅ Detected memory pressure in ${detectionTime}ms`);
     }
@@ -418,24 +418,24 @@ function runScenario4_RecallDegradation(rng: SeededRandom): ScenarioMetrics {
     const result = breaker.update(metrics);
     
     // Track refusals
-    if (result.qualityFloorRefusal) {
+    if (result.qualityFloorRefused) {
       refusalCount++;
     }
     
     // Track detection
-    if (detectionTime === -1 && result.qualityFloorRefusal && degradationStartedAt >= 0) {
+    if (detectionTime === -1 && result.qualityFloorRefused && degradationStartedAt >= 0) {
       detectionTime = timestamp - degradationStartedAt;
       console.log(`  ✅ Detected recall degradation in ${detectionTime}ms`);
     }
     
     // Track intervention
-    if (interventionTime === -1 && (result.intervention || result.qualityFloorRefusal) && degradationStartedAt >= 0) {
+    if (interventionTime === -1 && (result.intervention || result.qualityFloorRefused) && degradationStartedAt >= 0) {
       interventionTime = timestamp - degradationStartedAt;
       console.log(`  🛡️ Intervened (refused requests) in ${interventionTime}ms`);
     }
     
     // Track recovery
-    if (step > 130 && recoveryTime === -1 && result.newState === 'closed' && !result.qualityFloorRefusal) {
+    if (step > 130 && recoveryTime === -1 && result.newState === 'closed' && !result.qualityFloorRefused) {
       recoveryTime = timestamp - degradationStartedAt;
       console.log(`  🔄 Recovered in ${recoveryTime}ms`);
     }
@@ -517,12 +517,12 @@ function runScenario5_CascadingFailures(rng: SeededRandom): ScenarioMetrics {
     const result = breaker.update(metrics);
     
     // Track interventions
-    if (result.intervention || result.qualityFloorRefusal || result.reflexTrip) {
+    if (result.intervention || result.qualityFloorRefused || result.reflexTripped) {
       interventionCount++;
     }
     
     // Track detection
-    if (detectionTime === -1 && (result.intervention || result.qualityFloorRefusal) && cascadeStartedAt >= 0) {
+    if (detectionTime === -1 && (result.intervention || result.qualityFloorRefused) && cascadeStartedAt >= 0) {
       detectionTime = timestamp - cascadeStartedAt;
       console.log(`  ✅ Detected cascading failures in ${detectionTime}ms`);
     }
