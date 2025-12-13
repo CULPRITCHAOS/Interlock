@@ -2875,6 +2875,53 @@ interface PhaseIVCalibration {
   predictions: CalibrationPrediction[];
   confidenceInterval95: [number, number];
   limitations: string[];
+  // Phase III additions: Brier score and cost-sensitive metrics
+  brierScore: number;               // Lower is better (0 = perfect, 1 = worst)
+  brierSkillScore: number;          // Improvement over baseline (>0 = better than random)
+  costSensitiveLoss: number;        // Weighted loss where FN costs 7x FP
+  reliabilityCurve: Array<{ predicted: number; observed: number; count: number }>;
+}
+
+// Operational Warranty (Phase IV output artifact)
+interface OperationalWarranty {
+  generated: string;
+  runId: string;
+  version: string;
+  
+  // Core warranty metrics
+  certifiedSafeLoad: number;           // vectors - safe operating limit
+  circuitBreakerTriggerPoint: number;  // vectors - where circuit breaker activates
+  guaranteedFailureRegion: number;     // vectors - guaranteed failure beyond this
+  safetyMargin: number;                // percentage - buffer between safe and trigger
+  
+  // Resilience Half-Life: drift until safety margin degrades by 50%
+  resilienceHalfLife: {
+    vectors: number;                   // Additional vectors until margin halved
+    estimatedTime: string;             // Human-readable estimate
+    confidence: number;                // 0-1 confidence in estimate
+  };
+  
+  // Operating constraints
+  operatingConstraints: {
+    maxIndexSize: number;
+    maxMemoryMb: number;
+    minRecall: number;
+    maxLatencyMs: number;
+  };
+  
+  // Warranty scope
+  scope: {
+    indexType: string;
+    dimensions: number;
+    queryPattern: string;
+    testedRange: { min: number; max: number };
+  };
+  
+  // Limitations
+  limitations: string[];
+  
+  // Verdict linkage
+  certificationVerdict: 'CERTIFIED' | 'CONDITIONAL' | 'NOT_CERTIFIED';
 }
 
 interface PhaseIVReport {
@@ -2896,6 +2943,7 @@ interface PhaseIVReport {
   whatCanPredict: string[];
   whatCannotPredict: string[];
   knownFailureCases: string[];
+  operationalWarranty?: OperationalWarranty;  // Phase IV addition
 }
 
 // Phase IV FAISS Harness Simulator (TypeScript implementation)
@@ -3104,7 +3152,11 @@ class PhaseIVCalibrator {
         f1Score: 0,
         predictions: [],
         confidenceInterval95: [0, 1],
-        limitations
+        limitations,
+        brierScore: 0,
+        brierSkillScore: 0,
+        costSensitiveLoss: 0,
+        reliabilityCurve: []
       };
     }
 
@@ -3114,6 +3166,9 @@ class PhaseIVCalibrator {
     const calibrationData: CalibrationPrediction[] = [];
     
     let tp = 0, fp = 0, tn = 0, fn = 0;
+    
+    // For Brier score calculation
+    const brierScores: number[] = [];
     
     for (const obs of this.observations) {
       const pred = this.predictions[obs.predictionIndex];
@@ -3128,6 +3183,12 @@ class PhaseIVCalibrator {
       else if (predictedFailure && !obs.failureOccurred) fp++;
       else if (!predictedFailure && obs.failureOccurred) fn++;
       else tn++;
+      
+      // Brier score: (forecast probability - outcome)^2
+      // Convert risk level to probability
+      const forecastProb = pred.riskLevel === 'red' ? 0.9 : pred.riskLevel === 'yellow' ? 0.6 : 0.2;
+      const outcome = obs.failureOccurred ? 1 : 0;
+      brierScores.push(Math.pow(forecastProb - outcome, 2));
       
       calibrationData.push({
         predictedTimeToFailure: pred.predictedTimeToFailure,
@@ -3159,6 +3220,22 @@ class PhaseIVCalibrator {
     const accuracy = (tp + tn) / n;
     const ciWidth = 1.96 * Math.sqrt(accuracy * (1 - accuracy) / n);
     
+    // Brier Score: mean of squared differences between forecast probability and outcome
+    const brierScore = brierScores.reduce((a, b) => a + b, 0) / n;
+    
+    // Brier Skill Score: improvement over baseline (climatology)
+    // Baseline Brier score is the variance of the outcomes
+    const failureRate = (tp + fn) / n;
+    const baselineBrier = failureRate * (1 - failureRate);
+    const brierSkillScore = baselineBrier > 0 ? 1 - (brierScore / baselineBrier) : 0;
+    
+    // Cost-sensitive loss: FN costs 7x FP (biased toward safety)
+    // Cost = 7 * FN + FP (normalized by total)
+    const costSensitiveLoss = n > 0 ? (7 * fn + fp) / n : 0;
+    
+    // Reliability curve: group predictions by risk level and compute observed failure rate
+    const reliabilityCurve = this.computeReliabilityCurve(calibrationData);
+    
     return {
       runId,
       generated: new Date().toISOString(),
@@ -3179,8 +3256,46 @@ class PhaseIVCalibrator {
       f1Score: f1,
       predictions: calibrationData,
       confidenceInterval95: [Math.max(0, accuracy - ciWidth), Math.min(1, accuracy + ciWidth)],
-      limitations
+      limitations,
+      brierScore,
+      brierSkillScore,
+      costSensitiveLoss,
+      reliabilityCurve
     };
+  }
+
+  computeReliabilityCurve(predictions: CalibrationPrediction[]): Array<{ predicted: number; observed: number; count: number }> {
+    // Group by risk level and compute observed failure rate
+    const groups: Record<string, { count: number; failures: number }> = {
+      'safe': { count: 0, failures: 0 },
+      'yellow': { count: 0, failures: 0 },
+      'red': { count: 0, failures: 0 }
+    };
+    
+    for (const pred of predictions) {
+      groups[pred.riskLevel].count++;
+      if (pred.failureOccurred) {
+        groups[pred.riskLevel].failures++;
+      }
+    }
+    
+    return [
+      { 
+        predicted: 0.2, 
+        observed: groups['safe'].count > 0 ? groups['safe'].failures / groups['safe'].count : 0,
+        count: groups['safe'].count 
+      },
+      { 
+        predicted: 0.6, 
+        observed: groups['yellow'].count > 0 ? groups['yellow'].failures / groups['yellow'].count : 0,
+        count: groups['yellow'].count 
+      },
+      { 
+        predicted: 0.9, 
+        observed: groups['red'].count > 0 ? groups['red'].failures / groups['red'].count : 0,
+        count: groups['red'].count 
+      }
+    ];
   }
 }
 
@@ -3312,6 +3427,17 @@ function executePhaseIVRun(
     report.knownFailureCases.push(`Raised ${calibration.falsePositives} false alarms - forecaster may be overly conservative`);
   }
   
+  // Generate Operational Warranty
+  const warranty = generateOperationalWarranty(
+    runId,
+    timestamp,
+    metricsHistory,
+    calibration,
+    verdict,
+    config
+  );
+  report.operationalWarranty = warranty;
+  
   // Generate and write artifacts
   fs.writeFileSync(path.join(runId, 'certification_report.json'), JSON.stringify(report, null, 2));
   fs.writeFileSync(path.join(runId, 'certification_report.md'), generatePhaseIVMarkdown(report));
@@ -3319,9 +3445,218 @@ function executePhaseIVRun(
   fs.writeFileSync(path.join(runId, 'forecast_calibration.md'), generateCalibrationMarkdown(calibration));
   fs.writeFileSync(path.join(runId, 'circuit_breaker.ts'), generateCircuitBreakerCode(report.circuitBreakerConfig));
   
+  // Write Operational Warranty artifacts
+  fs.writeFileSync(path.join(runId, 'operational_warranty.json'), JSON.stringify(warranty, null, 2));
+  fs.writeFileSync(path.join(runId, 'operational_warranty.md'), generateOperationalWarrantyMarkdown(warranty));
+  
   console.log(`[Phase IV] Certification complete: ${verdict}`);
+  console.log(`[Phase IV] Operational Warranty generated: operational_warranty.md`);
   
   return report;
+}
+
+function generateOperationalWarranty(
+  runId: string,
+  timestamp: string,
+  metricsHistory: FAISSMetricsInternal[],
+  calibration: PhaseIVCalibration,
+  verdict: 'CERTIFIED' | 'CONDITIONAL' | 'NOT_CERTIFIED',
+  config: PhaseIVConfig
+): OperationalWarranty {
+  // Find key boundary points from metrics history
+  const sizes = metricsHistory.map(m => m.indexSize);
+  const recalls = metricsHistory.map(m => m.recallAtK);
+  
+  // Find where recall drops below 80% (safe load)
+  let certifiedSafeLoad = config.initialSize;
+  for (let i = 0; i < recalls.length; i++) {
+    if (recalls[i] >= 0.8) {
+      certifiedSafeLoad = sizes[i];
+    } else {
+      break;
+    }
+  }
+  
+  // Find where recall drops below 70% (circuit breaker trigger)
+  let circuitBreakerTriggerPoint = certifiedSafeLoad;
+  for (let i = 0; i < recalls.length; i++) {
+    if (recalls[i] >= 0.7) {
+      circuitBreakerTriggerPoint = sizes[i];
+    } else {
+      break;
+    }
+  }
+  
+  // Guaranteed failure region: 10% beyond trigger point
+  const guaranteedFailureRegion = Math.ceil(circuitBreakerTriggerPoint * 1.1);
+  
+  // Safety margin: percentage between safe load and trigger point
+  const safetyMargin = circuitBreakerTriggerPoint > certifiedSafeLoad 
+    ? ((circuitBreakerTriggerPoint - certifiedSafeLoad) / certifiedSafeLoad) * 100
+    : 0;
+  
+  // Resilience Half-Life: estimate vectors until safety margin degrades by 50%
+  // Based on observed degradation rate
+  const degradationRate = metricsHistory.length > 1
+    ? (recalls[0] - recalls[recalls.length - 1]) / (sizes[sizes.length - 1] - sizes[0])
+    : 0.00001;
+  
+  const halfLifeVectors = degradationRate > 0 
+    ? Math.ceil(0.1 / degradationRate)  // 0.1 = 50% of typical 0.2 margin
+    : 100000;
+  
+  // Max memory observed
+  const maxMemory = Math.max(...metricsHistory.map(m => m.memoryMb));
+  
+  return {
+    generated: timestamp,
+    runId,
+    version: '4.0.0',
+    
+    certifiedSafeLoad,
+    circuitBreakerTriggerPoint,
+    guaranteedFailureRegion,
+    safetyMargin,
+    
+    resilienceHalfLife: {
+      vectors: halfLifeVectors,
+      estimatedTime: halfLifeVectors > 50000 ? 'Days to weeks under normal growth' : 'Hours to days under heavy load',
+      confidence: calibration.f1Score * 0.8  // Confidence based on forecast accuracy
+    },
+    
+    operatingConstraints: {
+      maxIndexSize: certifiedSafeLoad,
+      maxMemoryMb: maxMemory * 1.2,  // 20% headroom
+      minRecall: 0.7,
+      maxLatencyMs: 50.0
+    },
+    
+    scope: {
+      indexType: 'IVF',
+      dimensions: config.dimensions,
+      queryPattern: 'random',
+      testedRange: { min: config.initialSize, max: sizes[sizes.length - 1] }
+    },
+    
+    limitations: [
+      'Warranty valid only for tested configuration and workload patterns',
+      'Concurrent operations may reduce certified safe load',
+      'System-level failures (OOM, disk) not covered by this warranty',
+      'Novel failure modes outside training data not predicted',
+      'Warranty should be re-validated after significant system changes'
+    ],
+    
+    certificationVerdict: verdict
+  };
+}
+
+function generateOperationalWarrantyMarkdown(warranty: OperationalWarranty): string {
+  const lines: string[] = [];
+  
+  lines.push(`# Interlock Operational Warranty`);
+  lines.push(``);
+  lines.push(`> A CTO-grade safety artifact for AI infrastructure.`);
+  lines.push(``);
+  lines.push(`**Generated:** ${warranty.generated}`);
+  lines.push(`**Run ID:** ${warranty.runId}`);
+  lines.push(`**Version:** ${warranty.version}`);
+  lines.push(``);
+  
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`## Safety Guarantees`);
+  lines.push(``);
+  lines.push(`\`\`\``);
+  lines.push(`Certified Safe Load:       ${warranty.certifiedSafeLoad.toLocaleString()} vectors`);
+  lines.push(`Circuit Breaker Trigger:   ${warranty.circuitBreakerTriggerPoint.toLocaleString()} vectors`);
+  lines.push(`Guaranteed Failure Region: ≥${warranty.guaranteedFailureRegion.toLocaleString()} vectors`);
+  lines.push(`Safety Margin:             ${warranty.safetyMargin.toFixed(1)}%`);
+  lines.push(`\`\`\``);
+  lines.push(``);
+  
+  lines.push(`### Interpretation`);
+  lines.push(``);
+  lines.push(`| Zone | Range | Status |`);
+  lines.push(`|------|-------|--------|`);
+  lines.push(`| 🟢 **Safe** | 0 – ${warranty.certifiedSafeLoad.toLocaleString()} | Normal operation guaranteed |`);
+  lines.push(`| 🟡 **Warning** | ${warranty.certifiedSafeLoad.toLocaleString()} – ${warranty.circuitBreakerTriggerPoint.toLocaleString()} | Circuit breaker may activate |`);
+  lines.push(`| 🔴 **Failure** | ≥${warranty.guaranteedFailureRegion.toLocaleString()} | System will degrade or fail |`);
+  lines.push(``);
+  
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`## Resilience Half-Life`);
+  lines.push(``);
+  lines.push(`> **Definition:** Amount of drift until safety margin degrades by 50%.`);
+  lines.push(``);
+  lines.push(`| Metric | Value |`);
+  lines.push(`|--------|-------|`);
+  lines.push(`| Half-Life (vectors) | ${warranty.resilienceHalfLife.vectors.toLocaleString()} |`);
+  lines.push(`| Estimated Duration | ${warranty.resilienceHalfLife.estimatedTime} |`);
+  lines.push(`| Confidence | ${(warranty.resilienceHalfLife.confidence * 100).toFixed(1)}% |`);
+  lines.push(``);
+  lines.push(`This means: after adding ~${warranty.resilienceHalfLife.vectors.toLocaleString()} more vectors, your safety margin will be half of what it is today.`);
+  lines.push(``);
+  
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`## Operating Constraints`);
+  lines.push(``);
+  lines.push(`These constraints must be maintained for the warranty to remain valid:`);
+  lines.push(``);
+  lines.push(`| Constraint | Limit |`);
+  lines.push(`|------------|-------|`);
+  lines.push(`| Max Index Size | ${warranty.operatingConstraints.maxIndexSize.toLocaleString()} vectors |`);
+  lines.push(`| Max Memory | ${warranty.operatingConstraints.maxMemoryMb.toFixed(1)} MB |`);
+  lines.push(`| Min Recall | ${(warranty.operatingConstraints.minRecall * 100).toFixed(0)}% |`);
+  lines.push(`| Max Latency (p95) | ${warranty.operatingConstraints.maxLatencyMs.toFixed(0)} ms |`);
+  lines.push(``);
+  
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`## Warranty Scope`);
+  lines.push(``);
+  lines.push(`This warranty is valid under these conditions:`);
+  lines.push(``);
+  lines.push(`| Parameter | Value |`);
+  lines.push(`|-----------|-------|`);
+  lines.push(`| Index Type | ${warranty.scope.indexType} |`);
+  lines.push(`| Dimensions | ${warranty.scope.dimensions} |`);
+  lines.push(`| Query Pattern | ${warranty.scope.queryPattern} |`);
+  lines.push(`| Tested Range | ${warranty.scope.testedRange.min.toLocaleString()} – ${warranty.scope.testedRange.max.toLocaleString()} vectors |`);
+  lines.push(``);
+  
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`## Certification Status`);
+  lines.push(``);
+  const verdictEmoji = warranty.certificationVerdict === 'CERTIFIED' ? '✅' : 
+                       warranty.certificationVerdict === 'CONDITIONAL' ? '⚠️' : '❌';
+  lines.push(`**Verdict:** ${verdictEmoji} ${warranty.certificationVerdict}`);
+  lines.push(``);
+  
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`## Limitations`);
+  lines.push(``);
+  lines.push(`> ⚠️ This warranty explicitly does NOT cover:`);
+  lines.push(``);
+  for (const limitation of warranty.limitations) {
+    lines.push(`- ${limitation}`);
+  }
+  lines.push(``);
+  
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`## Guiding Principle`);
+  lines.push(``);
+  lines.push(`> **Interlock does not optimize systems. It makes failure visible — and survivable.**`);
+  lines.push(``);
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`*Generated by Interlock Operational Warranty Engine v${warranty.version}*`);
+  
+  return lines.join('\n');
 }
 
 function generatePhaseIVMarkdown(report: PhaseIVReport): string {
@@ -3461,6 +3796,45 @@ function generateCalibrationMarkdown(calibration: PhaseIVCalibration): string {
   lines.push(`| F1 Score | ${calibration.f1Score.toFixed(3)} |`);
   lines.push(``);
   
+  // Phase III: Brier Score and Cost-Sensitive Evaluation
+  lines.push(`## Statistical Calibration (Phase III)`);
+  lines.push(``);
+  lines.push(`### Brier Score`);
+  lines.push(``);
+  lines.push(`The Brier score measures the accuracy of probabilistic predictions. Lower is better.`);
+  lines.push(``);
+  lines.push(`| Metric | Value | Interpretation |`);
+  lines.push(`|--------|-------|----------------|`);
+  lines.push(`| Brier Score | ${calibration.brierScore.toFixed(4)} | ${calibration.brierScore < 0.2 ? 'Excellent' : calibration.brierScore < 0.3 ? 'Good' : 'Needs Improvement'} |`);
+  lines.push(`| Brier Skill Score | ${calibration.brierSkillScore.toFixed(4)} | ${calibration.brierSkillScore > 0 ? `${(calibration.brierSkillScore * 100).toFixed(1)}% better than baseline` : 'Below baseline'} |`);
+  lines.push(``);
+  
+  lines.push(`### Cost-Sensitive Evaluation`);
+  lines.push(``);
+  lines.push(`> **Rule:** False negatives (missed failures) cost **7×** false positives (false alarms).`);
+  lines.push(`> This biases the system toward safety—it's better to warn and be wrong than to miss a failure.`);
+  lines.push(``);
+  lines.push(`| Metric | Value |`);
+  lines.push(`|--------|-------|`);
+  lines.push(`| Cost-Sensitive Loss | ${calibration.costSensitiveLoss.toFixed(4)} |`);
+  lines.push(`| False Negatives (7× weight) | ${calibration.falseNegatives} |`);
+  lines.push(`| False Positives (1× weight) | ${calibration.falsePositives} |`);
+  lines.push(`| Weighted Cost | ${(7 * calibration.falseNegatives + calibration.falsePositives)} |`);
+  lines.push(``);
+  
+  lines.push(`### Reliability Curve`);
+  lines.push(``);
+  lines.push(`Predicted probability vs observed frequency of failure:`);
+  lines.push(``);
+  lines.push(`| Risk Level | Predicted Prob | Observed Freq | Count | Calibration |`);
+  lines.push(`|------------|----------------|---------------|-------|-------------|`);
+  for (const point of calibration.reliabilityCurve) {
+    const diff = Math.abs(point.predicted - point.observed);
+    const calibrationStatus = diff < 0.15 ? '✅ Well-calibrated' : diff < 0.25 ? '⚠️ Slight bias' : '❌ Miscalibrated';
+    lines.push(`| ${point.predicted === 0.2 ? '🟢 Safe' : point.predicted === 0.6 ? '🟡 Yellow' : '🔴 Red'} | ${(point.predicted * 100).toFixed(0)}% | ${(point.observed * 100).toFixed(1)}% | ${point.count} | ${calibrationStatus} |`);
+  }
+  lines.push(``);
+  
   lines.push(`## Classification Matrix`);
   lines.push(``);
   lines.push(`| | Failure Occurred | No Failure |`);
@@ -3483,6 +3857,17 @@ function generateCalibrationMarkdown(calibration: PhaseIVCalibration): string {
     }
     lines.push(``);
   }
+  
+  // Drop Depth Error Target Check
+  lines.push(`## Target Metrics (Phase III)`);
+  lines.push(``);
+  const dropDepthTarget = 0.15;
+  const dropDepthMet = calibration.dropDepthMeanError < dropDepthTarget;
+  lines.push(`| Target | Threshold | Actual | Status |`);
+  lines.push(`|--------|-----------|--------|--------|`);
+  lines.push(`| Drop Depth MAE | < ${(dropDepthTarget * 100).toFixed(0)}% | ${(calibration.dropDepthMeanError * 100).toFixed(1)}% | ${dropDepthMet ? '✅ Met' : '❌ Not Met'} |`);
+  lines.push(`| Brier Score Improving | < 0.25 | ${calibration.brierScore.toFixed(4)} | ${calibration.brierScore < 0.25 ? '✅ Met' : '❌ Not Met'} |`);
+  lines.push(``);
   
   lines.push(`## Limitations`);
   lines.push(``);

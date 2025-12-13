@@ -1,0 +1,37 @@
+{
+  "generated": "2025-12-13T02:04:29.470Z",
+  "runId": "results/phase4_s42_init10000_steps15",
+  "version": "4.0.0",
+  "certifiedSafeLoad": 140000,
+  "circuitBreakerTriggerPoint": 150000,
+  "guaranteedFailureRegion": 165000,
+  "safetyMargin": 7.142857142857142,
+  "resilienceHalfLife": {
+    "vectors": 100369,
+    "estimatedTime": "Days to weeks under normal growth",
+    "confidence": 0
+  },
+  "operatingConstraints": {
+    "maxIndexSize": 140000,
+    "maxMemoryMb": 87.890625,
+    "minRecall": 0.7,
+    "maxLatencyMs": 50
+  },
+  "scope": {
+    "indexType": "IVF",
+    "dimensions": 128,
+    "queryPattern": "random",
+    "testedRange": {
+      "min": 10000,
+      "max": 150000
+    }
+  },
+  "limitations": [
+    "Warranty valid only for tested configuration and workload patterns",
+    "Concurrent operations may reduce certified safe load",
+    "System-level failures (OOM, disk) not covered by this warranty",
+    "Novel failure modes outside training data not predicted",
+    "Warranty should be re-validated after significant system changes"
+  ],
+  "certificationVerdict": "NOT_CERTIFIED"
+}
