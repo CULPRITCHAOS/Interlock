@@ -1,0 +1,280 @@
+name: Benchmark Suite
+
+# Run weekly benchmarks to track performance and regression
+on:
+  schedule:
+    # Run every Sunday at midnight UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    inputs:
+      benchmark_seed:
+        description: 'Random seed for reproducibility'
+        required: false
+        default: '42'
+      total_steps:
+        description: 'Total benchmark steps'
+        required: false
+        default: '1000'
+
+# Only run one benchmark at a time
+concurrency:
+  group: benchmark-suite
+  cancel-in-progress: false
+
+jobs:
+  # Run comparative benchmarks: Interlock vs naive vs no protection
+  comparative-benchmark:
+    name: Comparative Benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run comparative benchmark
+        run: |
+          echo "Running comparative benchmark..."
+          npx tsx scripts/comparative-benchmark.ts \
+            --seed ${{ github.event.inputs.benchmark_seed || '42' }} \
+            --steps ${{ github.event.inputs.total_steps || '1000' }}
+      
+      - name: Analyze benchmark results
+        if: always()
+        run: |
+          echo "# 📊 Comparative Benchmark Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -d results/benchmark ]; then
+            LATEST_RESULT=$(ls -t results/benchmark/*comparison*.md 2>/dev/null | head -1)
+            if [ -f "$LATEST_RESULT" ]; then
+              echo "## Benchmark Report" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              cat "$LATEST_RESULT" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            # Extract key metrics from JSON
+            LATEST_JSON=$(ls -t results/benchmark/*comparison*.json 2>/dev/null | head -1)
+            if [ -f "$LATEST_JSON" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "## Performance Comparison" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              
+              node -e "
+                const fs = require('fs');
+                try {
+                  const data = JSON.parse(fs.readFileSync('$LATEST_JSON', 'utf8'));
+                  
+                  console.log('| Strategy | Crash Point | Max Load | Avg Latency | Recall @ Peak |');
+                  console.log('|----------|-------------|----------|-------------|---------------|');
+                  
+                  const scenarios = ['no_protection', 'monitoring_only', 'naive_circuit_breaker', 'interlock'];
+                  scenarios.forEach(scenario => {
+                    if (data[scenario]) {
+                      const s = data[scenario];
+                      const crashPoint = s.crash_point || 'N/A';
+                      const maxLoad = s.max_survivable_load || 'N/A';
+                      const avgLatency = s.avg_latency_ms ? s.avg_latency_ms.toFixed(2) + ' ms' : 'N/A';
+                      const recall = s.recall_at_peak ? (s.recall_at_peak * 100).toFixed(1) + '%' : 'N/A';
+                      
+                      const displayName = scenario.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                      console.log('| ' + displayName + ' | ' + crashPoint + ' | ' + maxLoad + ' | ' + avgLatency + ' | ' + recall + ' |');
+                    }
+                  });
+                  
+                  if (data.interlock && data.naive_circuit_breaker) {
+                    console.log('');
+                    console.log('### Interlock Advantage');
+                    console.log('');
+                    
+                    if (data.interlock.max_survivable_load > data.naive_circuit_breaker.max_survivable_load) {
+                      const improvement = ((data.interlock.max_survivable_load / data.naive_circuit_breaker.max_survivable_load - 1) * 100).toFixed(1);
+                      console.log('✅ **' + improvement + '%** higher load capacity vs naive circuit breaker');
+                    }
+                  }
+                } catch (e) {
+                  console.log('Could not parse benchmark results: ' + e.message);
+                }
+              " >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Benchmark completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload benchmark artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results-${{ github.run_number }}
+          path: |
+            results/benchmark/**/*.md
+            results/benchmark/**/*.json
+          retention-days: 90
+
+  # Run full benchmark suite
+  full-benchmark-suite:
+    name: Full Benchmark Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run benchmark suite
+        run: npm run bench
+      
+      - name: Collect benchmark results
+        if: always()
+        run: |
+          echo "# 🎯 Full Benchmark Suite" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -d results/benchmark ]; then
+            echo "## Benchmark Summary" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Count benchmark files
+            MD_COUNT=$(find results/benchmark -name "*.md" | wc -l)
+            JSON_COUNT=$(find results/benchmark -name "*.json" | wc -l)
+            
+            echo "- Generated $MD_COUNT markdown reports" >> $GITHUB_STEP_SUMMARY
+            echo "- Generated $JSON_COUNT JSON data files" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Show latest benchmark
+            LATEST=$(ls -t results/benchmark/*.md 2>/dev/null | head -1)
+            if [ -f "$LATEST" ]; then
+              echo "## Latest Benchmark" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              head -50 "$LATEST" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Full benchmark completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload benchmark suite artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-suite-${{ github.run_number }}
+          path: |
+            results/benchmark/**/*
+          retention-days: 90
+
+  # Track performance regression over time
+  performance-tracking:
+    name: Performance Regression Tracking
+    runs-on: ubuntu-latest
+    needs: [comparative-benchmark, full-benchmark-suite]
+    if: always()
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Download current benchmark results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: benchmark-*-${{ github.run_number }}
+          path: current-benchmarks
+        continue-on-error: true
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      
+      - name: Generate performance trend report
+        run: |
+          mkdir -p results/performance-trends
+          
+          cat > results/performance-trends/trend_${{ github.run_number }}.md << 'EOF'
+          # Performance Trend Report - Run ${{ github.run_number }}
+          
+          **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          **Workflow:** ${{ github.workflow }}
+          **Commit:** ${{ github.sha }}
+          
+          ## Current Run Metrics
+          
+          See benchmark artifacts for detailed results.
+          
+          ## Trend Analysis
+          
+          To track performance regression over time:
+          1. Compare this run (#${{ github.run_number }}) with previous runs
+          2. Look for increasing latency trends
+          3. Look for decreasing recall trends
+          4. Look for decreasing max_survivable_load
+          
+          ## Baseline Comparison
+          
+          Expected baseline (from development):
+          - Max survivable load: >50,000 vectors
+          - Latency under load: <100ms p95
+          - Recall degradation: <5%
+          - Time to detection: <5 intervals
+          
+          ---
+          *Generated by Interlock CI/CD Pipeline*
+          EOF
+      
+      - name: Upload trend report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-trends-${{ github.run_number }}
+          path: results/performance-trends/*.md
+          retention-days: 365
+      
+      - name: Generate workflow summary
+        run: |
+          echo "# 📈 Performance Tracking Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## Job Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Comparative Benchmark | ${{ needs.comparative-benchmark.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Full Benchmark Suite | ${{ needs.full-benchmark-suite.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.comparative-benchmark.result }}" == "success" ] && [ "${{ needs.full-benchmark-suite.result }}" == "success" ]; then
+            echo "✅ **All benchmarks completed successfully**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Some benchmarks did not complete as expected**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Review benchmark artifacts for detailed metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- Compare with baseline expectations" >> $GITHUB_STEP_SUMMARY
+          echo "- Investigate any performance regressions" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Workflow run: #${{ github.run_number }}*" >> $GITHUB_STEP_SUMMARY
