@@ -559,21 +559,22 @@ export function generateShield(options: {
   };
   
   // ============= VALIDATION: Fail hard if required fields are undefined =============
-  const requiredFields: Array<{ field: keyof InterlockShield; name: string }> = [
+  const requiredFields: Array<{ field: keyof InterlockShield; name: string; allowNull?: boolean }> = [
     { field: 'interlockClass', name: 'Interlock Class' },
     { field: 'loadRating', name: 'Load Rating' },
     { field: 'repository', name: 'Repository' },
-    { field: 'repo_commit', name: 'Commit' },
+    { field: 'repo_commit', name: 'Commit', allowNull: true }, // Can be null when no git repo
     { field: 'valid_until', name: 'Valid Until' },
     { field: 'config_fingerprint', name: 'Config Fingerprint' },
     { field: 'hardware_fingerprint', name: 'Hardware Fingerprint' }
   ];
   
   const missingFields: string[] = [];
-  for (const { field, name } of requiredFields) {
+  for (const { field, name, allowNull } of requiredFields) {
     const value = shield[field];
-    // Check for undefined, null, or empty string
-    if (value === undefined || value === null || value === '') {
+    // Check for undefined or empty string
+    // Allow null only for fields that explicitly allow it (like repo_commit)
+    if (value === undefined || value === '' || (!allowNull && value === null)) {
       missingFields.push(name);
     }
   }
