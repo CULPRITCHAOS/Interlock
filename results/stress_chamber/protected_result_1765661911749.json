@@ -1,0 +1,203 @@
+{
+  "runId": "stress_chamber_protected_s42_1765661911746",
+  "mode": "protected",
+  "survived": true,
+  "metricsHistory": [
+    {
+      "step": 0,
+      "timestamp": "2025-12-13T21:38:31.747Z",
+      "indexSize": 25000,
+      "memoryMb": 12.20703125,
+      "recallAtK": 0.9104223227549448,
+      "latencyP95Ms": 2.932614657449357,
+      "hazardScore": 0,
+      "riskLevel": "safe",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 23
+    },
+    {
+      "step": 1,
+      "timestamp": "2025-12-13T21:38:31.747Z",
+      "indexSize": 40000,
+      "memoryMb": 19.53125,
+      "recallAtK": 0.8992080640859008,
+      "latencyP95Ms": 4.792607888100952,
+      "hazardScore": 0.3903696131591544,
+      "riskLevel": "safe",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 13
+    },
+    {
+      "step": 2,
+      "timestamp": "2025-12-13T21:38:31.747Z",
+      "indexSize": 55000,
+      "memoryMb": 26.85546875,
+      "recallAtK": 0.8869964814265242,
+      "latencyP95Ms": 5.72795882188853,
+      "hazardScore": 0.40224875448842023,
+      "riskLevel": "safe",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 8
+    },
+    {
+      "step": 3,
+      "timestamp": "2025-12-13T21:38:31.747Z",
+      "indexSize": 70000,
+      "memoryMb": 34.1796875,
+      "recallAtK": 0.8703220397305312,
+      "latencyP95Ms": 6.992650552300109,
+      "hazardScore": 0.41652554600104963,
+      "riskLevel": "safe",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 6
+    },
+    {
+      "step": 4,
+      "timestamp": "2025-12-13T21:38:31.747Z",
+      "indexSize": 85000,
+      "memoryMb": 41.50390625,
+      "recallAtK": 0.841119630337283,
+      "latencyP95Ms": 5.651160881199018,
+      "hazardScore": 0.4367725846659266,
+      "riskLevel": "yellow",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 3
+    },
+    {
+      "step": 5,
+      "timestamp": "2025-12-13T21:38:31.747Z",
+      "indexSize": 100000,
+      "memoryMb": 48.828125,
+      "recallAtK": 0.825055146217372,
+      "latencyP95Ms": 6.851627728180787,
+      "hazardScore": 0.47091945528095536,
+      "riskLevel": "red",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 2
+    },
+    {
+      "step": 6,
+      "timestamp": "2025-12-13T21:38:31.747Z",
+      "indexSize": 115000,
+      "memoryMb": 56.15234375,
+      "recallAtK": 0.8262556457595228,
+      "latencyP95Ms": 7.190574230310309,
+      "hazardScore": 0.5001004226115068,
+      "riskLevel": "red",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 2
+    },
+    {
+      "step": 7,
+      "timestamp": "2025-12-13T21:38:31.747Z",
+      "indexSize": 130000,
+      "memoryMb": 63.4765625,
+      "recallAtK": 0.8119291478474295,
+      "latencyP95Ms": 6.193436449337488,
+      "hazardScore": 0.5301273560431449,
+      "riskLevel": "red",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 1
+    },
+    {
+      "step": 8,
+      "timestamp": "2025-12-13T21:38:31.747Z",
+      "indexSize": 145000,
+      "memoryMb": 70.80078125,
+      "recallAtK": 0.7987416792003167,
+      "latencyP95Ms": 7.1905495423821515,
+      "hazardScore": 0.5587595002552302,
+      "riskLevel": "red",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 0
+    },
+    {
+      "step": 9,
+      "timestamp": "2025-12-13T21:38:31.748Z",
+      "indexSize": 160000,
+      "memoryMb": 78.125,
+      "recallAtK": 0.7811382412985611,
+      "latencyP95Ms": 9.070388764654467,
+      "hazardScore": 0.5827520558707192,
+      "riskLevel": "red",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 0
+    },
+    {
+      "step": 10,
+      "timestamp": "2025-12-13T21:38:31.748Z",
+      "indexSize": 175000,
+      "memoryMb": 85.44921875,
+      "recallAtK": 0.768001471170225,
+      "latencyP95Ms": 9.395854016528865,
+      "hazardScore": 0.6055735258895781,
+      "riskLevel": "red",
+      "circuitBreakerState": "open",
+      "forecastedFailureIn": 0
+    },
+    {
+      "step": 11,
+      "timestamp": "2025-12-13T21:38:31.748Z",
+      "indexSize": 190000,
+      "memoryMb": 92.7734375,
+      "recallAtK": 0.7229360284811984,
+      "latencyP95Ms": 7.011612679758394,
+      "hazardScore": 0.6469013728009078,
+      "riskLevel": "red",
+      "circuitBreakerState": "open",
+      "forecastedFailureIn": 0
+    },
+    {
+      "step": 12,
+      "timestamp": "2025-12-13T21:38:31.748Z",
+      "indexSize": 205000,
+      "memoryMb": 100.09765625,
+      "recallAtK": 0.7149766197244063,
+      "latencyP95Ms": 8.643422916028893,
+      "hazardScore": 0.6856823840501173,
+      "riskLevel": "red",
+      "circuitBreakerState": "open",
+      "forecastedFailureIn": 0
+    },
+    {
+      "step": 13,
+      "timestamp": "2025-12-13T21:38:31.748Z",
+      "indexSize": 220000,
+      "memoryMb": 107.421875,
+      "recallAtK": 0.7066417356054958,
+      "latencyP95Ms": 10.41264601580568,
+      "hazardScore": 0.7225223614880453,
+      "riskLevel": "red",
+      "circuitBreakerState": "open",
+      "forecastedFailureIn": 0
+    },
+    {
+      "step": 14,
+      "timestamp": "2025-12-13T21:38:31.748Z",
+      "indexSize": 235000,
+      "memoryMb": 114.74609375,
+      "recallAtK": 0.6917788519930461,
+      "latencyP95Ms": 10.370728780085235,
+      "hazardScore": 0.7582661172102513,
+      "riskLevel": "red",
+      "circuitBreakerState": "open",
+      "forecastedFailureIn": 0
+    }
+  ],
+  "timestamps": {
+    "startTime": "2025-12-13T21:38:31.746Z",
+    "testComplete": "2025-12-13T21:38:31.748Z",
+    "firstWarning": "2025-12-13T21:38:31.747Z",
+    "circuitBreakerTriggered": "2025-12-13T21:38:31.748Z"
+  },
+  "interventions": [
+    {
+      "timestamp": "2025-12-13T21:38:31.748Z",
+      "step": 10,
+      "previousState": "closed",
+      "newState": "open",
+      "trigger": "Hazard 0.606 exceeded threshold 0.6",
+      "action": "Degraded mode: nprobe=1"
+    }
+  ]
+}
