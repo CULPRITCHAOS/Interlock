@@ -71,10 +71,17 @@ jobs:
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
 
-          # Add badge files
-          git add results/badge/interlock_shield.json
-          git add results/badge/interlock_shield.md
-          git add results/badge/*.svg 2>/dev/null || true
+          # Add badge files if they exist
+          if [ -f results/badge/interlock_shield.json ]; then
+            git add results/badge/interlock_shield.json
+          fi
+          if [ -f results/badge/interlock_shield.md ]; then
+            git add results/badge/interlock_shield.md
+          fi
+          # Add any SVG files if they exist
+          if ls results/badge/*.svg 1> /dev/null 2>&1; then
+            git add results/badge/*.svg
+          fi
 
           # Check if there are changes
           if git diff --staged --quiet; then
