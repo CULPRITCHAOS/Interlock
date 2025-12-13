@@ -613,6 +613,32 @@ npm run validate
 
 ## 🔒 v2.x Operational Hardening Features
 
+### Hardware Fingerprinting (Prevents "Hardware Lottery" Crashes)
+
+**Problem**: Thresholds learned on a large machine may be unsafe on a smaller one, causing immediate acceptance of unsafe load when state is transferred between machines.
+
+**Solution**: Store hardware fingerprint with persisted state and invalidate on mismatch.
+
+```typescript
+// Hardware fingerprint includes:
+// - totalSystemMemoryMb (required)
+// - cpuCores (optional)
+// - containerMemoryLimitMb (optional, auto-detected via cgroup)
+
+// On startup:
+// - Compare current hardware to saved fingerprint
+// - If memory differs by >20%, invalidate cached safety envelope
+// - Enter conservative mode (OPEN state) rather than CLOSED
+// - Emit single low-frequency log explaining invalidation
+```
+
+| Scenario | Behavior |
+|----------|----------|
+| Same hardware | Load state normally |
+| Memory differs >20% | Invalidate state, start OPEN |
+| CPU cores differ significantly | Warning only |
+| Container limit changed | Invalidate state, start OPEN |
+
 ### State Persistence (Restart Safety)
 
 **Problem**: Interlock loses safety context on restart, creating unsafe optimism.
@@ -628,6 +654,7 @@ npm run validate
 // - If previous state was OPEN or HALF_OPEN → resume in OPEN (conservative)
 // - Never auto-restore CLOSED without evidence
 // - Corrupt state file → fail safe (OPEN)
+// - Hardware mismatch → invalidate learned thresholds
 ```
 
 | Scenario | Behavior |
@@ -636,6 +663,7 @@ npm run validate
 | Restart during cooldown | Cooldown respected |
 | Corrupt state file | Fail safe → OPEN |
 | Stale state (>24h) | Fresh start |
+| Hardware mismatch | Invalidate + OPEN |
 
 ### Shadow Mode Trust Upgrade
 
@@ -713,7 +741,7 @@ Validates:
 
 Before deploying Interlock to production:
 
-- [ ] **Run validation tests**: `npm run validate` — All 10 tests must pass
+- [ ] **Run validation tests**: `npm run validate` — All 11 tests must pass
 - [ ] **Run comparative benchmark**: Verify Interlock advantage vs alternatives
 - [ ] **Run stability test**: Verify no degradation over time
 - [ ] **Configure state persistence**: Set `stateFilePath` to persistent storage
@@ -723,6 +751,7 @@ Before deploying Interlock to production:
 - [ ] **Set up monitoring**: Track breaker trips, recoveries, refusals
 - [ ] **Configure alerting**: Alert on sustained OPEN state
 - [ ] **Document rollback plan**: How to disable Interlock if needed
+- [ ] **Generate certification badge**: Run `npx tsx scripts/generate-badge.ts`
 
 ---
 
@@ -788,6 +817,108 @@ Interlock explicitly refuses to:
 > **Interlock does not optimize systems. It prevents them from breaking.**
 >
 > **Interlock does not prevent failure. It makes failure visible before it happens.**
+
+---
+
+## 📜 Certification Philosophy (Stress Test Certified, Not System Safety)
+
+**Important**: Interlock certifies past test evidence, not future safety guarantees.
+
+### What We Certify
+
+✅ "This configuration survived this stress test under these conditions"  
+✅ "Interlock detected and prevented X potential failures during testing"  
+✅ Evidence of survival with measured metrics
+
+### What We Do NOT Certify
+
+❌ "This system will never fail"  
+❌ "This configuration is safe under all conditions"  
+❌ Future behavior predictions
+
+> **Certification is evidence of survival, not a prediction of safety.**
+
+For full certification documentation, see [CERTIFICATION.md](./CERTIFICATION.md).
+
+---
+
+## 🛡️ Interlock Shield (Badge System)
+
+After running validation tests, generate a certification badge for your README:
+
+```bash
+npx tsx scripts/generate-badge.ts
+```
+
+This generates:
+- `results/badge/interlock_shield.json` — Machine-readable badge data
+- `results/badge/interlock_shield.md` — Copy/paste badge block for README
+
+### Badge Fields
+
+| Field | Description |
+|-------|-------------|
+| **Load Class** | I–V based on vectors/QPS tested |
+| **Reflex** | Active (<Xms) or Disabled |
+| **Drift Tolerance** | Percentage tolerance for hardware changes |
+| **Quality Floor** | Enforced (min recall threshold) or Disabled |
+| **Last Audit** | Date of last validation run |
+| **Tested On** | Hardware fingerprint (memory, cores, platform) |
+
+### Example Badge Output
+
+```markdown
+## 🛡️ Interlock Stress-Test Certified
+
+| Field | Value |
+|-------|-------|
+| **Status** | ✅ Safety Certified |
+| **Load Class** | III (Heavy) |
+| **Reflex** | Active (<30ms) |
+| **Drift Tolerance** | 20% |
+| **Quality Floor** | Enforced (min 50% recall) |
+| **Last Audit** | 2025-12-13 |
+| **Tests** | 11/11 passed |
+```
+
+---
+
+## 💰 Economic Value Tracking
+
+Interlock can compute economic value retained during incidents:
+
+### Configuration
+
+Set `cost_per_query` in your incident report configuration:
+
+```typescript
+const economicData = {
+  controlCrashPoint: 45,      // Step at which unprotected system crashed
+  maxLoadProtected: 100,      // Max load the protected system handled
+  queriesSaved: 5500,         // Additional queries processed
+  costPerQuery: 0.001,        // Cost per query in USD
+  currency: 'USD'
+};
+```
+
+### Output
+
+Incident reports include:
+
+```json
+{
+  "economicImpact": {
+    "controlCrashPoint": 45,
+    "maxLoadProtected": 100,
+    "queriesSaved": 5500,
+    "costPerQuery": 0.001,
+    "valueRetained": 5.50,
+    "currency": "USD"
+  }
+}
+```
+
+> **Note**: `valueRetained` is an estimate based on your configured `costPerQuery`. Actual savings may vary based on business context.
 
 ---
 
