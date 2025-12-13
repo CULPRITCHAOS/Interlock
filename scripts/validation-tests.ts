@@ -1940,18 +1940,20 @@ function runClassCertificationIntegrityTest(seed: number): TestSeriesResult {
     
     // Test 7: Manual JSON edits are detected (tamper detection)
     // Create a modified shield (simulating manual edit)
-    const tamperedShield: InterlockShield = { ...shield };
+    // Use a type that allows writing to readonly fields for testing
+    type MutableShield = { -readonly [K in keyof InterlockShield]: InterlockShield[K] };
+    const tamperedShield = { ...shield } as MutableShield;
     
-    // Tamper with a signed field
+    // Tamper with a signed field (simulate "Notepad hack")
     if (tamperedShield.interlockClass === InterlockClass.CLASS_V) {
-      (tamperedShield as any).interlockClass = InterlockClass.CLASS_I; // Downgrade attempt
+      tamperedShield.interlockClass = InterlockClass.CLASS_I; // Downgrade attempt
     } else {
-      (tamperedShield as any).interlockClass = InterlockClass.CLASS_V; // Upgrade attempt
+      tamperedShield.interlockClass = InterlockClass.CLASS_V; // Upgrade attempt
     }
     
     // Keep original signature (this simulates a "Notepad hack")
     // The signature should now be invalid
-    const tamperVerifyResult = verifyBadgeSignature(tamperedShield);
+    const tamperVerifyResult = verifyBadgeSignature(tamperedShield as InterlockShield);
     tamperDetectionPassed = !tamperVerifyResult.valid && 
                             tamperVerifyResult.warningMessage?.includes('Tampered');
     

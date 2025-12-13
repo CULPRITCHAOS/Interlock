@@ -278,6 +278,38 @@ export function buildCanonicalString(claims: SignedClaims): string {
 }
 
 /**
+ * Default development signing key.
+ * ⚠️ WARNING: This is NOT secure for production use.
+ */
+const DEV_SIGNING_KEY = 'interlock-dev-signing-key-not-for-production';
+
+/**
+ * Check if the signing key is the insecure development key.
+ */
+export function isUsingDevSigningKey(): boolean {
+  return !process.env.INTERLOCK_SIGNING_KEY;
+}
+
+/**
+ * Get the signing key, with logging for security awareness.
+ * In production, INTERLOCK_SIGNING_KEY must be set.
+ */
+function getSigningKey(): string {
+  const envKey = process.env.INTERLOCK_SIGNING_KEY;
+  if (!envKey) {
+    // Only warn once per process to avoid log spam
+    if (!getSigningKey.warned) {
+      console.warn('[INTERLOCK] ⚠️ Using development signing key. Set INTERLOCK_SIGNING_KEY for production.');
+      getSigningKey.warned = true;
+    }
+    return DEV_SIGNING_KEY;
+  }
+  return envKey;
+}
+// Track if warning has been emitted
+getSigningKey.warned = false;
+
+/**
  * Generate HMAC-SHA256 signature for the badge.
  * 
  * Key source priority:
@@ -288,7 +320,7 @@ export function buildCanonicalString(claims: SignedClaims): string {
  * The fallback key is for development/testing only.
  */
 export function generateBadgeSignature(claims: SignedClaims): string {
-  const signingKey = process.env.INTERLOCK_SIGNING_KEY || 'interlock-dev-signing-key-not-for-production';
+  const signingKey = getSigningKey();
   const canonicalString = buildCanonicalString(claims);
   const signature = crypto.createHmac('sha256', signingKey)
     .update(canonicalString)
