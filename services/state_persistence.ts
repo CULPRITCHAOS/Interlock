@@ -15,6 +15,7 @@
  * - Validation on load
  * - Safe boot behavior (never auto-restore CLOSED without evidence)
  * - Fail-safe on corrupt state (default to OPEN)
+ * - Hardware fingerprinting to prevent "hardware lottery" crashes (v2.0.0+)
  * 
  * Guiding Principle:
  * Interlock prefers caution over optimism after restart.
@@ -22,11 +23,47 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as os from 'os';
 import { CircuitState } from './phaseIV.types';
 
 // ============= Schema Version =============
 
-export const STATE_SCHEMA_VERSION = '1.0.0';
+export const STATE_SCHEMA_VERSION = '2.0.0';  // Bumped for hardware fingerprint addition
+
+// ============= Hardware Fingerprint Types =============
+
+/**
+ * Hardware fingerprint for persistence safety
+ * 
+ * Problem: Thresholds learned on a large machine may be unsafe on a smaller one.
+ * Solution: Store hardware fingerprint and invalidate cached state on mismatch.
+ */
+export interface HardwareFingerprint {
+  // Required: Total system memory in MB
+  totalSystemMemoryMb: number;
+  
+  // Optional but useful: Number of CPU cores
+  cpuCores?: number;
+  
+  // Optional: Container memory limit (cgroup detection)
+  containerMemoryLimitMb?: number;
+}
+
+/**
+ * Tolerance settings for hardware fingerprint comparison
+ */
+export interface HardwareFingerprintTolerance {
+  // Memory tolerance as fraction (e.g., 0.2 = 20% difference allowed)
+  memoryToleranceFraction: number;
+  
+  // CPU cores tolerance as absolute difference (e.g., 2 = allow +/- 2 cores)
+  cpuCoresTolerance: number;
+}
+
+export const DEFAULT_FINGERPRINT_TOLERANCE: HardwareFingerprintTolerance = {
+  memoryToleranceFraction: 0.2,  // 20% memory difference triggers invalidation
+  cpuCoresTolerance: 2           // Allow +/- 2 CPU cores
+};
 
 // ============= Persisted State Types =============
 
@@ -37,6 +74,9 @@ export const STATE_SCHEMA_VERSION = '1.0.0';
 export interface PersistedState {
   // Schema version for forward compatibility
   schemaVersion: string;
+  
+  // Hardware fingerprint (v2.0.0+)
+  hardwareFingerprint?: HardwareFingerprint;
   
   // Core breaker state
   breakerState: CircuitState;
@@ -116,6 +156,140 @@ export function createSafeBootState(): PersistedState {
 // Legacy constant for backward compatibility (use factory function instead)
 export const SAFE_BOOT_STATE: PersistedState = createSafeBootState();
 
+// ============= Hardware Fingerprint Functions =============
+
+/**
+ * Collect current hardware fingerprint from the system
+ * This is minimal and focuses on memory (the primary "hardware lottery" concern)
+ */
+export function collectHardwareFingerprint(): HardwareFingerprint {
+  const fingerprint: HardwareFingerprint = {
+    totalSystemMemoryMb: Math.round(os.totalmem() / (1024 * 1024)),
+    cpuCores: os.cpus().length
+  };
+  
+  // Try to detect container memory limit via cgroup
+  // This is a best-effort attempt - may not work in all environments
+  const containerLimit = detectContainerMemoryLimit();
+  if (containerLimit !== null) {
+    fingerprint.containerMemoryLimitMb = containerLimit;
+  }
+  
+  return fingerprint;
+}
+
+/**
+ * Detect container memory limit from cgroup (Linux containers)
+ * Returns null if not in a container or unable to detect
+ */
+function detectContainerMemoryLimit(): number | null {
+  // Check for MEMORY_LIMIT env var (commonly set in containers)
+  const envLimit = process.env.MEMORY_LIMIT;
+  if (envLimit) {
+    const parsed = parseInt(envLimit, 10);
+    if (!isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  
+  // Try to read cgroup v2 memory limit
+  try {
+    const cgroupPath = '/sys/fs/cgroup/memory.max';
+    if (fs.existsSync(cgroupPath)) {
+      const content = fs.readFileSync(cgroupPath, 'utf-8').trim();
+      if (content !== 'max') {
+        const bytes = parseInt(content, 10);
+        if (!isNaN(bytes)) {
+          return Math.round(bytes / (1024 * 1024));
+        }
+      }
+    }
+  } catch {
+    // Ignore - not in container or no access
+  }
+  
+  // Try cgroup v1 memory limit
+  try {
+    const cgroupV1Path = '/sys/fs/cgroup/memory/memory.limit_in_bytes';
+    if (fs.existsSync(cgroupV1Path)) {
+      const content = fs.readFileSync(cgroupV1Path, 'utf-8').trim();
+      const bytes = parseInt(content, 10);
+      // Skip if it's the max value (no limit set)
+      if (!isNaN(bytes) && bytes < os.totalmem() * 2) {
+        return Math.round(bytes / (1024 * 1024));
+      }
+    }
+  } catch {
+    // Ignore - not in container or no access
+  }
+  
+  return null;
+}
+
+/**
+ * Compare two hardware fingerprints and determine if they match within tolerance
+ * Returns a result indicating match status and reasons for any mismatch
+ */
+export interface FingerprintComparisonResult {
+  matches: boolean;
+  reasons: string[];
+  memoryDifference?: number;  // Percentage difference in memory
+  coresDifference?: number;   // Absolute difference in CPU cores
+}
+
+export function compareHardwareFingerprints(
+  saved: HardwareFingerprint,
+  current: HardwareFingerprint,
+  tolerance: HardwareFingerprintTolerance = DEFAULT_FINGERPRINT_TOLERANCE
+): FingerprintComparisonResult {
+  const reasons: string[] = [];
+  let matches = true;
+  
+  // Compare system memory (required check)
+  const memoryDiff = Math.abs(current.totalSystemMemoryMb - saved.totalSystemMemoryMb) / saved.totalSystemMemoryMb;
+  const memoryDifferencePercent = memoryDiff * 100;
+  
+  if (memoryDiff > tolerance.memoryToleranceFraction) {
+    matches = false;
+    reasons.push(
+      `Memory changed from ${saved.totalSystemMemoryMb}MB to ${current.totalSystemMemoryMb}MB ` +
+      `(${memoryDifferencePercent.toFixed(1)}% difference exceeds ${tolerance.memoryToleranceFraction * 100}% tolerance)`
+    );
+  }
+  
+  // Compare CPU cores (optional check - only if both have values)
+  let coresDiff: number | undefined;
+  if (saved.cpuCores !== undefined && current.cpuCores !== undefined) {
+    coresDiff = Math.abs(current.cpuCores - saved.cpuCores);
+    if (coresDiff > tolerance.cpuCoresTolerance) {
+      matches = false;
+      reasons.push(
+        `CPU cores changed from ${saved.cpuCores} to ${current.cpuCores} ` +
+        `(${coresDiff} difference exceeds ${tolerance.cpuCoresTolerance} tolerance)`
+      );
+    }
+  }
+  
+  // Compare container memory limit if available
+  if (saved.containerMemoryLimitMb !== undefined && current.containerMemoryLimitMb !== undefined) {
+    const containerMemDiff = Math.abs(current.containerMemoryLimitMb - saved.containerMemoryLimitMb) / saved.containerMemoryLimitMb;
+    if (containerMemDiff > tolerance.memoryToleranceFraction) {
+      matches = false;
+      reasons.push(
+        `Container memory limit changed from ${saved.containerMemoryLimitMb}MB to ${current.containerMemoryLimitMb}MB ` +
+        `(${(containerMemDiff * 100).toFixed(1)}% difference exceeds tolerance)`
+      );
+    }
+  }
+  
+  return {
+    matches,
+    reasons,
+    memoryDifference: memoryDifferencePercent,
+    coresDifference: coresDiff
+  };
+}
+
 // ============= State Persistence Configuration =============
 
 export interface StatePersistenceConfig {
@@ -133,6 +307,9 @@ export interface StatePersistenceConfig {
   
   // Persistence interval (ms) for periodic saves
   persistIntervalMs: number;
+  
+  // Hardware fingerprint tolerance (v2.0.0+)
+  fingerprintTolerance: HardwareFingerprintTolerance;
 }
 
 export const DEFAULT_PERSISTENCE_CONFIG: StatePersistenceConfig = {
@@ -140,7 +317,8 @@ export const DEFAULT_PERSISTENCE_CONFIG: StatePersistenceConfig = {
   maxConfidenceHistorySize: 50,
   staleStateThresholdMs: 24 * 60 * 60 * 1000,  // 24 hours
   autoPersist: true,
-  persistIntervalMs: 60000  // 1 minute
+  persistIntervalMs: 60000,  // 1 minute
+  fingerprintTolerance: DEFAULT_FINGERPRINT_TOLERANCE
 };
 
 // ============= Checksum Calculation =============
@@ -273,17 +451,21 @@ export class StatePersistenceManager {
   private config: StatePersistenceConfig;
   private currentState: PersistedState;
   private persistInterval: ReturnType<typeof setInterval> | null = null;
-  private bootState: 'normal' | 'safe_boot' | 'corrupt_recovery' = 'normal';
+  private bootState: 'normal' | 'safe_boot' | 'corrupt_recovery' | 'hardware_mismatch' = 'normal';
   private loadErrors: string[] = [];
+  private hardwareMismatchReasons: string[] = [];
+  private currentHardwareFingerprint: HardwareFingerprint;
 
   constructor(config: Partial<StatePersistenceConfig> = {}) {
     this.config = { ...DEFAULT_PERSISTENCE_CONFIG, ...config };
     this.currentState = { ...DEFAULT_PERSISTED_STATE };
+    this.currentHardwareFingerprint = collectHardwareFingerprint();
   }
 
   /**
    * Initialize the persistence manager
    * Loads state from disk if available, applies safe boot rules
+   * Now includes hardware fingerprint validation (v2.0.0+)
    */
   public initialize(): { state: PersistedState; bootState: string; warnings: string[] } {
     const warnings: string[] = [];
@@ -300,23 +482,51 @@ export class StatePersistenceManager {
         warnings.push('State file corrupt - entering safe boot (OPEN state)');
         this.currentState = { ...SAFE_BOOT_STATE, persistedAt: Date.now() };
       } else {
-        // First boot - start with clean state
-        this.currentState = { ...DEFAULT_PERSISTED_STATE, persistedAt: Date.now() };
+        // First boot - start with clean state and store hardware fingerprint
+        this.currentState = { 
+          ...DEFAULT_PERSISTED_STATE, 
+          persistedAt: Date.now(),
+          hardwareFingerprint: this.currentHardwareFingerprint
+        };
       }
     } else if (loadResult.state) {
       const validation = validatePersistedState(loadResult.state);
       this.loadErrors = validation.errors;
       warnings.push(...validation.warnings);
       
-      if (validation.safeBootRequired) {
-        this.bootState = 'safe_boot';
+      // Check hardware fingerprint (v2.0.0+ feature)
+      let hardwareMismatch = false;
+      if (loadResult.state.hardwareFingerprint) {
+        const comparison = compareHardwareFingerprints(
+          loadResult.state.hardwareFingerprint,
+          this.currentHardwareFingerprint,
+          this.config.fingerprintTolerance
+        );
+        
+        if (!comparison.matches) {
+          hardwareMismatch = true;
+          this.hardwareMismatchReasons = comparison.reasons;
+          // Single low-frequency log explaining invalidation
+          warnings.push(
+            `HARDWARE MISMATCH: Cached safety envelope invalidated. ${comparison.reasons.join('; ')}. ` +
+            `Entering conservative mode to prevent "hardware lottery" failure.`
+          );
+        }
+      }
+      
+      if (validation.safeBootRequired || hardwareMismatch) {
+        this.bootState = hardwareMismatch ? 'hardware_mismatch' : 'safe_boot';
         
         // Preserve some state but enter OPEN mode
+        // For hardware mismatch, we invalidate learned thresholds by starting fresh
         this.currentState = {
           ...loadResult.state,
           breakerState: 'open',  // Never auto-restore CLOSED
           lastTransitionTimestamp: Date.now(),
-          persistedAt: Date.now()
+          persistedAt: Date.now(),
+          hardwareFingerprint: this.currentHardwareFingerprint,  // Update to current hardware
+          // For hardware mismatch, reset confidence history (learned on different hardware)
+          confidenceHistory: hardwareMismatch ? [] : loadResult.state.confidenceHistory
         };
         
         // Recalculate remaining cooldown
@@ -326,10 +536,16 @@ export class StatePersistenceManager {
             loadResult.state.reflexCooldownRemaining - elapsed);
         }
         
-        warnings.push('Safe boot activated - starting in OPEN state');
+        if (!hardwareMismatch) {
+          warnings.push('Safe boot activated - starting in OPEN state');
+        }
       } else {
         this.bootState = 'normal';
         this.currentState = loadResult.state;
+        // Update fingerprint if it was missing (migration from v1.x)
+        if (!this.currentState.hardwareFingerprint) {
+          this.currentState.hardwareFingerprint = this.currentHardwareFingerprint;
+        }
       }
     }
     
@@ -500,11 +716,15 @@ export class StatePersistenceManager {
     bootState: string; 
     loadErrors: string[];
     isSafeBoot: boolean;
+    hardwareMismatch: boolean;
+    hardwareMismatchReasons: string[];
   } {
     return {
       bootState: this.bootState,
       loadErrors: this.loadErrors,
-      isSafeBoot: this.bootState === 'safe_boot' || this.bootState === 'corrupt_recovery'
+      isSafeBoot: this.bootState === 'safe_boot' || this.bootState === 'corrupt_recovery' || this.bootState === 'hardware_mismatch',
+      hardwareMismatch: this.bootState === 'hardware_mismatch',
+      hardwareMismatchReasons: this.hardwareMismatchReasons
     };
   }
 
@@ -512,7 +732,28 @@ export class StatePersistenceManager {
    * Check if system is in safe boot mode
    */
   public isSafeBoot(): boolean {
-    return this.bootState === 'safe_boot' || this.bootState === 'corrupt_recovery';
+    return this.bootState === 'safe_boot' || this.bootState === 'corrupt_recovery' || this.bootState === 'hardware_mismatch';
+  }
+
+  /**
+   * Check if system entered safe boot due to hardware mismatch
+   */
+  public isHardwareMismatch(): boolean {
+    return this.bootState === 'hardware_mismatch';
+  }
+
+  /**
+   * Get current hardware fingerprint
+   */
+  public getHardwareFingerprint(): HardwareFingerprint {
+    return { ...this.currentHardwareFingerprint };
+  }
+
+  /**
+   * Get hardware mismatch reasons (if any)
+   */
+  public getHardwareMismatchReasons(): string[] {
+    return [...this.hardwareMismatchReasons];
   }
 
   /**
