@@ -63,6 +63,20 @@ Generates self-defending clients:
 - Logs all interventions for audit
 - **Location**: `backend/circuit_breaker.py`
 
+### Stress Chamber (Phase I)
+Visual failure demonstration:
+- Real-time CLI visualization of memory, latency, recall, hazard
+- Protected run vs Control run comparison
+- Shows failure forming before it happens
+- **Location**: `scripts/stress-chamber.ts`
+
+### @interlock.protect Decorator (Phase II)
+One-line deployable protection:
+- Pre-call: Check forecast risk
+- On hazard: Apply failover strategy
+- Post-call: Record outcome for calibration
+- **Location**: `backend/interlock.py`
+
 ---
 
 ## 🚀 Getting Started
@@ -83,6 +97,12 @@ Generates self-defending clients:
    npm run sim:run -- --seed 42 --mode phase4 --initial-size 10000 --growth-steps 10 --vectors-per-step 10000
    ```
 
+4. **Run Stress Chamber demo**
+   ```bash
+   # Run both protected and control tests
+   npx tsx scripts/stress-chamber.ts --both --no-visualize --growth-steps 25
+   ```
+
 ---
 
 ## 📋 Output Artifacts
@@ -92,7 +112,8 @@ Every certification run produces:
 | Artifact | Description |
 |----------|-------------|
 | `certification_report.md` | Executive summary with verdict (CERTIFIED / CONDITIONAL / NOT_CERTIFIED) |
-| `forecast_calibration.json` | Predicted vs actual failure metrics |
+| `forecast_calibration.md` | Brier score, reliability curves, cost-sensitive evaluation (Phase III) |
+| `operational_warranty.md` | CTO-grade safety guarantees with safe load, trigger points, half-life |
 | `circuit_breaker.ts` | Runnable self-defending client code |
 | `operational_warranty.json` | Machine-readable safety guarantees |
 
