@@ -214,8 +214,9 @@ function detectContainerMemoryLimit(): number | null {
     if (fs.existsSync(cgroupV1Path)) {
       const content = fs.readFileSync(cgroupV1Path, 'utf-8').trim();
       const bytes = parseInt(content, 10);
+      const systemMemory = os.totalmem();
       // Skip if it's the max value (no limit set)
-      if (!isNaN(bytes) && bytes < os.totalmem() * 2) {
+      if (!isNaN(bytes) && bytes < systemMemory * 2) {
         return Math.round(bytes / (1024 * 1024));
       }
     }
@@ -244,17 +245,25 @@ export function compareHardwareFingerprints(
 ): FingerprintComparisonResult {
   const reasons: string[] = [];
   let matches = true;
+  let memoryDifferencePercent = 0;
   
   // Compare system memory (required check)
-  const memoryDiff = Math.abs(current.totalSystemMemoryMb - saved.totalSystemMemoryMb) / saved.totalSystemMemoryMb;
-  const memoryDifferencePercent = memoryDiff * 100;
-  
-  if (memoryDiff > tolerance.memoryToleranceFraction) {
+  // Guard against division by zero
+  if (saved.totalSystemMemoryMb > 0) {
+    const memoryDiff = Math.abs(current.totalSystemMemoryMb - saved.totalSystemMemoryMb) / saved.totalSystemMemoryMb;
+    memoryDifferencePercent = memoryDiff * 100;
+    
+    if (memoryDiff > tolerance.memoryToleranceFraction) {
+      matches = false;
+      reasons.push(
+        `Memory changed from ${saved.totalSystemMemoryMb}MB to ${current.totalSystemMemoryMb}MB ` +
+        `(${memoryDifferencePercent.toFixed(1)}% difference exceeds ${tolerance.memoryToleranceFraction * 100}% tolerance)`
+      );
+    }
+  } else if (current.totalSystemMemoryMb !== saved.totalSystemMemoryMb) {
+    // Saved memory is 0 (invalid), treat as mismatch if current is different
     matches = false;
-    reasons.push(
-      `Memory changed from ${saved.totalSystemMemoryMb}MB to ${current.totalSystemMemoryMb}MB ` +
-      `(${memoryDifferencePercent.toFixed(1)}% difference exceeds ${tolerance.memoryToleranceFraction * 100}% tolerance)`
-    );
+    reasons.push('Saved hardware fingerprint has invalid memory value (0)');
   }
   
   // Compare CPU cores (optional check - only if both have values)
@@ -271,14 +280,21 @@ export function compareHardwareFingerprints(
   }
   
   // Compare container memory limit if available
+  // Guard against division by zero
   if (saved.containerMemoryLimitMb !== undefined && current.containerMemoryLimitMb !== undefined) {
-    const containerMemDiff = Math.abs(current.containerMemoryLimitMb - saved.containerMemoryLimitMb) / saved.containerMemoryLimitMb;
-    if (containerMemDiff > tolerance.memoryToleranceFraction) {
+    if (saved.containerMemoryLimitMb > 0) {
+      const containerMemDiff = Math.abs(current.containerMemoryLimitMb - saved.containerMemoryLimitMb) / saved.containerMemoryLimitMb;
+      if (containerMemDiff > tolerance.memoryToleranceFraction) {
+        matches = false;
+        reasons.push(
+          `Container memory limit changed from ${saved.containerMemoryLimitMb}MB to ${current.containerMemoryLimitMb}MB ` +
+          `(${(containerMemDiff * 100).toFixed(1)}% difference exceeds tolerance)`
+        );
+      }
+    } else if (current.containerMemoryLimitMb !== saved.containerMemoryLimitMb) {
+      // Saved container limit is 0 (invalid), treat as mismatch if current is different
       matches = false;
-      reasons.push(
-        `Container memory limit changed from ${saved.containerMemoryLimitMb}MB to ${current.containerMemoryLimitMb}MB ` +
-        `(${(containerMemDiff * 100).toFixed(1)}% difference exceeds tolerance)`
-      );
+      reasons.push('Saved hardware fingerprint has invalid container memory limit (0)');
     }
   }
   
