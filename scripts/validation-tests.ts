@@ -26,7 +26,8 @@ import {
   ReflexTripRecord,
   QualityFloorRefusal,
   ConfidenceDecayMetrics,
-  ShadowBlockRecord
+  ShadowBlockRecord,
+  ShadowBlockType
 } from '../services/hysteresis';
 import {
   generateIncidentReport,
@@ -40,6 +41,12 @@ import {
   CircuitState,
   FAISSMetrics
 } from '../services/phaseIV.types';
+import {
+  StatePersistenceManager,
+  validatePersistedState,
+  STATE_SCHEMA_VERSION,
+  PersistedState
+} from '../services/state_persistence';
 
 // ============= Seeded Random Number Generator =============
 const LCG_MULTIPLIER = 1103515245;
@@ -1047,10 +1054,12 @@ function runShadowModeTest(seed: number): TestSeriesResult {
     // Track shadow mode behavior
     if (shadowResult.shadowBlock) {
       shadowBlocksRecorded++;
-      if (shadowResult.shadowBlock.reason && shadowResult.shadowBlock.reason.includes('SHADOW BLOCK')) {
+      // Phase B: Check for new semantic type format instead of old "SHADOW BLOCK" text
+      if (shadowResult.shadowBlock.type && 
+          ['SAFETY_MARGIN_VIOLATION', 'PROJECTED_FAILURE_WINDOW', 'QUALITY_DEGRADATION', 'CONFIDENCE_DECAY'].includes(shadowResult.shadowBlock.type)) {
         shadowBlockHasReason = true;
       }
-      details.push(`Step ${step}: Shadow block recorded - ${shadowResult.shadowBlock.trigger}`);
+      details.push(`Step ${step}: Shadow block recorded - ${shadowResult.shadowBlock.type}: ${shadowResult.shadowBlock.trigger}`);
     }
     
     // Shadow mode should NEVER change actual state (always stay closed)
@@ -1078,7 +1087,7 @@ function runShadowModeTest(seed: number): TestSeriesResult {
   // 1. Shadow mode recorded shadow blocks
   // 2. Shadow mode never actually changed state (stayed closed)
   // 3. Active mode did change state (for comparison)
-  // 4. Shadow blocks include proper reason text
+  // 4. Shadow blocks include proper semantic type (Phase B upgrade)
   const passed = shadowBlocksRecorded > 0 && 
                  shadowStateNeverChanged && 
                  activeStateChanged &&
@@ -1095,6 +1104,153 @@ function runShadowModeTest(seed: number): TestSeriesResult {
       activeStateChanged: activeStateChanged ? 1 : 0,
       shadowBlockHasReason: shadowBlockHasReason ? 1 : 0,
       isShadowModeEnabled: shadowBreaker.isShadowMode() ? 1 : 0
+    },
+    details
+  };
+}
+
+// ============= Test Series 9: State Persistence (v2.x Hardening) =============
+
+/**
+ * Test Series 9: State Persistence Test
+ * 
+ * Problem: Interlock loses safety context on restart:
+ * - Breaker state (CLOSED / OPEN / HALF_OPEN)
+ * - Reflex cooldown timers
+ * - Confidence history
+ * - Recent interventions
+ * 
+ * Success Criteria:
+ * - Restart during OPEN → remains OPEN
+ * - Restart during cooldown → cooldown respected
+ * - Corrupt state file → fail safe (OPEN)
+ * - Valid closed state → requires evidence (safe boot)
+ */
+function runStatePersistenceTest(seed: number): TestSeriesResult {
+  const details: string[] = [];
+  
+  // Use a temp directory for test state files
+  const testStateDir = `/tmp/interlock-test-${seed}`;
+  if (!fs.existsSync(testStateDir)) {
+    fs.mkdirSync(testStateDir, { recursive: true });
+  }
+  
+  let restartDuringOpenPassed = false;
+  let restartDuringCooldownPassed = false;
+  let corruptStateFilePassed = false;
+  let validationPassed = false;
+  
+  // Test 1: Restart during OPEN → remains OPEN
+  {
+    const stateFile = path.join(testStateDir, 'test1_state.json');
+    const manager = new StatePersistenceManager({ stateFilePath: stateFile, autoPersist: false });
+    manager.initialize();
+    
+    // Set state to OPEN
+    manager.updateBreakerState('open', 'Test transition');
+    manager.saveState();
+    
+    // Create new manager (simulating restart)
+    const manager2 = new StatePersistenceManager({ stateFilePath: stateFile, autoPersist: false });
+    const bootInfo = manager2.initialize();
+    
+    // Should remain in OPEN (safe boot)
+    const state = manager2.getState();
+    restartDuringOpenPassed = state.breakerState === 'open';
+    details.push(`Test 1 (Restart during OPEN): ${restartDuringOpenPassed ? '✓' : '✗'} State=${state.breakerState}`);
+    
+    manager2.deleteStateFile();
+  }
+  
+  // Test 2: Restart during cooldown → cooldown respected
+  {
+    const stateFile = path.join(testStateDir, 'test2_state.json');
+    const manager = new StatePersistenceManager({ stateFilePath: stateFile, autoPersist: false });
+    manager.initialize();
+    
+    // Set state with active cooldown
+    manager.updateBreakerState('open', 'Reflex trip');
+    manager.updateReflexCooldown(30000, Date.now()); // 30 second cooldown
+    manager.saveState();
+    
+    // Create new manager (simulating restart after short time)
+    const manager2 = new StatePersistenceManager({ stateFilePath: stateFile, autoPersist: false });
+    manager2.initialize();
+    
+    // Should have cooldown remaining (less than original but > 0)
+    const state = manager2.getState();
+    // Since we restart immediately, cooldown should still be ~30000 (minus a few ms)
+    restartDuringCooldownPassed = state.breakerState === 'open' && state.reflexCooldownRemaining > 0;
+    details.push(`Test 2 (Restart during cooldown): ${restartDuringCooldownPassed ? '✓' : '✗'} Cooldown=${state.reflexCooldownRemaining}ms`);
+    
+    manager2.deleteStateFile();
+  }
+  
+  // Test 3: Corrupt state file → fail safe (OPEN)
+  {
+    const stateFile = path.join(testStateDir, 'test3_state.json');
+    
+    // Write corrupt state file
+    fs.writeFileSync(stateFile, '{ invalid json content }}}');
+    
+    // Create manager with corrupt file
+    const manager = new StatePersistenceManager({ stateFilePath: stateFile, autoPersist: false });
+    const bootInfo = manager.initialize();
+    
+    // Should enter safe boot (OPEN)
+    const state = manager.getState();
+    corruptStateFilePassed = state.breakerState === 'open' && manager.isSafeBoot();
+    details.push(`Test 3 (Corrupt state file): ${corruptStateFilePassed ? '✓' : '✗'} SafeBoot=${manager.isSafeBoot()}`);
+    
+    manager.deleteStateFile();
+  }
+  
+  // Test 4: Validation of state schema
+  {
+    // Valid state
+    const validState: PersistedState = {
+      schemaVersion: STATE_SCHEMA_VERSION,
+      breakerState: 'closed',
+      lastTransitionTimestamp: Date.now(),
+      reflexCooldownRemaining: 0,
+      lastReflexTripTimestamp: null,
+      confidenceHistory: [0.8, 0.85, 0.9],
+      lastIncidentId: null,
+      interventionCount: 0,
+      totalRefusals: 0,
+      persistedAt: Date.now(),
+      checksum: ''  // Will be recalculated
+    };
+    
+    const validResult = validatePersistedState(validState);
+    
+    // Invalid state (missing fields)
+    const invalidState = { breakerState: 'invalid' };
+    const invalidResult = validatePersistedState(invalidState);
+    
+    validationPassed = validResult.valid && !invalidResult.valid && invalidResult.safeBootRequired;
+    details.push(`Test 4 (State validation): ${validationPassed ? '✓' : '✗'} Valid=${validResult.valid}, Invalid=${!invalidResult.valid}`);
+  }
+  
+  // Cleanup test directory
+  try {
+    fs.rmSync(testStateDir, { recursive: true, force: true });
+  } catch {
+    // Ignore cleanup errors
+  }
+  
+  const passed = restartDuringOpenPassed && restartDuringCooldownPassed && 
+                 corruptStateFilePassed && validationPassed;
+  
+  return {
+    name: 'State Persistence',
+    description: 'Verify Interlock survives restarts safely',
+    passed,
+    metrics: {
+      restartDuringOpen: restartDuringOpenPassed ? 1 : 0,
+      restartDuringCooldown: restartDuringCooldownPassed ? 1 : 0,
+      corruptStateFile: corruptStateFilePassed ? 1 : 0,
+      schemaValidation: validationPassed ? 1 : 0
     },
     details
   };
@@ -1156,6 +1312,12 @@ function runValidationTests(seed: number = 42): ValidationReport {
   const shadowModeResult = runShadowModeTest(seed);
   testSeries.push(shadowModeResult);
   console.log(`  Result: ${shadowModeResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  
+  // Test Series 9: State Persistence (v2.x Hardening)
+  console.log('Running Test Series 9: State Persistence...');
+  const statePersistenceResult = runStatePersistenceTest(seed);
+  testSeries.push(statePersistenceResult);
+  console.log(`  Result: ${statePersistenceResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
   
   const overallPassed = testSeries.every(t => t.passed);
   
@@ -1226,7 +1388,8 @@ function generateValidationMarkdown(report: ValidationReport): string {
     ['Flash crowd reflex protection works', report.testSeries[4]?.passed],
     ['Quality floor enforcement prevents corruption', report.testSeries[5]?.passed],
     ['No false certainty is guaranteed', report.testSeries[6]?.passed],
-    ['Shadow mode (dry run) logs without interfering', report.testSeries[7]?.passed]
+    ['Shadow mode (dry run) logs without interfering', report.testSeries[7]?.passed],
+    ['State persistence survives restarts safely', report.testSeries[8]?.passed]
   ];
   
   for (const [criterion, passed] of criteriaResults) {
@@ -1277,6 +1440,8 @@ Test Series:
   5. Flash Crowd Reflex - Verify reflexive safety override on load spikes
   6. Quality Floor Enforcement - Verify refusal when recall < quality floor
   7. No False Certainty - Verify Interlock never claims certainty it doesn't have
+  8. Shadow Mode (Dry Run) - Verify shadow mode logs without interfering
+  9. State Persistence - Verify state survives restarts safely
 `);
       process.exit(0);
     }
