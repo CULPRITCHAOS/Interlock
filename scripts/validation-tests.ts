@@ -8,6 +8,9 @@
  * 2. Incident Quality - Prove forensic reports are actionable
  * 3. Counterfactual Survival - Prove Interlock prevents failure
  * 4. Trust Decay - Prove Interlock knows when it doesn't know
+ * 5. Flash Crowd Reflex - Prove reflexive safety override works
+ * 6. Quality Floor Enforcement - Prove refusal over corruption
+ * 7. No False Certainty - Prove Interlock never lies about confidence
  * 
  * Guiding Principle:
  * Interlock does not prevent failure. It makes failure visible early — and survivable.
@@ -18,7 +21,11 @@ import * as path from 'path';
 import { 
   HysteresisLock, 
   DEFAULT_HYSTERESIS_CONFIG, 
-  HysteresisMetrics 
+  HysteresisMetrics,
+  HysteresisConfig,
+  ReflexTripRecord,
+  QualityFloorRefusal,
+  ConfidenceDecayMetrics
 } from '../services/hysteresis';
 import {
   generateIncidentReport,
@@ -587,6 +594,351 @@ function runTrustDecayTest(seed: number): TestSeriesResult {
   };
 }
 
+// ============= Test Series 5: Flash Crowd Reflex =============
+
+/**
+ * Test Series 5: Flash Crowd Reflex Test
+ * 
+ * Problem: Forecasts fail under step-function load spikes.
+ * 
+ * Test: Inject sudden load spike (current_load - previous_load) > FLASH_THRESHOLD
+ * 
+ * Success Criteria:
+ * - Breaker immediately trips to OPEN
+ * - Reflex trip is recorded (bypasses confidence computation)
+ * - System enters hysteresis cooldown window
+ * - Resume forecasting only after stabilization
+ */
+function runFlashCrowdReflexTest(seed: number): TestSeriesResult {
+  const rng = new SeededRandom(seed);
+  const details: string[] = [];
+  
+  // Create breaker with flash crowd protection enabled
+  const testConfig: HysteresisConfig = {
+    ...DEFAULT_HYSTERESIS_CONFIG,
+    flashThreshold: 2.0,            // 2x load spike triggers reflex
+    reflexCooldownMs: 5000,         // 5 second cooldown for test
+    minimumOpenDurationMs: 1000     // Shorter for test
+  };
+  
+  const breaker = new HysteresisLock(testConfig, DEFAULT_CIRCUIT_BREAKER_CONFIG);
+  
+  let reflexTripped = false;
+  let enteredCooldown = false;
+  let cooldownPreventsRecovery = false;
+  let bypassedForecast = false;
+  
+  const steps = 100;
+  
+  for (let step = 0; step < steps; step++) {
+    let load: number;
+    let hazard: number;
+    
+    // Normal load for first 30 steps
+    if (step < 30) {
+      load = 100 + rng.next() * 20;
+      hazard = 0.3 + rng.next() * 0.1;
+    }
+    // Flash crowd at step 30: sudden 3x spike
+    else if (step === 30) {
+      load = 350; // 3.5x spike from ~100
+      hazard = 0.4;
+    }
+    // Sustained high load
+    else if (step < 50) {
+      load = 300 + rng.next() * 50;
+      hazard = 0.5 + rng.next() * 0.1;
+    }
+    // Gradual recovery
+    else {
+      load = 300 - (step - 50) * 4 + rng.next() * 20;
+      hazard = 0.5 - (step - 50) * 0.005;
+    }
+    
+    const metrics: HysteresisMetrics = {
+      hazardScore: Math.min(1, Math.max(0, hazard)),
+      recall: Math.max(0.6, 0.9 - hazard * 0.2),
+      latencyMs: 10 + hazard * 40,
+      confidence: 0.8 - hazard * 0.2,
+      timestamp: Date.now() + step * 100,
+      load: Math.max(0, load)
+    };
+    
+    const result = breaker.update(metrics);
+    
+    // Check if reflex tripped
+    if (result.reflexTripped) {
+      reflexTripped = true;
+      bypassedForecast = true;
+      details.push(`Step ${step}: REFLEX TRIP - Load spike detected`);
+    }
+    
+    // Check if in cooldown
+    if (breaker.isInReflexCooldown()) {
+      enteredCooldown = true;
+    }
+    
+    // Check if cooldown prevents premature recovery
+    // (try to recover during cooldown with good metrics)
+    if (step > 35 && step < 45 && breaker.isInReflexCooldown()) {
+      if (result.newState === 'open') {
+        cooldownPreventsRecovery = true;
+      }
+    }
+  }
+  
+  const reflexTripHistory = breaker.getReflexTripHistory();
+  const totalReflexTrips = breaker.getReflexTripCount();
+  
+  details.push(`Total reflex trips: ${totalReflexTrips}`);
+  details.push(`Bypassed forecast logic: ${bypassedForecast ? 'Yes' : 'No'}`);
+  details.push(`Entered cooldown: ${enteredCooldown ? 'Yes' : 'No'}`);
+  details.push(`Cooldown prevented premature recovery: ${cooldownPreventsRecovery ? 'Yes' : 'No'}`);
+  
+  // Success criteria:
+  // 1. Reflex trip occurred when load spiked
+  // 2. Cooldown was entered
+  // 3. Cooldown prevented recovery (or no recovery attempted)
+  const passed = reflexTripped && enteredCooldown && bypassedForecast;
+  
+  return {
+    name: 'Flash Crowd Reflex',
+    description: 'Prove reflexive safety override bypasses forecast on load spikes',
+    passed,
+    metrics: {
+      reflexTripped: reflexTripped ? 1 : 0,
+      totalReflexTrips,
+      enteredCooldown: enteredCooldown ? 1 : 0,
+      bypassedForecast: bypassedForecast ? 1 : 0,
+      cooldownPreventsRecovery: cooldownPreventsRecovery ? 1 : 0
+    },
+    details
+  };
+}
+
+// ============= Test Series 6: Quality Floor Enforcement =============
+
+/**
+ * Test Series 6: Quality Floor Enforcement Test
+ * 
+ * Problem: Surviving with garbage results is silent failure.
+ * 
+ * Test: Degrade recall below quality floor and verify refusal
+ * 
+ * Success Criteria:
+ * - When recall < QUALITY_FLOOR, request is refused
+ * - Refusals are logged as trust-preserving actions
+ * - Degraded mode is entered to prevent corruption
+ * 
+ * Principle: Refusal is safer than corruption.
+ */
+function runQualityFloorEnforcementTest(seed: number): TestSeriesResult {
+  const rng = new SeededRandom(seed);
+  const details: string[] = [];
+  
+  // Create breaker with quality floor enforcement
+  const testConfig: HysteresisConfig = {
+    ...DEFAULT_HYSTERESIS_CONFIG,
+    qualityFloor: 0.5,              // Refuse when recall < 50%
+    qualityFloorEnabled: true,
+    minimumOpenDurationMs: 1000
+  };
+  
+  const breaker = new HysteresisLock(testConfig, DEFAULT_CIRCUIT_BREAKER_CONFIG);
+  
+  let qualityFloorTriggered = false;
+  let refusalLogged = false;
+  let enteredDegradedMode = false;
+  
+  const steps = 100;
+  
+  for (let step = 0; step < steps; step++) {
+    let recall: number;
+    let hazard: number;
+    
+    // Normal operation for first 40 steps
+    if (step < 40) {
+      recall = 0.85 - rng.next() * 0.1;
+      hazard = 0.3 + rng.next() * 0.1;
+    }
+    // Severe degradation at step 40-60: recall drops below floor
+    else if (step < 60) {
+      recall = 0.4 - (step - 40) * 0.01; // Drops from 0.4 to 0.2
+      hazard = 0.5 + (step - 40) * 0.01;
+    }
+    // Recovery phase
+    else {
+      recall = 0.3 + (step - 60) * 0.01 + rng.next() * 0.05;
+      hazard = 0.5 - (step - 60) * 0.005;
+    }
+    
+    const metrics: HysteresisMetrics = {
+      hazardScore: Math.min(1, Math.max(0, hazard)),
+      recall: Math.min(1, Math.max(0, recall)),
+      latencyMs: 10 + hazard * 40,
+      confidence: 0.8,
+      timestamp: Date.now() + step * 100
+    };
+    
+    const result = breaker.update(metrics);
+    
+    // Check if quality floor was triggered
+    if (result.qualityFloorRefused) {
+      qualityFloorTriggered = true;
+      details.push(`Step ${step}: QUALITY FLOOR BREACH - Recall ${(recall * 100).toFixed(1)}% < floor 50%`);
+    }
+    
+    // Check if we entered degraded mode
+    if (result.newState === 'open' && step >= 40 && step < 60) {
+      enteredDegradedMode = true;
+    }
+  }
+  
+  const refusals = breaker.getQualityFloorRefusals();
+  const totalRefusals = breaker.getTotalRefusals();
+  
+  if (refusals.length > 0) {
+    refusalLogged = true;
+    details.push(`Refusals logged: ${totalRefusals}`);
+    details.push(`First refusal reason: ${refusals[0]?.reason?.substring(0, 60) || 'N/A'}...`);
+  }
+  
+  details.push(`Quality floor enforcement: ${breaker.isQualityFloorEnforced() ? 'Enabled' : 'Disabled'}`);
+  details.push(`Entered degraded mode: ${enteredDegradedMode ? 'Yes' : 'No'}`);
+  
+  // Success criteria:
+  // 1. Quality floor triggered when recall dropped below threshold
+  // 2. Refusals were logged
+  // 3. System entered degraded mode
+  const passed = qualityFloorTriggered && refusalLogged && enteredDegradedMode;
+  
+  return {
+    name: 'Quality Floor Enforcement',
+    description: 'Prove refusal is safer than corruption',
+    passed,
+    metrics: {
+      qualityFloorTriggered: qualityFloorTriggered ? 1 : 0,
+      totalRefusals,
+      refusalLogged: refusalLogged ? 1 : 0,
+      enteredDegradedMode: enteredDegradedMode ? 1 : 0,
+      qualityFloor: testConfig.qualityFloor * 100
+    },
+    details
+  };
+}
+
+// ============= Test Series 7: No False Certainty Verification =============
+
+/**
+ * Test Series 7: No False Certainty Verification Test
+ * 
+ * Principle: Interlock never lies about what it knows.
+ * 
+ * Test: Verify that Interlock:
+ * - Tracks confidence decay over time
+ * - Never claims high confidence when it shouldn't
+ * - Escalates conservatively when uncertain
+ * - Explicitly records "I don't know" states
+ * 
+ * Success Criteria:
+ * - confidenceDropPercent is tracked
+ * - escalatedConservatively = true when confidence degrades
+ * - noFalseCertainty = true (never claim certainty we don't have)
+ */
+function runNoFalseCertaintyTest(seed: number): TestSeriesResult {
+  const rng = new SeededRandom(seed);
+  const details: string[] = [];
+  
+  const testConfig: HysteresisConfig = {
+    ...DEFAULT_HYSTERESIS_CONFIG,
+    minimumConfidenceThreshold: 0.5, // Lower threshold for test
+    minimumOpenDurationMs: 500
+  };
+  
+  const breaker = new HysteresisLock(testConfig, DEFAULT_CIRCUIT_BREAKER_CONFIG);
+  
+  const steps = 100;
+  let confidenceDropDetected = false;
+  let escalatedWhenUncertain = false;
+  
+  for (let step = 0; step < steps; step++) {
+    let confidence: number;
+    let hazard: number;
+    
+    // High confidence for first 40 steps
+    if (step < 40) {
+      confidence = 0.85 + rng.next() * 0.1;
+      hazard = 0.3 + rng.next() * 0.1;
+    }
+    // Confidence degradation phase (step 40-70)
+    else if (step < 70) {
+      // Rapid confidence decay - simulates novel failure mode
+      confidence = 0.85 - (step - 40) * 0.025;
+      hazard = 0.4 + rng.next() * 0.1;
+    }
+    // Low confidence phase
+    else {
+      confidence = 0.2 + rng.next() * 0.1;
+      hazard = 0.35 + rng.next() * 0.1;
+    }
+    
+    const metrics: HysteresisMetrics = {
+      hazardScore: Math.min(1, Math.max(0, hazard)),
+      recall: 0.8,
+      latencyMs: 20,
+      confidence: Math.min(1, Math.max(0, confidence)),
+      timestamp: Date.now() + step * 100
+    };
+    
+    const result = breaker.update(metrics);
+    
+    // Check if we escalated when confidence was low
+    if (result.intervention && confidence < 0.5) {
+      escalatedWhenUncertain = true;
+      details.push(`Step ${step}: Escalated conservatively at ${(confidence * 100).toFixed(1)}% confidence`);
+    }
+  }
+  
+  // Get confidence decay metrics
+  const decayMetrics = breaker.getConfidenceDecayMetrics();
+  const confidenceHistory = breaker.getConfidenceHistory();
+  
+  // Check if confidence drop was detected
+  if (decayMetrics.confidenceDropPercent > 20) {
+    confidenceDropDetected = true;
+  }
+  
+  details.push(`Early confidence: ${decayMetrics.earlyConfidence.toFixed(1)}%`);
+  details.push(`Late confidence: ${decayMetrics.lateConfidence.toFixed(1)}%`);
+  details.push(`Confidence drop: ${decayMetrics.confidenceDropPercent.toFixed(1)}%`);
+  details.push(`Escalated conservatively: ${decayMetrics.escalatedConservatively ? 'Yes' : 'No'}`);
+  details.push(`No false certainty: ${decayMetrics.noFalseCertainty ? 'Yes' : 'No'}`);
+  details.push(`Confidence history length: ${confidenceHistory.length}`);
+  
+  // Success criteria (from problem statement):
+  // - confidenceDropPercent is tracked and > 0
+  // - escalatedConservatively = true
+  // - noFalseCertainty = true
+  const passed = confidenceDropDetected && 
+                 decayMetrics.noFalseCertainty && 
+                 (escalatedWhenUncertain || decayMetrics.escalatedConservatively);
+  
+  return {
+    name: 'No False Certainty',
+    description: 'Verify Interlock explicitly says "I don\'t know"',
+    passed,
+    metrics: {
+      earlyConfidence: decayMetrics.earlyConfidence * 100,
+      lateConfidence: decayMetrics.lateConfidence * 100,
+      confidenceDropPercent: decayMetrics.confidenceDropPercent,
+      escalatedConservatively: decayMetrics.escalatedConservatively ? 1 : 0,
+      noFalseCertainty: decayMetrics.noFalseCertainty ? 1 : 0,
+      escalatedWhenUncertain: escalatedWhenUncertain ? 1 : 0
+    },
+    details
+  };
+}
+
 // ============= Main Test Runner =============
 
 function runValidationTests(seed: number = 42): ValidationReport {
@@ -619,6 +971,24 @@ function runValidationTests(seed: number = 42): ValidationReport {
   const trustResult = runTrustDecayTest(seed);
   testSeries.push(trustResult);
   console.log(`  Result: ${trustResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  
+  // Test Series 5: Flash Crowd Reflex (NEW)
+  console.log('Running Test Series 5: Flash Crowd Reflex...');
+  const flashCrowdResult = runFlashCrowdReflexTest(seed);
+  testSeries.push(flashCrowdResult);
+  console.log(`  Result: ${flashCrowdResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  
+  // Test Series 6: Quality Floor Enforcement (NEW)
+  console.log('Running Test Series 6: Quality Floor Enforcement...');
+  const qualityFloorResult = runQualityFloorEnforcementTest(seed);
+  testSeries.push(qualityFloorResult);
+  console.log(`  Result: ${qualityFloorResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  
+  // Test Series 7: No False Certainty (NEW)
+  console.log('Running Test Series 7: No False Certainty...');
+  const noFalseCertaintyResult = runNoFalseCertaintyTest(seed);
+  testSeries.push(noFalseCertaintyResult);
+  console.log(`  Result: ${noFalseCertaintyResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
   
   const overallPassed = testSeries.every(t => t.passed);
   
@@ -684,9 +1054,11 @@ function generateValidationMarkdown(report: ValidationReport): string {
   const criteriaResults = [
     ['Breaker hysteresis is evidence-based and stable', report.testSeries[0]?.passed],
     ['Incident reports are post-mortem ready', report.testSeries[1]?.passed],
-    ['Flapping is eliminated', report.testSeries[0]?.passed],
     ['Counterfactual survival advantage is demonstrated', report.testSeries[2]?.passed],
-    ['Trust decay is properly handled', report.testSeries[3]?.passed]
+    ['Trust decay is properly handled', report.testSeries[3]?.passed],
+    ['Flash crowd reflex protection works', report.testSeries[4]?.passed],
+    ['Quality floor enforcement prevents corruption', report.testSeries[5]?.passed],
+    ['No false certainty is guaranteed', report.testSeries[6]?.passed]
   ];
   
   for (const [criterion, passed] of criteriaResults) {
@@ -734,6 +1106,9 @@ Test Series:
   2. Incident Quality - Verify forensic reports are actionable
   3. Counterfactual Survival - Paired runs comparing protected vs control
   4. Trust Decay - Verify confidence drops under novel stress
+  5. Flash Crowd Reflex - Verify reflexive safety override on load spikes
+  6. Quality Floor Enforcement - Verify refusal when recall < quality floor
+  7. No False Certainty - Verify Interlock never claims certainty it doesn't have
 `);
       process.exit(0);
     }

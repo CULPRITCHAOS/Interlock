@@ -189,20 +189,43 @@ Interlock operates within these explicit trust boundaries:
 
 Circuit breakers without hysteresis flap under noisy recovery conditions, destroying trust. Interlock v5.0 implements evidence-driven hysteresis:
 
-### State Transitions
+### State Machine Diagram
 
 ```
-CLOSED ─── hazard exceeds threshold ───> OPEN
-   ^                                       │
-   │                                       │
-   └── N safe probe windows ── HALF_OPEN <─┘
-                                    │
-                                    │ K consecutive safe intervals
-                                    │ X% safety margin recovery  
-                                    │ Minimum confidence threshold
-                                    │
-                                    └── (all conditions must be met)
+                         ┌─────────────────────────────────────┐
+                         │                                     │
+                         ▼                                     │
+┌──────────┐  hazard > threshold  ┌──────────┐                │
+│          │ ─────────────────────>│          │                │
+│  CLOSED  │  OR confidence drop  │   OPEN   │<───────────────┤
+│  (🟢)    │  OR flash crowd      │   (🔴)   │   probe failed │
+│          │  OR quality floor    │          │                │
+└──────────┘                      └──────────┘                │
+     ^                                  │                      │
+     │                                  │                      │
+     │                                  │ K consecutive safe   │
+     │                                  │ X% recovery          │
+     │                                  │ min confidence       │
+     │                                  ▼                      │
+     │     N safe probe windows   ┌──────────┐                │
+     └────────────────────────────│          │────────────────┘
+                                  │HALF_OPEN │
+                                  │   (🟡)   │
+                                  │          │
+                                  └──────────┘
 ```
+
+### State Transitions (REQUIRED)
+
+| From | To | Trigger |
+|------|----|---------|
+| CLOSED | OPEN | Hazard exceeds threshold |
+| CLOSED | OPEN | **Reflex Trip**: Flash crowd detected (load spike) |
+| CLOSED | OPEN | **Quality Floor**: Recall below minimum |
+| CLOSED | OPEN | **Confidence Drop**: Below threshold |
+| OPEN | HALF_OPEN | K consecutive safe intervals + recovery + confidence |
+| HALF_OPEN | CLOSED | N successful probe windows |
+| HALF_OPEN | OPEN | Probe failed |
 
 ### OPEN → HALF_OPEN Requirements
 
@@ -211,6 +234,7 @@ All of the following must be true before Interlock considers recovery:
 1. **K consecutive safe intervals** (hazard below threshold)
 2. **X% safety margin recovery** relative to trigger point (derived from calibration)
 3. **Forecast confidence exceeds minimum threshold**
+4. **Not in reflex cooldown** (after flash crowd protection)
 
 ### HALF_OPEN Behavior
 
@@ -225,6 +249,134 @@ All of the following must be true before Interlock considers recovery:
 - ❌ Magic constants not tied to measured behavior
 - ❌ Premature recovery attempts
 - ❌ State oscillation (flapping)
+
+---
+
+## ⚡ Reflexive Safety Override (Flash Crowd Protection)
+
+**Problem**: Forecasts fail under step-function load spikes.
+
+**Solution**: A spinal reflex that bypasses forecast logic entirely when:
+
+```
+(current_load - previous_load) > FLASH_THRESHOLD
+```
+
+### Behavior
+
+| Action | Description |
+|--------|-------------|
+| **Immediate trip** | Breaker goes to OPEN without waiting for confidence computation |
+| **Bypass forecasting** | This is a reflex, not prediction |
+| **Enter cooldown** | Hysteresis cooldown window prevents premature recovery |
+| **Resume forecasting** | Only after stabilization period |
+
+### Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `flashThreshold` | 2.0 | Load ratio that triggers reflex (2x = double previous load) |
+| `reflexCooldownMs` | 30000 | Cooldown period after reflex trip |
+
+### Market Language
+
+> **"Reflexive safety override for flash crowd protection."**
+
+---
+
+## 🛑 Quality Floor Enforcement (Outcome-Based Degradation)
+
+**Problem**: Surviving with garbage results is silent failure.
+
+**Principle**: Refusal is safer than corruption.
+
+### Behavior
+
+```
+IF recall < QUALITY_FLOOR:
+    REFUSE request (load shed)
+ELSE:
+    degrade gracefully
+```
+
+### Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `qualityFloor` | 0.5 | Minimum recall before refusing requests (50%) |
+| `qualityFloorEnabled` | true | Enable/disable quality floor enforcement |
+
+### What Gets Logged
+
+- All refusals are logged as **trust-preserving actions**
+- Refusal reason includes observed recall vs floor
+- Supports audit trail for SRE investigation
+
+### Market Language
+
+> **"Interlock prefers refusal over corruption."**
+
+---
+
+## 📉 Adaptive Risk Escalation (Confidence Decay Logic)
+
+**Problem**: Systems may claim false certainty when they should be uncertain.
+
+**Principle**: Interlock must explicitly say "I don't know".
+
+### Behavior
+
+When confidence drops sharply:
+1. **Escalate protection before certainty collapses**
+2. **Increase conservatism automatically**
+3. **Never interpolate or extrapolate false certainty**
+
+### Tracked Metrics (REQUIRED)
+
+| Metric | Description |
+|--------|-------------|
+| `confidenceDropPercent` | Percentage drop in confidence from early to late window |
+| `escalatedConservatively` | `true` if protection escalated when confidence degraded |
+| `noFalseCertainty` | `true` if we never claimed certainty we don't have |
+
+### How It Works
+
+```typescript
+// When confidence degrades below threshold
+if (metrics.confidence < minimumConfidenceThreshold) {
+  // TRUST ENFORCEMENT: Escalate conservatively
+  // This ensures we don't claim false certainty
+  escalatedConservatively = true;
+  transitionTo('open', metrics,
+    `Confidence dropped - escalating conservatively`);
+}
+```
+
+---
+
+## 📊 Trust Decay Tracking (Leading Indicator)
+
+**Purpose**: Identify when the model is aging and needs attention.
+
+### Tracked Over Time
+
+| Metric | Description |
+|--------|-------------|
+| Early vs Late Confidence | Compare confidence at start vs end of observation window |
+| Confidence Half-Life | How quickly confidence decays |
+| Drift Severity | Magnitude of confidence degradation |
+
+### Purpose
+
+- Identify retraining need
+- Quantify model aging
+- Support MLOps decisions
+
+### Constraint
+
+> **Informational only** — no auto-retraining claims yet.
+
+This is a **leading indicator** for human operators, not automated remediation.
 
 ---
 
@@ -254,6 +406,38 @@ When Interlock intervenes, it generates a post-mortem-ready forensic artifact:
 - Historical comparison to prior incidents
 
 > **These reports are usable by an SRE without reading Interlock source code.**
+
+---
+
+## 🧪 Validation Test Suite
+
+Run the validation test suite to verify all safety guarantees:
+
+```bash
+npm run validate
+```
+
+### Test Series (NON-NEGOTIABLE)
+
+| # | Test | Description |
+|---|------|-------------|
+| 1 | **Flapping Prevention** | Compare no-interlock, without-hysteresis, with-hysteresis |
+| 2 | **Incident Quality** | Verify forensic reports are actionable |
+| 3 | **Counterfactual Survival** | Paired runs comparing protected vs control |
+| 4 | **Trust Decay** | Verify confidence drops under novel stress |
+| 5 | **Flash Crowd Reflex** | Verify reflexive safety override on load spikes |
+| 6 | **Quality Floor Enforcement** | Verify refusal when recall < quality floor |
+| 7 | **No False Certainty** | Verify Interlock never claims certainty it doesn't have |
+
+### Success Criteria
+
+| Criterion | Test |
+|-----------|------|
+| Protected system survives | Counterfactual Survival |
+| Control system crashes | Counterfactual Survival |
+| Reports generated before failure | Incident Quality |
+| No silent degradation | Quality Floor Enforcement |
+| Conservative escalation verified | Trust Decay, No False Certainty |
 
 ---
 
