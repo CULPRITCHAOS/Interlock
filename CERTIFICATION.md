@@ -231,8 +231,38 @@ The certification badge includes:
 - `config_fingerprint`: Hash of the configuration tested
 - `hardware_fingerprint`: Hash of the hardware used
 - `test_suite_version`: Version of the test suite
+- `signature`: HMAC-SHA256 signature for tamper-evidence
 
 Any change to these factors may invalidate the certification.
+
+### Tamper-Evident Certification
+
+The certification badge includes a cryptographic signature (`signature` field) that makes tampering detectable:
+
+**Signed Fields (in canonical order):**
+1. `config_fingerprint`
+2. `hardware_fingerprint`
+3. `interlock_class`
+4. `load_rating`
+5. `repo_commit`
+6. `test_suite_version`
+7. `valid_until`
+
+**What This Means:**
+- Manual edits to `interlock_shield.json` will be detected at runtime
+- The signature is computed from core certified claims only (not cosmetic metadata)
+- Tampering emits a warning: `SECURITY WARNING: Certification Badge Tampered`
+- The system does **not** crash — tamper-evidence is informational, not enforcement
+
+**This is NOT:**
+- A tamper-proof system (the JSON file can still be edited)
+- A security enforcement mechanism (malicious actors can regenerate signatures)
+- A replacement for proper CI/CD controls
+
+**This IS:**
+- An audit trail showing whether the badge was modified after generation
+- Evidence of integrity for compliance and trust purposes
+- A deterrent against accidental or opportunistic edits
 
 ---
 

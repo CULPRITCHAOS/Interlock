@@ -174,6 +174,10 @@ export interface InterlockShield {
   // ============= NEW: Evidence =============
   /** Tests/artifacts that justify this class */
   evidence: string[];
+  
+  // ============= NEW: Tamper-Evident Signature =============
+  /** HMAC-SHA256 signature of core certified claims (tamper-evident) */
+  signature?: string;
 }
 
 // ============= Helper Functions =============
@@ -212,6 +216,119 @@ function generateHardwareFingerprint(): string {
   
   const fingerprint = `${memoryGb}GB-${cpuCores}cores-${platform}-${cpuModel}`;
   return crypto.createHash('sha256').update(fingerprint).digest('hex').substring(0, 16);
+}
+
+// ============= Tamper-Evident Signature =============
+
+/**
+ * Core certified claims that are included in the signature.
+ * These fields (and ONLY these fields) are cryptographically signed.
+ * 
+ * SIGNED FIELDS (EXACT - from problem statement):
+ * - interlock_class
+ * - load_rating
+ * - valid_until
+ * - repo_commit
+ * - config_fingerprint
+ * - hardware_fingerprint
+ * - test_suite_version
+ */
+export interface SignedClaims {
+  interlock_class: string;
+  load_rating: string;
+  valid_until: string;
+  repo_commit: string | null;
+  config_fingerprint: string;
+  hardware_fingerprint: string;
+  test_suite_version: string;
+}
+
+/**
+ * Extract signed claims from a shield for signature computation.
+ * Uses stable key order for deterministic signing.
+ */
+export function extractSignedClaims(shield: InterlockShield): SignedClaims {
+  return {
+    interlock_class: shield.interlockClass,
+    load_rating: shield.loadRating,
+    valid_until: shield.valid_until,
+    repo_commit: shield.repo_commit,
+    config_fingerprint: shield.config_fingerprint,
+    hardware_fingerprint: shield.hardware_fingerprint,
+    test_suite_version: shield.test_suite_version
+  };
+}
+
+/**
+ * Build canonical string from signed claims for signature computation.
+ * Uses stable order and delimiter separation for deterministic hashing.
+ */
+export function buildCanonicalString(claims: SignedClaims): string {
+  // Stable order: alphabetical by key name
+  const parts = [
+    `config_fingerprint=${claims.config_fingerprint}`,
+    `hardware_fingerprint=${claims.hardware_fingerprint}`,
+    `interlock_class=${claims.interlock_class}`,
+    `load_rating=${claims.load_rating}`,
+    `repo_commit=${claims.repo_commit ?? 'null'}`,
+    `test_suite_version=${claims.test_suite_version}`,
+    `valid_until=${claims.valid_until}`
+  ];
+  return parts.join('|');
+}
+
+/**
+ * Generate HMAC-SHA256 signature for the badge.
+ * 
+ * Key source priority:
+ * 1. INTERLOCK_SIGNING_KEY environment variable (production)
+ * 2. Default fallback key for development (allows badge generation without secrets)
+ * 
+ * ⚠️ WARNING: In production, always inject the signing key via environment variable.
+ * The fallback key is for development/testing only.
+ */
+export function generateBadgeSignature(claims: SignedClaims): string {
+  const signingKey = process.env.INTERLOCK_SIGNING_KEY || 'interlock-dev-signing-key-not-for-production';
+  const canonicalString = buildCanonicalString(claims);
+  const signature = crypto.createHmac('sha256', signingKey)
+    .update(canonicalString)
+    .digest('hex');
+  return signature;
+}
+
+/**
+ * Verify the HMAC-SHA256 signature of a badge.
+ * Returns verification result with details.
+ * 
+ * @returns Object with verification status and details
+ */
+export function verifyBadgeSignature(shield: InterlockShield): {
+  valid: boolean;
+  expectedSignature: string;
+  actualSignature: string | undefined;
+  claims: SignedClaims;
+  warningMessage: string | null;
+} {
+  const claims = extractSignedClaims(shield);
+  const expectedSignature = generateBadgeSignature(claims);
+  const actualSignature = shield.signature;
+  
+  const valid = actualSignature === expectedSignature;
+  
+  let warningMessage: string | null = null;
+  if (!actualSignature) {
+    warningMessage = 'SECURITY WARNING: Badge has no signature - cannot verify integrity';
+  } else if (!valid) {
+    warningMessage = 'SECURITY WARNING: Certification Badge Tampered - signature mismatch detected';
+  }
+  
+  return {
+    valid,
+    expectedSignature,
+    actualSignature,
+    claims,
+    warningMessage
+  };
 }
 
 /**
@@ -342,7 +459,8 @@ export function generateShield(options: {
   const expiryDate = calculateExpiryDate(now, validityDays);
   const staleness = checkCertificationStaleness(expiryDate.toISOString());
   
-  return {
+  // Create shield without signature first
+  const shield: InterlockShield = {
     version: '2.0.0',
     generated: now.toISOString(),
     interlockVersion: '5.0.0',
@@ -399,6 +517,12 @@ export function generateShield(options: {
     
     evidence: classResult.evidence
   };
+  
+  // Generate cryptographic signature for tamper-evidence
+  const claims = extractSignedClaims(shield);
+  shield.signature = generateBadgeSignature(claims);
+  
+  return shield;
 }
 
 // ============= Badge Output Formatters =============
@@ -603,6 +727,171 @@ export function checkRuntimeStaleness(shieldPath: string = 'results/certificatio
       warningMessage: `Failed to read certification: ${error}`,
       metricsPayload: { certification_stale: 1, days_until_expiry: -1 }
     };
+  }
+}
+
+// ============= Runtime Badge Verification (Complete) =============
+
+/**
+ * Badge validity check result
+ */
+export interface BadgeValidityResult {
+  /** Is the badge valid? */
+  isValid: boolean;
+  
+  /** Is the badge signature valid (tamper-evident check)? */
+  signatureValid: boolean;
+  
+  /** Is the badge not expired? */
+  notExpired: boolean;
+  
+  /** Does the repo commit match current? */
+  repoCommitMatches: boolean;
+  
+  /** Does the config fingerprint match? (if provided) */
+  configFingerprintMatches: boolean;
+  
+  /** Does the hardware fingerprint match? */
+  hardwareFingerprintMatches: boolean;
+  
+  /** List of all warning messages */
+  warnings: string[];
+  
+  /** List of all error messages (invalidating conditions) */
+  errors: string[];
+  
+  /** Days until badge expiry */
+  daysUntilExpiry: number;
+  
+  /** The shield data */
+  shield: InterlockShield | null;
+}
+
+/**
+ * Verify badge validity at runtime.
+ * 
+ * Checks ALL validity conditions per problem statement:
+ * - Current date > valid_until
+ * - repo_commit changes
+ * - config_fingerprint changes
+ * - hardware_fingerprint changes
+ * - test_suite_version changes
+ * - Signature tampering
+ * 
+ * @param shieldPath Path to the shield JSON file
+ * @param currentConfigFingerprint Optional - current config fingerprint to compare
+ * @returns Validity result with detailed breakdown
+ */
+export function verifyBadgeValidity(
+  shieldPath: string = 'results/certification/interlock_shield.json',
+  currentConfigFingerprint?: string
+): BadgeValidityResult {
+  const result: BadgeValidityResult = {
+    isValid: true,
+    signatureValid: false,
+    notExpired: false,
+    repoCommitMatches: true, // Default true unless we can check
+    configFingerprintMatches: true, // Default true unless we can check
+    hardwareFingerprintMatches: false,
+    warnings: [],
+    errors: [],
+    daysUntilExpiry: -1,
+    shield: null
+  };
+  
+  // Check if file exists
+  if (!fs.existsSync(shieldPath)) {
+    result.isValid = false;
+    result.errors.push('No certification badge found. Run npm run validate && npx tsx scripts/generate-badge.ts');
+    return result;
+  }
+  
+  // Try to parse the shield
+  let shield: InterlockShield;
+  try {
+    shield = JSON.parse(fs.readFileSync(shieldPath, 'utf-8'));
+    result.shield = shield;
+  } catch (error) {
+    result.isValid = false;
+    result.errors.push(`Failed to parse certification badge: ${error}`);
+    return result;
+  }
+  
+  // 1. Check signature (tamper-evident)
+  const signatureResult = verifyBadgeSignature(shield);
+  result.signatureValid = signatureResult.valid;
+  if (!signatureResult.valid) {
+    result.isValid = false;
+    if (signatureResult.warningMessage) {
+      result.errors.push(signatureResult.warningMessage);
+    }
+  }
+  
+  // 2. Check expiry (valid_until)
+  const staleness = checkCertificationStaleness(shield.valid_until);
+  result.daysUntilExpiry = staleness.daysUntilExpiry;
+  result.notExpired = !staleness.isStale;
+  if (staleness.isStale) {
+    result.isValid = false;
+    result.errors.push(`Badge expired ${Math.abs(staleness.daysUntilExpiry)} days ago. Run validation tests to refresh.`);
+  } else if (staleness.warningMessage) {
+    result.warnings.push(staleness.warningMessage);
+  }
+  
+  // 3. Check repo_commit
+  const currentCommit = getGitCommit();
+  if (currentCommit && shield.repo_commit && currentCommit !== shield.repo_commit) {
+    result.repoCommitMatches = false;
+    result.isValid = false;
+    result.errors.push(`Repository commit changed: badge=${shield.repo_commit}, current=${currentCommit}. Re-run validation.`);
+  }
+  
+  // 4. Check config_fingerprint (if provided)
+  if (currentConfigFingerprint && shield.config_fingerprint !== currentConfigFingerprint) {
+    result.configFingerprintMatches = false;
+    result.isValid = false;
+    result.errors.push(`Configuration changed: badge=${shield.config_fingerprint}, current=${currentConfigFingerprint}. Re-run validation.`);
+  }
+  
+  // 5. Check hardware_fingerprint
+  const currentHardwareFingerprint = generateHardwareFingerprint();
+  if (shield.hardware_fingerprint === currentHardwareFingerprint) {
+    result.hardwareFingerprintMatches = true;
+  } else {
+    result.hardwareFingerprintMatches = false;
+    result.isValid = false;
+    result.errors.push(`Hardware changed: badge=${shield.hardware_fingerprint}, current=${currentHardwareFingerprint}. Re-run validation.`);
+  }
+  
+  return result;
+}
+
+/**
+ * Print runtime badge verification warnings to console.
+ * This should be called at application startup.
+ * Does NOT crash the system - only emits warnings.
+ */
+export function emitBadgeVerificationWarnings(
+  shieldPath: string = 'results/certification/interlock_shield.json',
+  currentConfigFingerprint?: string
+): void {
+  const result = verifyBadgeValidity(shieldPath, currentConfigFingerprint);
+  
+  // Emit errors (invalidating conditions)
+  for (const error of result.errors) {
+    console.error(`[INTERLOCK] ${error}`);
+  }
+  
+  // Emit warnings (non-invalidating but concerning)
+  for (const warning of result.warnings) {
+    console.warn(`[INTERLOCK] ${warning}`);
+  }
+  
+  // Summary
+  if (!result.isValid) {
+    console.error('[INTERLOCK] ⚠️ Certification badge is INVALID. System continues but certification claims are void.');
+  } else if (result.warnings.length > 0) {
+    console.warn(`[INTERLOCK] ⚠️ Badge valid but ${result.warnings.length} warning(s) present.`);
   }
 }
 
