@@ -47,6 +47,14 @@ import {
   STATE_SCHEMA_VERSION,
   PersistedState
 } from '../services/state_persistence';
+import {
+  createSemanticFingerprint,
+  createSanitizedIncidentContext,
+  sanitizeObject,
+  containsPII,
+  redactPII,
+  validateSanitization
+} from '../services/data_sanitization';
 
 // ============= Seeded Random Number Generator =============
 const LCG_MULTIPLIER = 1103515245;
@@ -1256,6 +1264,168 @@ function runStatePersistenceTest(seed: number): TestSeriesResult {
   };
 }
 
+// ============= Test Series 10: Forensic Data Sanitization (Phase C) =============
+
+/**
+ * Test Series 10: Forensic Data Sanitization Test
+ * 
+ * Problem: Incident reports must be SRE-useful without leaking PII.
+ * 
+ * Success Criteria:
+ * - Semantic fingerprinting replaces raw queries with statistical properties
+ * - Raw text, user identifiers, request payloads are stripped
+ * - Incident reports remain actionable (contain useful metrics)
+ * - No raw payload survives serialization
+ */
+function runDataSanitizationTest(seed: number): TestSeriesResult {
+  const details: string[] = [];
+  
+  let piiDetectionPassed = false;
+  let piiRedactionPassed = false;
+  let vectorFingerprintingPassed = false;
+  let incidentSanitizationPassed = false;
+  let noRawPayloadSurvivesPassed = false;
+  
+  // Test 1: PII Detection
+  {
+    const testCases = [
+      { text: 'User email is john.doe@example.com', hasPII: true, types: ['email'] },
+      { text: 'Call me at 555-123-4567', hasPII: true, types: ['phone'] },
+      { text: 'SSN: 123-45-6789', hasPII: true, types: ['ssn'] },
+      { text: 'IP: 192.168.1.1', hasPII: true, types: ['ipAddress'] },
+      { text: 'Normal operational text', hasPII: false, types: [] },
+      { text: 'Credit card: 4111-1111-1111-1111', hasPII: true, types: ['creditCard'] }
+    ];
+    
+    let allPassed = true;
+    for (const tc of testCases) {
+      const result = containsPII(tc.text);
+      if (result.hasPII !== tc.hasPII) {
+        allPassed = false;
+        details.push(`PII detection failed for: "${tc.text.substring(0, 20)}..."`);
+      }
+    }
+    
+    piiDetectionPassed = allPassed;
+    details.push(`Test 1 (PII Detection): ${piiDetectionPassed ? '✓' : '✗'}`);
+  }
+  
+  // Test 2: PII Redaction
+  {
+    const input = 'Contact john.doe@example.com or call 555-123-4567';
+    const result = redactPII(input);
+    
+    piiRedactionPassed = !result.redacted.includes('john.doe@example.com') &&
+                         !result.redacted.includes('555-123-4567') &&
+                         result.redacted.includes('[REDACTED_');
+    details.push(`Test 2 (PII Redaction): ${piiRedactionPassed ? '✓' : '✗'} - ${result.redactedCount} items redacted`);
+  }
+  
+  // Test 3: Vector Fingerprinting
+  {
+    const testVector = Array.from({ length: 128 }, (_, i) => Math.sin(i * 0.1) * Math.random());
+    const fingerprint = createSemanticFingerprint(testVector, [0.95, 0.87, 0.76, 0.65]);
+    
+    vectorFingerprintingPassed = 
+      fingerprint.vectorNorm !== undefined &&
+      fingerprint.sparsity !== undefined &&
+      fingerprint.centroidId !== undefined &&
+      fingerprint.dimensionalEntropy !== undefined &&
+      fingerprint.similarityDistribution !== undefined &&
+      fingerprint.queryCharacteristics !== undefined;
+    
+    details.push(`Test 3 (Vector Fingerprinting): ${vectorFingerprintingPassed ? '✓' : '✗'}`);
+    if (vectorFingerprintingPassed) {
+      details.push(`  - Norm: ${fingerprint.vectorNorm?.toFixed(3)}, Sparsity: ${fingerprint.sparsity?.toFixed(3)}`);
+      details.push(`  - Entropy: ${fingerprint.dimensionalEntropy?.toFixed(3)}, Centroid: ${fingerprint.centroidId?.substring(0, 16)}...`);
+    }
+  }
+  
+  // Test 4: Incident Context Sanitization
+  {
+    const rawContext = {
+      query: Array.from({ length: 64 }, () => Math.random()),
+      result: Array.from({ length: 64 }, () => Math.random()),
+      similarities: [0.95, 0.87, 0.76, 0.65],
+      latencyMs: 45.5,
+      resultCount: 10,
+      indexSize: 100000,
+      memoryPressure: 65.5,
+      queueDepth: 5,
+      error: new Error('Test error'),
+      sessionId: 'user-session-12345-secret',
+      requestNumber: 42,
+      sessionStartTime: Date.now() - 60000,
+      sessionRequestCount: 10,
+      rawPayload: { userId: 'user-123', email: 'test@example.com', query: 'secret query text' }
+    };
+    
+    const sanitized = createSanitizedIncidentContext(rawContext);
+    
+    // Check that raw data is replaced with fingerprints
+    incidentSanitizationPassed = 
+      sanitized.queryFingerprint !== undefined &&
+      sanitized.operationalMetrics.queryLatencyMs === 45.5 &&
+      sanitized.sessionContext.sessionHash !== 'user-session-12345-secret' &&
+      sanitized.sanitizationMetadata.fieldsRedacted.length > 0;
+    
+    details.push(`Test 4 (Incident Sanitization): ${incidentSanitizationPassed ? '✓' : '✗'}`);
+    details.push(`  - Fields redacted: ${sanitized.sanitizationMetadata.fieldsRedacted.join(', ')}`);
+    details.push(`  - Size reduction: ${sanitized.sanitizationMetadata.originalPayloadSize} → ${sanitized.sanitizationMetadata.sanitizedPayloadSize}`);
+  }
+  
+  // Test 5: No Raw Payload Survives
+  {
+    const dangerousPayload = {
+      userId: 'secret-user-id-12345',
+      email: 'user@secret.com',
+      password: 'super-secret-password',
+      query_vector: Array.from({ length: 100 }, () => Math.random()),
+      api_key: 'test_api_key_1234567890abcdefghij',
+      user_address: '123 Secret Street',
+      ssn: '123-45-6789'
+    };
+    
+    const sanitized = sanitizeObject(dangerousPayload);
+    const serialized = JSON.stringify(sanitized);
+    
+    // Verify no raw sensitive data survives
+    noRawPayloadSurvivesPassed = 
+      !serialized.includes('secret-user-id-12345') &&
+      !serialized.includes('user@secret.com') &&
+      !serialized.includes('super-secret-password') &&
+      !serialized.includes('test_api_key_') &&
+      !serialized.includes('123 Secret Street') &&
+      !serialized.includes('123-45-6789');
+    
+    const validation = validateSanitization(sanitized);
+    noRawPayloadSurvivesPassed = noRawPayloadSurvivesPassed && validation.valid;
+    
+    details.push(`Test 5 (No Raw Payload Survives): ${noRawPayloadSurvivesPassed ? '✓' : '✗'}`);
+    if (!validation.valid) {
+      details.push(`  - Validation issues: ${validation.issues.join('; ')}`);
+    }
+  }
+  
+  const passed = piiDetectionPassed && piiRedactionPassed && 
+                 vectorFingerprintingPassed && incidentSanitizationPassed &&
+                 noRawPayloadSurvivesPassed;
+  
+  return {
+    name: 'Forensic Data Sanitization',
+    description: 'Verify incident reports are SRE-useful without PII',
+    passed,
+    metrics: {
+      piiDetection: piiDetectionPassed ? 1 : 0,
+      piiRedaction: piiRedactionPassed ? 1 : 0,
+      vectorFingerprinting: vectorFingerprintingPassed ? 1 : 0,
+      incidentSanitization: incidentSanitizationPassed ? 1 : 0,
+      noRawPayloadSurvives: noRawPayloadSurvivesPassed ? 1 : 0
+    },
+    details
+  };
+}
+
 // ============= Main Test Runner =============
 
 function runValidationTests(seed: number = 42): ValidationReport {
@@ -1318,6 +1488,12 @@ function runValidationTests(seed: number = 42): ValidationReport {
   const statePersistenceResult = runStatePersistenceTest(seed);
   testSeries.push(statePersistenceResult);
   console.log(`  Result: ${statePersistenceResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  
+  // Test Series 10: Forensic Data Sanitization (Phase C)
+  console.log('Running Test Series 10: Forensic Data Sanitization...');
+  const dataSanitizationResult = runDataSanitizationTest(seed);
+  testSeries.push(dataSanitizationResult);
+  console.log(`  Result: ${dataSanitizationResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
   
   const overallPassed = testSeries.every(t => t.passed);
   
@@ -1389,7 +1565,8 @@ function generateValidationMarkdown(report: ValidationReport): string {
     ['Quality floor enforcement prevents corruption', report.testSeries[5]?.passed],
     ['No false certainty is guaranteed', report.testSeries[6]?.passed],
     ['Shadow mode (dry run) logs without interfering', report.testSeries[7]?.passed],
-    ['State persistence survives restarts safely', report.testSeries[8]?.passed]
+    ['State persistence survives restarts safely', report.testSeries[8]?.passed],
+    ['Forensic data sanitization protects PII', report.testSeries[9]?.passed]
   ];
   
   for (const [criterion, passed] of criteriaResults) {
@@ -1442,6 +1619,7 @@ Test Series:
   7. No False Certainty - Verify Interlock never claims certainty it doesn't have
   8. Shadow Mode (Dry Run) - Verify shadow mode logs without interfering
   9. State Persistence - Verify state survives restarts safely
+ 10. Forensic Data Sanitization - Verify incident reports protect PII
 `);
       process.exit(0);
     }

@@ -1,0 +1,406 @@
+{
+  "config": {
+    "seed": 42,
+    "totalCycles": 20,
+    "stepsPerCycle": 100,
+    "normalPhaseFraction": 0.4,
+    "stressPhaseFraction": 0.3,
+    "recoveryPhaseFraction": 0.3,
+    "memoryCheckInterval": 100,
+    "driftWindowSize": 500,
+    "maxAcceptableDrift": 0.1,
+    "stateFilePath": "/tmp/interlock-stability-test/state.json",
+    "maxStateFileSizeKb": 50,
+    "maxFalsePositiveRateIncrease": 0.05,
+    "outputDir": "results/stability"
+  },
+  "startTime": "2025-12-13T17:05:34.815Z",
+  "endTime": "2025-12-13T17:05:34.837Z",
+  "totalSteps": 2000,
+  "memoryStable": true,
+  "memorySnapshots": [
+    {
+      "step": 100,
+      "heapUsedMb": 6.7964630126953125,
+      "heapTotalMb": 10.9765625,
+      "externalMb": 2.244770050048828
+    },
+    {
+      "step": 200,
+      "heapUsedMb": 7.523857116699219,
+      "heapTotalMb": 10.9765625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 300,
+      "heapUsedMb": 8.244140625,
+      "heapTotalMb": 10.9765625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 400,
+      "heapUsedMb": 7.341789245605469,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 500,
+      "heapUsedMb": 8.060684204101562,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 600,
+      "heapUsedMb": 6.8466644287109375,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 700,
+      "heapUsedMb": 7.556114196777344,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 800,
+      "heapUsedMb": 8.265853881835938,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 900,
+      "heapUsedMb": 7.0616455078125,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 1000,
+      "heapUsedMb": 7.765037536621094,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 1100,
+      "heapUsedMb": 8.465408325195312,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 1200,
+      "heapUsedMb": 7.2331390380859375,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 1300,
+      "heapUsedMb": 7.934478759765625,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 1400,
+      "heapUsedMb": 8.62164306640625,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 1500,
+      "heapUsedMb": 7.2368011474609375,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 1600,
+      "heapUsedMb": 7.7503204345703125,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 1700,
+      "heapUsedMb": 8.263816833496094,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 1800,
+      "heapUsedMb": 6.862098693847656,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 1900,
+      "heapUsedMb": 7.3767852783203125,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    },
+    {
+      "step": 2000,
+      "heapUsedMb": 7.893302917480469,
+      "heapTotalMb": 11.2265625,
+      "externalMb": 2.193791389465332
+    }
+  ],
+  "memoryGrowthMbPerCycle": 0.05484199523925781,
+  "memoryLeakDetected": false,
+  "confidenceStable": true,
+  "earlyAvgConfidence": 0.7329463032969762,
+  "lateAvgConfidence": 0.7244132659520087,
+  "confidenceDrift": 0.008533037344967465,
+  "driftAccumulation": [
+    0,
+    0.004709760708133892,
+    0.0022832875867755398,
+    0.006347450624847317,
+    0.0026227986335861653,
+    0.00475991836411882,
+    0.009382480405914717,
+    0.004758834191951333,
+    0.00810681349509701,
+    0.0073838721296675125,
+    0.008468047097077824,
+    0.017095455533869153,
+    0.006344304646525467,
+    0.0006720111596733025,
+    0.006695159497994596,
+    0.006134273673470525,
+    0.00004066647265121848,
+    0.002974464760150286,
+    0.00748252151509865,
+    0.0013471412217929135
+  ],
+  "stateFileStable": true,
+  "stateFileSizeHistory": [
+    1.490234375,
+    1.4912109375,
+    1.4833984375,
+    1.4892578125,
+    1.486328125,
+    1.48828125,
+    1.490234375,
+    1.4853515625,
+    1.494140625,
+    1.4892578125,
+    1.490234375,
+    1.486328125,
+    1.486328125,
+    1.48828125,
+    1.490234375,
+    1.484375,
+    1.4912109375,
+    1.4892578125,
+    1.48828125,
+    1.4873046875
+  ],
+  "maxStateFileSizeKb": 1.494140625,
+  "stateFileSizeGrowthRate": -0.000146484375,
+  "falsePositiveStable": false,
+  "earlyFalsePositiveRate": 0.585,
+  "lateFalsePositiveRate": 0.6616666666666666,
+  "falsePositiveRateChange": 0.07666666666666666,
+  "cycleResults": [
+    {
+      "cycleNumber": 1,
+      "breakerTrips": 1,
+      "recoveries": 0,
+      "falsePositives": 24,
+      "falseNegatives": 0,
+      "avgConfidence": 0.72730014302223,
+      "maxHazard": 0.7995462577167027,
+      "stateTransitions": 1
+    },
+    {
+      "cycleNumber": 2,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 62,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7320099037303639,
+      "maxHazard": 0.8338795007131433,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 3,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 68,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7342931913171394,
+      "maxHazard": 0.7529706379102095,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 4,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 63,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7279457406922921,
+      "maxHazard": 0.7925285180918228,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 5,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 66,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7305685393258783,
+      "maxHazard": 0.725113662103399,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 6,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 68,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7258086209617595,
+      "maxHazard": 0.8217738370822931,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 7,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 67,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7351911013676742,
+      "maxHazard": 0.8109917005730445,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 8,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 66,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7304322671757228,
+      "maxHazard": 0.742279020980441,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 9,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 68,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7223254536806258,
+      "maxHazard": 0.754590221279265,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 10,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 63,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7297093258102934,
+      "maxHazard": 0.8622821172911744,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 11,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 66,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7212412787132155,
+      "maxHazard": 0.838346127748961,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 12,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 65,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7383367342470847,
+      "maxHazard": 0.8385939439860765,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 13,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 63,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7319924296005592,
+      "maxHazard": 0.7667991301045439,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 14,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 67,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7326644407602325,
+      "maxHazard": 0.8698159775012867,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 15,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 65,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7259692812622379,
+      "maxHazard": 0.8076728185596903,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 16,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 67,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7321035549357084,
+      "maxHazard": 0.8380453349035445,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 17,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 69,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7321442214083597,
+      "maxHazard": 0.8239187698301792,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 18,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 68,
+      "falseNegatives": 0,
+      "avgConfidence": 0.73511868616851,
+      "maxHazard": 0.8008521478239069,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 19,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 61,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7276361646534113,
+      "maxHazard": 0.8524579605254303,
+      "stateTransitions": 0
+    },
+    {
+      "cycleNumber": 20,
+      "breakerTrips": 0,
+      "recoveries": 0,
+      "falsePositives": 67,
+      "falseNegatives": 0,
+      "avgConfidence": 0.7289833058752042,
+      "maxHazard": 0.8800410589498348,
+      "stateTransitions": 0
+    }
+  ],
+  "passed": false,
+  "issues": [
+    "False positive rate increasing: +7.67% (max: 5%)"
+  ]
+}

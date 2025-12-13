@@ -605,9 +605,181 @@ npm run validate
 
 - `/backend` — Python FAISS harness, circuit breaker, certification report generators
 - `/components` — UI widgets (Early Warning Panel, Charts)
-- `/services` — Failure forecasting, circuit breaker logic
-- `/scripts` — Headless simulation runners
-- `/results` — Certification outputs
+- `/services` — Failure forecasting, circuit breaker logic, state persistence, data sanitization
+- `/scripts` — Headless simulation runners, benchmarks, stability tests
+- `/results` — Certification outputs, benchmark reports, stability reports
+
+---
+
+## 🔒 v2.x Operational Hardening Features
+
+### State Persistence (Restart Safety)
+
+**Problem**: Interlock loses safety context on restart, creating unsafe optimism.
+
+**Solution**: Local state persistence with safe boot behavior.
+
+```typescript
+// State is persisted to interlock_state.json
+// Schema versioning ensures forward compatibility
+// Validation prevents corrupt state from causing issues
+
+// Safe boot rules:
+// - If previous state was OPEN or HALF_OPEN → resume in OPEN (conservative)
+// - Never auto-restore CLOSED without evidence
+// - Corrupt state file → fail safe (OPEN)
+```
+
+| Scenario | Behavior |
+|----------|----------|
+| Restart during OPEN | Remains OPEN |
+| Restart during cooldown | Cooldown respected |
+| Corrupt state file | Fail safe → OPEN |
+| Stale state (>24h) | Fresh start |
+
+### Shadow Mode Trust Upgrade
+
+**Problem**: Shadow Mode logs "would have blocked" events, but risks being interpreted as false positives.
+
+**Solution**: Reframed outputs with semantic violation types:
+
+| Old Output | New Output |
+|------------|------------|
+| SHADOW_BLOCK | SAFETY_MARGIN_VIOLATION |
+| - | PROJECTED_FAILURE_WINDOW |
+| - | QUALITY_DEGRADATION |
+| - | CONFIDENCE_DECAY |
+
+Each shadow block now includes:
+- `distanceToBoundary` — How close to hazard threshold
+- `durationInRedZone` — Time spent above threshold
+- `counterfactualCrashPoint` — Estimated crash point without protection
+- `explanation.survivedByLuck` — "System survived by luck, not safety"
+- `explanation.interlockWouldHaveIntervened` — "Interlock would have intervened here"
+
+### Forensic Data Sanitization (Legal + Utility)
+
+**Problem**: Incident reports must be SRE-useful without leaking PII.
+
+**Solution**: Semantic fingerprinting replaces raw data with statistical properties:
+
+| Removed | Replaced With |
+|---------|--------------|
+| Raw query vectors | vector_norm, sparsity, centroid_id |
+| User identifiers | Session hash |
+| Request payloads | dimensional_entropy |
+| Raw text | Content hash |
+
+```typescript
+// Semantic fingerprint includes:
+// - vectorNorm: L2 norm of the vector
+// - sparsity: Fraction of near-zero elements
+// - centroidId: Anonymized nearest cluster ID
+// - dimensionalEntropy: Information distribution
+// - similarityDistribution: Statistical summary
+```
+
+### Comparative Benchmarks
+
+Run comparative benchmarks to prove Interlock advantage:
+
+```bash
+npx tsx scripts/comparative-benchmark.ts
+```
+
+Compares four protection modes:
+1. **No protection** — Baseline crash behavior
+2. **Monitoring only** — Alerts without action
+3. **Naive circuit breaker** — Simple threshold breaker
+4. **Interlock** — Full evidence-based protection
+
+### Long-Run Stability Test
+
+Prove Interlock doesn't degrade over time:
+
+```bash
+npx tsx scripts/long-run-stability.ts --cycles 50
+```
+
+Validates:
+- No memory leaks
+- No confidence drift accumulation
+- Stable state file size
+- No increasing false positives
+
+---
+
+## 🚀 Production Readiness Checklist
+
+Before deploying Interlock to production:
+
+- [ ] **Run validation tests**: `npm run validate` — All 10 tests must pass
+- [ ] **Run comparative benchmark**: Verify Interlock advantage vs alternatives
+- [ ] **Run stability test**: Verify no degradation over time
+- [ ] **Configure state persistence**: Set `stateFilePath` to persistent storage
+- [ ] **Start in Shadow Mode**: Use `dryRun: true` for first week
+- [ ] **Review shadow blocks**: Audit "would have blocked" decisions
+- [ ] **Enable active protection**: Set `dryRun: false` after trust acquired
+- [ ] **Set up monitoring**: Track breaker trips, recoveries, refusals
+- [ ] **Configure alerting**: Alert on sustained OPEN state
+- [ ] **Document rollback plan**: How to disable Interlock if needed
+
+---
+
+## 🛡️ How to Deploy Safely
+
+### Week 1: Shadow Mode (Trust Acquisition)
+
+```typescript
+const config: HysteresisConfig = {
+  ...DEFAULT_HYSTERESIS_CONFIG,
+  dryRun: true  // Shadow mode - observe only
+};
+```
+
+1. Deploy Interlock in shadow mode
+2. Monitor shadow blocks in logs
+3. Review "would have blocked" decisions
+4. Verify alignment with expectations
+
+### Week 2: Active Mode (Gradual Rollout)
+
+```typescript
+const config: HysteresisConfig = {
+  ...DEFAULT_HYSTERESIS_CONFIG,
+  dryRun: false  // Active protection
+};
+```
+
+1. Enable active mode on non-critical traffic first
+2. Monitor actual interventions
+3. Verify no false positives on production traffic
+4. Gradually increase traffic coverage
+
+### Ongoing: Monitor and Tune
+
+- Review incident reports weekly
+- Track false positive/negative rates
+- Adjust thresholds based on evidence
+- Run stability tests monthly
+
+---
+
+## 🚫 What Interlock Refuses To Do
+
+Interlock explicitly refuses to:
+
+| Action | Reason |
+|--------|--------|
+| **Claim certainty it doesn't have** | Confidence decay tracking prevents false certainty |
+| **Recover prematurely** | Hysteresis requires evidence before CLOSED |
+| **Serve corrupt results** | Quality floor enforcement prefers refusal |
+| **Ignore flash crowds** | Reflexive override bypasses slow forecasting |
+| **Lose state on restart** | Persistence ensures safety context survives |
+| **Leak PII in reports** | Data sanitization strips sensitive data |
+| **Make unvalidated predictions** | All forecasts include uncertainty bounds |
+
+> **Interlock prefers caution over optimism, refusal over corruption.**
 
 ---
 
