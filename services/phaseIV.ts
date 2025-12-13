@@ -37,6 +37,11 @@ import {
 
 // ============= Seeded Random Number Generator =============
 
+// Linear Congruential Generator constants (MINSTD parameters)
+const LCG_MULTIPLIER = 1103515245;
+const LCG_INCREMENT = 12345;
+const LCG_MODULUS = 0x7fffffff; // 2^31 - 1
+
 class SeededRandom {
   private seed: number;
 
@@ -45,8 +50,8 @@ class SeededRandom {
   }
 
   next(): number {
-    this.seed = (this.seed * 1103515245 + 12345) & 0x7fffffff;
-    return this.seed / 0x7fffffff;
+    this.seed = (this.seed * LCG_MULTIPLIER + LCG_INCREMENT) & LCG_MODULUS;
+    return this.seed / LCG_MODULUS;
   }
 
   reset(seed: number): void {

@@ -2748,6 +2748,9 @@ function executeRun(seed: number, generations: number, transferEnabled: boolean,
   return { runId, config, convergence, lawQuality, transferEff, driftRes, abSummary, report };
 }
 
+// Run mode type
+type RunMode = 'standard' | 'certification' | 'phase4';
+
 // Parse command line arguments
 interface ParsedArgs {
   seed: number;
@@ -2755,7 +2758,7 @@ interface ParsedArgs {
   transfer: boolean;
   drift: boolean;
   out: string;
-  mode: 'standard' | 'certification' | 'phase4';
+  mode: RunMode;
   stabilityGens: number;
   driftEvents: number;
   // Phase IV specific
@@ -2771,7 +2774,7 @@ function parseArgs(): ParsedArgs {
   let transfer = false;
   let drift = false;
   let out = 'results/default';
-  let mode: 'standard' | 'certification' | 'phase4' = 'standard';
+  let mode: RunMode = 'standard';
   let stabilityGens = 100;
   let driftEvents = 3;
   // Phase IV defaults
@@ -2796,7 +2799,7 @@ function parseArgs(): ParsedArgs {
       out = args[i + 1];
       i++;
     } else if (args[i] === '--mode' && args[i + 1]) {
-      mode = args[i + 1].toLowerCase() as 'standard' | 'certification' | 'phase4';
+      mode = args[i + 1].toLowerCase() as RunMode;
       i++;
     } else if (args[i] === '--stability-gens' && args[i + 1]) {
       stabilityGens = parseInt(args[i + 1], 10);
