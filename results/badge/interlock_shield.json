@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "generated": "2025-12-13T18:32:07.994Z",
+  "generated": "2025-12-13T18:56:31.098Z",
   "interlockVersion": "5.0.0",
   "interlockClass": "V",
   "interlockClassName": "Cognitive",
@@ -40,14 +40,14 @@
   "qualityFloorThreshold": 0.5,
   "certificationTier": "SAFETY_CERTIFIED",
   "certificationF1": 1,
-  "issued_at": "2025-12-13T18:32:07.994Z",
-  "valid_until": "2026-01-12T18:32:07.994Z",
+  "issued_at": "2025-12-13T18:56:31.098Z",
+  "valid_until": "2026-01-12T18:56:31.098Z",
   "validity_days": 30,
   "is_stale": false,
   "config_fingerprint": "cfg_63797c18",
-  "hardware_fingerprint": "9917bfa7bdf61d00",
+  "hardware_fingerprint": "fd99a39cfbc9612a",
   "test_suite_version": "v5.0.0-20251213",
-  "repo_commit": "153ce1f8",
+  "repo_commit": "596ade4a",
   "lastAuditDate": "2025-12-13",
   "testSuiteHash": "v5.0.0-20251213",
   "hardwareFingerprint": {
@@ -61,7 +61,7 @@
     "failed": 0
   },
   "evidence": [
-    "Test suite version: 2025-12-13T18:30:21.925Z",
+    "Test suite version: 2025-12-13T18:56:29.632Z",
     "Tests passed: 12/12",
     "✓ Flapping Prevention test passed",
     "✓ Incident Quality test passed",
@@ -71,5 +71,6 @@
     "✓ State Persistence test passed (Class IV requirement)",
     "✓ Quality Floor Enforcement test passed (Class V requirement)",
     "✓ No False Certainty test passed (Class V requirement)"
-  ]
+  ],
+  "signature": "a0ab0d31cb4879ee65202afd3ebb99745746d1d550c26a50cd5231ff08b94f58"
 }

@@ -68,6 +68,14 @@ import {
   generateConfigFingerprint,
   InterlockCapabilities
 } from '../services/interlock_class';
+import {
+  generateShield,
+  verifyBadgeSignature,
+  extractSignedClaims,
+  generateBadgeSignature,
+  buildCanonicalString,
+  InterlockShield
+} from './generate-badge';
 
 // ============= Seeded Random Number Generator =============
 const LCG_MULTIPLIER = 1103515245;
@@ -1901,22 +1909,85 @@ function runClassCertificationIntegrityTest(seed: number): TestSeriesResult {
     }
   }
   
+  // Test 6: Badge signature is deterministic and verifiable
+  let signatureDeterministicPassed = false;
+  let signatureVerifiablePassed = false;
+  let tamperDetectionPassed = false;
+  {
+    // Generate a shield
+    const shield = generateShield({
+      validityDays: 30
+    });
+    
+    // Verify signature exists
+    const hasSignature = typeof shield.signature === 'string' && shield.signature.length > 0;
+    
+    // Verify signature is deterministic (same claims = same signature)
+    const claims1 = extractSignedClaims(shield);
+    const sig1 = generateBadgeSignature(claims1);
+    const sig2 = generateBadgeSignature(claims1);
+    signatureDeterministicPassed = hasSignature && sig1 === sig2 && sig1 === shield.signature;
+    
+    // Verify signature can be verified
+    const verifyResult = verifyBadgeSignature(shield);
+    signatureVerifiablePassed = verifyResult.valid;
+    
+    details.push(`Test 6 (signature deterministic): ${signatureDeterministicPassed ? '✓' : '✗'}`);
+    details.push(`  Signature present: ${hasSignature ? 'Yes' : 'No'}`);
+    details.push(`  Signature: ${shield.signature?.substring(0, 16)}...`);
+    details.push(`  Re-computed matches: ${sig1 === shield.signature ? 'Yes' : 'No'}`);
+    details.push(`Test 6 (signature verifiable): ${signatureVerifiablePassed ? '✓' : '✗'}`);
+    
+    // Test 7: Manual JSON edits are detected (tamper detection)
+    // Create a modified shield (simulating manual edit)
+    // Use a type that allows writing to readonly fields for testing
+    type MutableShield = { -readonly [K in keyof InterlockShield]: InterlockShield[K] };
+    const tamperedShield = { ...shield } as MutableShield;
+    
+    // Tamper with a signed field (simulate "Notepad hack")
+    if (tamperedShield.interlockClass === InterlockClass.CLASS_V) {
+      tamperedShield.interlockClass = InterlockClass.CLASS_I; // Downgrade attempt
+    } else {
+      tamperedShield.interlockClass = InterlockClass.CLASS_V; // Upgrade attempt
+    }
+    
+    // Keep original signature (this simulates a "Notepad hack")
+    // The signature should now be invalid
+    const tamperVerifyResult = verifyBadgeSignature(tamperedShield as InterlockShield);
+    tamperDetectionPassed = !tamperVerifyResult.valid && 
+                            tamperVerifyResult.warningMessage?.includes('Tampered');
+    
+    details.push(`Test 7 (tamper detection): ${tamperDetectionPassed ? '✓' : '✗'}`);
+    details.push(`  Original class: ${shield.interlockClass}`);
+    details.push(`  Tampered class: ${tamperedShield.interlockClass}`);
+    details.push(`  Tamper detected: ${!tamperVerifyResult.valid ? 'Yes' : 'No'}`);
+    if (tamperVerifyResult.warningMessage) {
+      details.push(`  Warning: ${tamperVerifyResult.warningMessage.substring(0, 60)}...`);
+    }
+  }
+  
   const passed = qualityFloorAntiGamingPassed && 
                  reflexOverrideAntiGamingPassed && 
                  expiryTriggersPassed && 
                  deterministicOutputPassed && 
-                 classStabilityPassed;
+                 classStabilityPassed &&
+                 signatureDeterministicPassed &&
+                 signatureVerifiablePassed &&
+                 tamperDetectionPassed;
   
   return {
     name: 'Class Certification Integrity',
-    description: 'Verify Interlock class derivation, anti-gaming, and badge expiry',
+    description: 'Verify Interlock class derivation, anti-gaming, badge expiry, and tamper-evidence',
     passed,
     metrics: {
       qualityFloorAntiGaming: qualityFloorAntiGamingPassed ? 1 : 0,
       reflexOverrideAntiGaming: reflexOverrideAntiGamingPassed ? 1 : 0,
       expiryTriggers: expiryTriggersPassed ? 1 : 0,
       deterministicOutput: deterministicOutputPassed ? 1 : 0,
-      classStability: classStabilityPassed ? 1 : 0
+      classStability: classStabilityPassed ? 1 : 0,
+      signatureDeterministic: signatureDeterministicPassed ? 1 : 0,
+      signatureVerifiable: signatureVerifiablePassed ? 1 : 0,
+      tamperDetection: tamperDetectionPassed ? 1 : 0
     },
     details
   };
@@ -2076,7 +2147,7 @@ function generateValidationMarkdown(report: ValidationReport): string {
     ['State persistence survives restarts safely', report.testSeries[8]?.passed],
     ['Forensic data sanitization protects PII', report.testSeries[9]?.passed],
     ['Hardware fingerprint prevents "hardware lottery" crashes', report.testSeries[10]?.passed],
-    ['Class certification integrity (anti-gaming, expiry)', report.testSeries[11]?.passed]
+    ['Class certification integrity (anti-gaming, expiry, tamper-evidence)', report.testSeries[11]?.passed]
   ];
   
   for (const [criterion, passed] of criteriaResults) {

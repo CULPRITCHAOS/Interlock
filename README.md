@@ -6,6 +6,24 @@ Interlock is a failure forecasting and circuit-breaker system for AI infrastruct
 
 ---
 
+## 🎯 The 60-Second Explanation
+
+> **Interlock is the structural safety certification for AI systems.**
+> 
+> Like a bridge load rating, it certifies that a system survived a defined stress test without collapsing, stalling, or lying to users.
+> 
+> **It certifies observed survival — not invincibility.**
+
+What this means in practice:
+- A bridge rated for 10 tons doesn't guarantee it won't fail — it means it survived a 10-ton stress test
+- Interlock Class V certification doesn't guarantee your AI won't fail — it means it survived rigorous testing with all safety features enabled
+- Certification expires (default 30 days) because conditions change
+- Tampering with the certification badge is detectable via cryptographic signature
+
+**Interlock does not prevent failure. It makes failure visible early — and survivable.**
+
+---
+
 ## ⚡ What Interlock Is
 
 Interlock is a **failure forecasting and circuit-breaker system** for AI infrastructure:
@@ -887,7 +905,7 @@ npx tsx scripts/generate-badge.ts
 ```
 
 This generates:
-- `results/certification/interlock_shield.json` — Machine-readable badge data with expiry
+- `results/certification/interlock_shield.json` — Machine-readable badge data with expiry and cryptographic signature
 - `results/certification/interlock_shield.md` — Copy/paste badge block for README
 - `results/certification/interlock_shield.svg` — Visual badge image
 
@@ -903,6 +921,17 @@ This generates:
 | **Last Audit** | Date of last validation run |
 | **Valid Until** | Badge expiry date (default: 30 days) |
 | **Tested On** | Hardware fingerprint (memory, cores, platform) |
+| **Signature** | HMAC-SHA256 signature for tamper-evidence |
+
+### Tamper-Evident Certification
+
+The badge includes a cryptographic signature that makes manual edits detectable:
+
+- **Signed fields**: `interlock_class`, `load_rating`, `valid_until`, `repo_commit`, `config_fingerprint`, `hardware_fingerprint`, `test_suite_version`
+- **Runtime verification**: On load, the signature is recomputed and compared
+- **On mismatch**: Emits `SECURITY WARNING: Certification Badge Tampered` (does not crash)
+
+This is **tamper-evident, not tamper-proof** — edits are detectable but not prevented.
 
 ### Example Badge Output
 
