@@ -76,14 +76,17 @@ export class LatencyProbe {
 
     // Calculate recent trend (last 10% vs previous 10%)
     const recentCount = Math.max(1, Math.floor(latencies.length * 0.1));
-    const recent = latencies.slice(-recentCount);
-    const previous = latencies.slice(-recentCount * 2, -recentCount);
     
-    const recentMean = recent.reduce((a, b) => a + b, 0) / recent.length;
-    const previousMean = previous.length > 0 
-      ? previous.reduce((a, b) => a + b, 0) / previous.length 
-      : recentMean;
-    const trend = recentMean - previousMean;
+    // Only calculate trend if we have enough data (at least 20 data points)
+    let trend = 0;
+    if (latencies.length >= 20) {
+      const recent = latencies.slice(-recentCount);
+      const previous = latencies.slice(-recentCount * 2, -recentCount);
+      
+      const recentMean = recent.reduce((a, b) => a + b, 0) / recent.length;
+      const previousMean = previous.reduce((a, b) => a + b, 0) / previous.length;
+      trend = recentMean - previousMean;
+    }
 
     return {
       count: latencies.length,

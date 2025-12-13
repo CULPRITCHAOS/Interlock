@@ -23,13 +23,20 @@ import { HysteresisConfig } from '../../services/hysteresis';
 
 // ============= Adapter Interface =============
 
+/**
+ * Standard Interlock adapter interface.
+ * All adapters should implement this for consistency.
+ */
 export interface InterlockAdapter {
-  observe(): Metrics;
+  observe(): AdapterMetrics;
   injectFailure?(): void;
   getConfidence(): number;
 }
 
-export interface Metrics {
+/**
+ * Standard adapter metrics.
+ */
+export interface AdapterMetrics {
   latencyMs: number;
   confidenceScore: number;
   refusalCount: number;
@@ -54,7 +61,7 @@ interface ChainWrapperState {
 
 export interface WrappedChain<TInput = any, TOutput = any> {
   execute(input: TInput): Promise<TOutput>;
-  getMetrics(): Metrics;
+  getMetrics(): AdapterMetrics;
   getConfidence(): number;
 }
 
@@ -198,7 +205,7 @@ export function wrapChain<TInput = any, TOutput = any>(
       return result;
     },
 
-    getMetrics(): Metrics {
+    getMetrics(): AdapterMetrics {
       return {
         latencyMs: state.executionCount > 0 ? state.totalLatencyMs / state.executionCount : 0,
         confidenceScore: state.confidenceScore,
@@ -219,7 +226,7 @@ export function wrapChain<TInput = any, TOutput = any>(
 
 export interface WrappedRetriever<TQuery = any, TDoc = any> {
   retrieve(query: TQuery): Promise<TDoc[]>;
-  getMetrics(): Metrics;
+  getMetrics(): AdapterMetrics;
   getConfidence(): number;
 }
 
@@ -289,7 +296,7 @@ export function wrapRetriever<TQuery = any, TDoc = any>(
       return docs;
     },
 
-    getMetrics(): Metrics {
+    getMetrics(): AdapterMetrics {
       return {
         latencyMs: state.executionCount > 0 ? state.totalLatencyMs / state.executionCount : 0,
         confidenceScore: state.confidenceScore,
@@ -314,6 +321,6 @@ export function wrapRetriever<TQuery = any, TDoc = any>(
  * @param wrapped - Wrapped chain or retriever
  * @returns Current metrics snapshot
  */
-export function getMetrics(wrapped: WrappedChain | WrappedRetriever): Metrics {
+export function getMetrics(wrapped: WrappedChain | WrappedRetriever): AdapterMetrics {
   return wrapped.getMetrics();
 }

@@ -32,6 +32,11 @@ export interface LatencyCliff {
   cliffMagnitude: number; // Multiplier (e.g., 5x = 5.0)
 }
 
+// Configuration constants
+const LATENCY_CLIFF_MULTIPLIER = 3; // Cliff detected if latency increases 3x
+const LATENCY_CLIFF_MINIMUM_MS = 100; // Minimum latency to consider as cliff
+const DEGRADATION_INCREASE_FACTOR = 1.5; // 50% increase triggers degradation
+
 /**
  * EXPERIMENTAL: Elasticsearch adapter with latency cliff and degradation detection.
  */
@@ -114,8 +119,8 @@ export class ElasticsearchAdapter {
       const previous = this.latencies[this.latencies.length - 2];
       const current = latencyMs;
       
-      // Cliff if current latency is 3x or more than previous
-      if (current > previous * 3 && current > 100) {
+      // Cliff if current latency is LATENCY_CLIFF_MULTIPLIER or more than previous
+      if (current > previous * LATENCY_CLIFF_MULTIPLIER && current > LATENCY_CLIFF_MINIMUM_MS) {
         this.latencyCliffs.push({
           timestamp: Date.now(),
           previousLatencyMs: previous,
@@ -159,8 +164,8 @@ export class ElasticsearchAdapter {
     const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length;
     const olderAvg = older.reduce((a, b) => a + b, 0) / older.length;
 
-    // Degradation if recent avg is 50% higher than older avg
-    return recentAvg > olderAvg * 1.5 && recentAvg > this.degradationThresholdMs;
+    // Degradation if recent avg is DEGRADATION_INCREASE_FACTOR higher than older avg
+    return recentAvg > olderAvg * DEGRADATION_INCREASE_FACTOR && recentAvg > this.degradationThresholdMs;
   }
 
   /**

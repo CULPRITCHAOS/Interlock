@@ -24,6 +24,9 @@ export interface DegradationHook {
   callback?: () => void;
 }
 
+// Constants for trust decay
+const TRUST_DECAY_HALF_LIFE_MS = 600000; // 10 minutes (aligns with longer-lived database connections)
+
 /**
  * Monitors confidence levels and triggers controlled degradation.
  */
@@ -63,7 +66,7 @@ export class ConfidenceMonitor {
 
     // Time-based confidence decay (trust degrades over time without updates)
     const timeSinceLastUpdate = Date.now() - this.lastUpdateAt;
-    const decayFactor = Math.exp(-timeSinceLastUpdate / 600000); // 10min half-life
+    const decayFactor = Math.exp(-timeSinceLastUpdate / TRUST_DECAY_HALF_LIFE_MS);
     this.confidenceScore *= decayFactor;
 
     this.lastUpdateAt = Date.now();

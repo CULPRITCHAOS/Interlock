@@ -24,12 +24,12 @@ import { HysteresisConfig } from '../../services/hysteresis';
 // ============= Adapter Interface =============
 
 export interface InterlockAdapter {
-  observe(): Metrics;
+  observe(): AdapterMetrics;
   injectFailure?(): void;
   getConfidence(): number;
 }
 
-export interface Metrics {
+export interface AdapterMetrics {
   latencyMs: number;
   confidenceScore: number;
   refusalCount: number;
@@ -54,7 +54,7 @@ interface QueryEngineState {
 
 export interface WrappedQueryEngine<TQuery = any, TResponse = any> {
   query(input: TQuery): Promise<TResponse>;
-  getMetrics(): Metrics;
+  getMetrics(): AdapterMetrics;
   getConfidence(): number;
 }
 
@@ -198,7 +198,7 @@ export function wrapChain<TQuery = any, TResponse = any>(
       return result;
     },
 
-    getMetrics(): Metrics {
+    getMetrics(): AdapterMetrics {
       return {
         latencyMs: state.queryCount > 0 ? state.totalLatencyMs / state.queryCount : 0,
         confidenceScore: state.confidenceScore,
@@ -219,7 +219,7 @@ export function wrapChain<TQuery = any, TResponse = any>(
 
 export interface WrappedRetriever<TQuery = any, TNode = any> {
   retrieve(query: TQuery): Promise<TNode[]>;
-  getMetrics(): Metrics;
+  getMetrics(): AdapterMetrics;
   getConfidence(): number;
 }
 
@@ -289,7 +289,7 @@ export function wrapRetriever<TQuery = any, TNode = any>(
       return nodes;
     },
 
-    getMetrics(): Metrics {
+    getMetrics(): AdapterMetrics {
       return {
         latencyMs: state.queryCount > 0 ? state.totalLatencyMs / state.queryCount : 0,
         confidenceScore: state.confidenceScore,
@@ -314,6 +314,6 @@ export function wrapRetriever<TQuery = any, TNode = any>(
  * @param wrapped - Wrapped query engine or retriever
  * @returns Current metrics snapshot
  */
-export function getMetrics(wrapped: WrappedQueryEngine | WrappedRetriever): Metrics {
+export function getMetrics(wrapped: WrappedQueryEngine | WrappedRetriever): AdapterMetrics {
   return wrapped.getMetrics();
 }
