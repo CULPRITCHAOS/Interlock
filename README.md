@@ -2,6 +2,10 @@
 
 > **The Circuit Breaker for AI Infrastructure**
 
+[![Test and Certify](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml)
+[![Stress Chamber](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml)
+[![Benchmark Suite](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/benchmark.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/benchmark.yml)
+
 Interlock is a failure forecasting and circuit-breaker system for AI infrastructure. It detects unsafe operating regions, forecasts collapse before it happens, and actively prevents catastrophic failure.
 
 ---
@@ -639,6 +643,40 @@ npm run validate
 | Shadow mode logs without interfering | Shadow Mode |
 | Class cannot be spoofed | Class Certification Integrity |
 | Badge expiry enforced | Class Certification Integrity |
+
+---
+
+## 🔄 CI/CD Pipeline
+
+Interlock includes automated GitHub Actions workflows for continuous testing, certification, and evidence collection:
+
+### Workflows
+
+| Workflow | Schedule | Purpose |
+|----------|----------|---------|
+| **Test and Certify** | Every push/PR | Matrix testing (Python 3.9-3.11, Node 18-20), validation suite, badge verification |
+| **Stress Chamber** | Daily at 2 AM UTC | Comparative stress tests, 50-cycle stability tests, memory/latency tracking |
+| **Benchmark Suite** | Weekly (Sundays) | Performance comparison, regression tracking, Interlock vs alternatives |
+| **Production Monitor** | Weekly (Wednesdays) | Simulated production workloads, failure injection, economic impact |
+| **Generate Badge** | Manual (on-demand) | Certification badge generation, GitHub release creation |
+
+### Automated Evidence Collection
+
+Every workflow run collects artifacts proving Interlock claims:
+
+- **Test results**: Validation pass/fail, certification verdicts
+- **Performance metrics**: Latency, recall, memory usage over time
+- **Incident reports**: Forensic data from failures (sanitized)
+- **Economic impact**: Queries saved, downtime prevented, value retained
+- **Certification badges**: Tamper-evident badges with expiry dates
+
+### Viewing Results
+
+1. Go to the [Actions tab](../../actions)
+2. Select a workflow
+3. Download artifacts or view workflow summaries
+
+For detailed documentation, see [`.github/workflows/README.md`](.github/workflows/README.md).
 
 ---
 
