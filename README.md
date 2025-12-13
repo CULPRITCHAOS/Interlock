@@ -5,6 +5,9 @@
 [![Test and Certify](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml)
 [![Stress Chamber](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml)
 [![Benchmark Suite](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/benchmark.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/benchmark.yml)
+[![Competitive Benchmark](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/competitive-benchmark.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/competitive-benchmark.yml)
+
+**📋 Documentation**: [Security Policy](./SECURITY.md) | [Contributing Guide](./CONTRIBUTING.md) | [Security Architecture](./docs/SECURITY_ARCHITECTURE.md)
 
 Interlock is a failure forecasting and circuit-breaker system for AI infrastructure. It detects unsafe operating regions, forecasts collapse before it happens, and actively prevents catastrophic failure.
 
