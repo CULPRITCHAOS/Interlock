@@ -1,0 +1,72 @@
+{
+  "runId": "stress_chamber_protected_s42_1765661844571",
+  "mode": "protected",
+  "survived": true,
+  "metricsHistory": [
+    {
+      "step": 0,
+      "timestamp": "2025-12-13T21:37:24.572Z",
+      "indexSize": 25000,
+      "memoryMb": 12.20703125,
+      "recallAtK": 0.9104223227549448,
+      "latencyP95Ms": 2.932614657449357,
+      "hazardScore": 0,
+      "riskLevel": "safe",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 43
+    },
+    {
+      "step": 1,
+      "timestamp": "2025-12-13T21:37:24.572Z",
+      "indexSize": 40000,
+      "memoryMb": 19.53125,
+      "recallAtK": 0.8992080640859008,
+      "latencyP95Ms": 4.792607888100952,
+      "hazardScore": 0.19036961315915427,
+      "riskLevel": "safe",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 25
+    },
+    {
+      "step": 2,
+      "timestamp": "2025-12-13T21:37:24.572Z",
+      "indexSize": 55000,
+      "memoryMb": 26.85546875,
+      "recallAtK": 0.8869964814265242,
+      "latencyP95Ms": 5.72795882188853,
+      "hazardScore": 0.20224875448842003,
+      "riskLevel": "safe",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 17
+    },
+    {
+      "step": 3,
+      "timestamp": "2025-12-13T21:37:24.572Z",
+      "indexSize": 70000,
+      "memoryMb": 34.1796875,
+      "recallAtK": 0.8703220397305312,
+      "latencyP95Ms": 6.992650552300109,
+      "hazardScore": 0.21652554600104948,
+      "riskLevel": "safe",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 13
+    },
+    {
+      "step": 4,
+      "timestamp": "2025-12-13T21:37:24.572Z",
+      "indexSize": 85000,
+      "memoryMb": 41.50390625,
+      "recallAtK": 0.841119630337283,
+      "latencyP95Ms": 5.651160881199018,
+      "hazardScore": 0.23677258466592643,
+      "riskLevel": "safe",
+      "circuitBreakerState": "closed",
+      "forecastedFailureIn": 9
+    }
+  ],
+  "timestamps": {
+    "startTime": "2025-12-13T21:37:24.571Z",
+    "testComplete": "2025-12-13T21:37:24.572Z"
+  },
+  "interventions": []
+}
