@@ -394,8 +394,8 @@ export function generateCertificationTierDetails(
   const baseDetails = {
     tier: verdict,
     confidenceLevel: 0,
-    falseNegativeRate: calibration.falseNegatives / (calibration.truePositives + calibration.falseNegatives || 1),
-    falsePositiveRate: calibration.falsePositives / (calibration.trueNegatives + calibration.falsePositives || 1),
+    falseNegativeRate: calibration.falseNegatives / ((calibration.truePositives + calibration.falseNegatives) || 1),
+    falsePositiveRate: calibration.falsePositives / ((calibration.trueNegatives + calibration.falsePositives) || 1),
   };
   
   switch (verdict) {

@@ -477,9 +477,9 @@ def protect(
             
             # Apply failover if needed (NOT in dry_run mode)
             original_kwargs = kwargs.copy()
-            if should_failover and not config.dry_run:
-                kwargs.update(config.failover)
-                logger.info(f"Applying failover for {func_name}: {config.failover}")
+            if should_failover and not protector.config.dry_run:
+                kwargs.update(protector.config.failover)
+                logger.info(f"Applying failover for {func_name}: {protector.config.failover}")
             
             # CALL: Execute the function
             start_time = time.perf_counter()

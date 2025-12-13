@@ -794,13 +794,15 @@ export function incidentReportToMarkdown(report: IncidentReport): string {
       lines.push(`| **Value Retained** | **${valueStr}** |`);
     }
     lines.push('');
-    lines.push(`> *"Interlock processed ${econ.queriesSaved.toLocaleString()} additional queries that would have been lost.*`);
     if (econ.valueRetained !== undefined) {
       const valueStr = econ.valueRetained.toLocaleString('en-US', {
         style: 'currency',
         currency: econ.currency || 'USD'
       });
-      lines.push(`> *Estimated value retained: ${valueStr}."*`);
+      lines.push(`> *"Interlock processed ${econ.queriesSaved.toLocaleString()} additional queries that would have been lost.`);
+      lines.push(`> Estimated value retained: ${valueStr}."*`);
+    } else {
+      lines.push(`> *"Interlock processed ${econ.queriesSaved.toLocaleString()} additional queries that would have been lost."*`);
     }
     lines.push('');
   }
