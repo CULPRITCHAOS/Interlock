@@ -28,6 +28,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -128,6 +131,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -191,6 +197,9 @@ jobs:
     needs: [comparative-benchmark, full-benchmark-suite]
     if: always()
     timeout-minutes: 20
+
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository

@@ -34,6 +34,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
 
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -151,6 +154,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
+    permissions:
+      contents: read
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -244,6 +250,9 @@ jobs:
     needs: [production-simulation, failure-injection]
     if: always()
     timeout-minutes: 15
+
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
