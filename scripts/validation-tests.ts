@@ -59,6 +59,15 @@ import {
   redactPII,
   validateSanitization
 } from '../services/data_sanitization';
+import {
+  InterlockClass,
+  deriveInterlockClass,
+  generateDefaultCapabilities,
+  checkCertificationStaleness,
+  calculateExpiryDate,
+  generateConfigFingerprint,
+  InterlockCapabilities
+} from '../services/interlock_class';
 
 // ============= Seeded Random Number Generator =============
 const LCG_MULTIPLIER = 1103515245;
@@ -1626,6 +1635,293 @@ function runHardwareFingerprintTest(seed: number): TestSeriesResult {
   };
 }
 
+// ============= Test Series 12: Class Certification Integrity =============
+
+/**
+ * Test Series 12: Class Certification Integrity Test
+ * 
+ * Purpose: Verify that the Interlock Class Rating System:
+ * - Correctly derives class from config + capabilities
+ * - Enforces anti-gaming (disabled features prevent higher class)
+ * - Badge expiry works correctly
+ * - Badge output is deterministic
+ * - Class derivation is stable
+ * 
+ * Success Criteria:
+ * - Disabling qualityFloor prevents Class V (gets Class IV)
+ * - Disabling reflex override prevents Class IV (gets Class III)
+ * - Expired valid_until triggers staleness warning
+ * - Badge output is deterministic (same inputs = same outputs)
+ * - Class derivation is stable across minor formatting changes
+ */
+function runClassCertificationIntegrityTest(seed: number): TestSeriesResult {
+  const details: string[] = [];
+  
+  let qualityFloorAntiGamingPassed = false;
+  let reflexOverrideAntiGamingPassed = false;
+  let expiryTriggersPassed = false;
+  let deterministicOutputPassed = false;
+  let classStabilityPassed = false;
+  
+  // Test 1: Disabling qualityFloor prevents Class V (anti-gaming)
+  {
+    // First verify default config with all features gets Class V
+    const fullCapabilities: InterlockCapabilities = {
+      hazardMonitoring: true,
+      boundaryDetection: true,
+      metricsCollection: true,
+      circuitBreakerEnabled: true,
+      degradedModeConfigured: true,
+      forecastCalibrationAvailable: true,
+      confidenceTrackingEnabled: true,
+      reflexOverrideEnabled: true,
+      hysteresisEnabled: true,
+      trustDecayTracking: true,
+      noFalseCertaintyEnforced: true
+    };
+    
+    const classVConfig: HysteresisConfig = {
+      ...DEFAULT_HYSTERESIS_CONFIG,
+      qualityFloorEnabled: true,
+      qualityFloor: 0.5
+    };
+    
+    const classVResult = deriveInterlockClass(classVConfig, DEFAULT_CIRCUIT_BREAKER_CONFIG, fullCapabilities);
+    
+    // Now disable quality floor - should NOT be able to get Class V
+    const disabledQualityFloorConfig: HysteresisConfig = {
+      ...DEFAULT_HYSTERESIS_CONFIG,
+      qualityFloorEnabled: false,  // ANTI-GAMING: disabled feature
+      qualityFloor: 0.5
+    };
+    
+    const antiGamingResult = deriveInterlockClass(disabledQualityFloorConfig, DEFAULT_CIRCUIT_BREAKER_CONFIG, fullCapabilities);
+    
+    // Also test qualityFloor <= 0
+    const zeroQualityFloorConfig: HysteresisConfig = {
+      ...DEFAULT_HYSTERESIS_CONFIG,
+      qualityFloorEnabled: true,
+      qualityFloor: 0  // ANTI-GAMING: zero threshold
+    };
+    
+    const zeroResult = deriveInterlockClass(zeroQualityFloorConfig, DEFAULT_CIRCUIT_BREAKER_CONFIG, fullCapabilities);
+    
+    // Anti-gaming success: Class V only achievable with proper config
+    qualityFloorAntiGamingPassed = 
+      classVResult.class === InterlockClass.CLASS_V &&  // Full config gets V
+      antiGamingResult.class === InterlockClass.CLASS_IV &&  // Disabled feature gets IV (not V)
+      zeroResult.class === InterlockClass.CLASS_IV;  // Zero threshold gets IV (not V)
+    
+    details.push(`Test 1 (qualityFloor anti-gaming): ${qualityFloorAntiGamingPassed ? '✓' : '✗'}`);
+    details.push(`  Full config (qualityFloor enabled): Class ${classVResult.class} ${classVResult.class === InterlockClass.CLASS_V ? '✓' : '✗'}`);
+    details.push(`  qualityFloorEnabled=false: Class ${antiGamingResult.class} ${antiGamingResult.class === InterlockClass.CLASS_IV ? '✓' : '✗'}`);
+    details.push(`  qualityFloor=0: Class ${zeroResult.class} ${zeroResult.class === InterlockClass.CLASS_IV ? '✓' : '✗'}`);
+  }
+  
+  // Test 2: Disabling reflex override prevents Class IV (anti-gaming)
+  {
+    // Class IV capabilities (without full Class V)
+    const classIVCapabilities: InterlockCapabilities = {
+      hazardMonitoring: true,
+      boundaryDetection: true,
+      metricsCollection: true,
+      circuitBreakerEnabled: true,
+      degradedModeConfigured: true,
+      forecastCalibrationAvailable: true,
+      confidenceTrackingEnabled: true,
+      reflexOverrideEnabled: true,
+      hysteresisEnabled: true,
+      trustDecayTracking: false,  // Disable to get Class IV instead of V
+      noFalseCertaintyEnforced: false
+    };
+    
+    const classIVConfig: HysteresisConfig = {
+      ...DEFAULT_HYSTERESIS_CONFIG,
+      flashThreshold: 2.0,
+      reflexCooldownMs: 30000,
+      consecutiveIntervalsForHalfOpen: 3,
+      consecutiveWindowsForClose: 5,
+      qualityFloorEnabled: false  // Disable to get Class IV instead of V
+    };
+    
+    const classIVResult = deriveInterlockClass(classIVConfig, DEFAULT_CIRCUIT_BREAKER_CONFIG, classIVCapabilities);
+    
+    // Now disable reflex override - should NOT be able to get Class IV
+    const disabledReflexCapabilities: InterlockCapabilities = {
+      ...classIVCapabilities,
+      reflexOverrideEnabled: false  // ANTI-GAMING: disabled feature
+    };
+    
+    const reflexAntiGamingResult = deriveInterlockClass(classIVConfig, DEFAULT_CIRCUIT_BREAKER_CONFIG, disabledReflexCapabilities);
+    
+    // Also test with hysteresis disabled
+    const disabledHysteresisCapabilities: InterlockCapabilities = {
+      ...classIVCapabilities,
+      hysteresisEnabled: false  // ANTI-GAMING: disabled feature
+    };
+    
+    const hysteresisAntiGamingResult = deriveInterlockClass(classIVConfig, DEFAULT_CIRCUIT_BREAKER_CONFIG, disabledHysteresisCapabilities);
+    
+    // Anti-gaming success: Class IV only achievable with proper features
+    reflexOverrideAntiGamingPassed = 
+      classIVResult.class === InterlockClass.CLASS_IV &&  // Full config gets IV
+      reflexAntiGamingResult.class === InterlockClass.CLASS_III &&  // Disabled reflex gets III (not IV)
+      hysteresisAntiGamingResult.class === InterlockClass.CLASS_III;  // Disabled hysteresis gets III (not IV)
+    
+    details.push(`Test 2 (reflex/hysteresis anti-gaming): ${reflexOverrideAntiGamingPassed ? '✓' : '✗'}`);
+    details.push(`  Full config (reflex+hysteresis enabled): Class ${classIVResult.class} ${classIVResult.class === InterlockClass.CLASS_IV ? '✓' : '✗'}`);
+    details.push(`  reflexOverrideEnabled=false: Class ${reflexAntiGamingResult.class} ${reflexAntiGamingResult.class === InterlockClass.CLASS_III ? '✓' : '✗'}`);
+    details.push(`  hysteresisEnabled=false: Class ${hysteresisAntiGamingResult.class} ${hysteresisAntiGamingResult.class === InterlockClass.CLASS_III ? '✓' : '✗'}`);
+  }
+  
+  // Test 3: Expired valid_until triggers staleness warning
+  {
+    const now = new Date();
+    
+    // Test expired date (30 days ago)
+    const expiredDate = new Date(now);
+    expiredDate.setDate(expiredDate.getDate() - 30);
+    const expiredResult = checkCertificationStaleness(expiredDate.toISOString());
+    
+    // Test valid date (30 days in future)
+    const validDate = new Date(now);
+    validDate.setDate(validDate.getDate() + 30);
+    const validResult = checkCertificationStaleness(validDate.toISOString());
+    
+    // Test soon-to-expire date (5 days in future)
+    const soonDate = new Date(now);
+    soonDate.setDate(soonDate.getDate() + 5);
+    const soonResult = checkCertificationStaleness(soonDate.toISOString());
+    
+    expiryTriggersPassed = 
+      expiredResult.isStale === true &&
+      expiredResult.warningMessage !== null &&
+      expiredResult.daysUntilExpiry < 0 &&
+      validResult.isStale === false &&
+      validResult.warningMessage === null &&
+      soonResult.isStale === false &&
+      soonResult.warningMessage !== null;  // Should warn about upcoming expiry
+    
+    details.push(`Test 3 (expiry triggers staleness): ${expiryTriggersPassed ? '✓' : '✗'}`);
+    details.push(`  Expired (-30 days): isStale=${expiredResult.isStale}, hasWarning=${expiredResult.warningMessage !== null}`);
+    details.push(`  Valid (+30 days): isStale=${validResult.isStale}, hasWarning=${validResult.warningMessage !== null}`);
+    details.push(`  Soon (+5 days): isStale=${soonResult.isStale}, hasWarning=${soonResult.warningMessage !== null}`);
+  }
+  
+  // Test 4: Badge output is deterministic
+  {
+    const config: HysteresisConfig = {
+      ...DEFAULT_HYSTERESIS_CONFIG,
+      qualityFloorEnabled: true,
+      qualityFloor: 0.5,
+      flashThreshold: 2.0
+    };
+    
+    const capabilities = generateDefaultCapabilities(config, DEFAULT_CIRCUIT_BREAKER_CONFIG);
+    
+    // Run derivation twice with same inputs
+    const result1 = deriveInterlockClass(config, DEFAULT_CIRCUIT_BREAKER_CONFIG, capabilities);
+    const result2 = deriveInterlockClass(config, DEFAULT_CIRCUIT_BREAKER_CONFIG, capabilities);
+    
+    // Both should be identical
+    deterministicOutputPassed = 
+      result1.class === result2.class &&
+      result1.isDowngraded === result2.isDowngraded &&
+      JSON.stringify(result1.reasons) === JSON.stringify(result2.reasons) &&
+      JSON.stringify(result1.missing) === JSON.stringify(result2.missing);
+    
+    details.push(`Test 4 (deterministic output): ${deterministicOutputPassed ? '✓' : '✗'}`);
+    details.push(`  Run 1: Class ${result1.class}, reasons=${result1.reasons.length}`);
+    details.push(`  Run 2: Class ${result2.class}, reasons=${result2.reasons.length}`);
+    
+    // Also test config fingerprint determinism
+    const fingerprint1 = generateConfigFingerprint(config);
+    const fingerprint2 = generateConfigFingerprint(config);
+    const fingerprintDeterministic = fingerprint1 === fingerprint2;
+    details.push(`  Config fingerprint: ${fingerprintDeterministic ? 'deterministic' : 'NOT deterministic'} (${fingerprint1})`);
+    
+    deterministicOutputPassed = deterministicOutputPassed && fingerprintDeterministic;
+  }
+  
+  // Test 5: Class derivation is stable across minor formatting changes
+  {
+    // Same logical config, different object structure
+    const configA: HysteresisConfig = {
+      consecutiveIntervalsForHalfOpen: 3,
+      consecutiveWindowsForClose: 5,
+      safetyMarginRecoveryPercent: 0.20,
+      minimumConfidenceThreshold: 0.6,
+      safeHazardMarginFactor: 0.7,
+      probeTrafficFraction: 0.05,
+      probeObservationWindows: 5,
+      minimumOpenDurationMs: 10000,
+      flappingCountThreshold: 4,
+      flappingWindowMs: 60000,
+      flashThreshold: 2.0,
+      reflexCooldownMs: 30000,
+      qualityFloor: 0.5,
+      qualityFloorEnabled: true,
+      dryRun: false
+    };
+    
+    // Same values but declared in different order
+    const configB: HysteresisConfig = {
+      dryRun: false,
+      qualityFloorEnabled: true,
+      qualityFloor: 0.5,
+      reflexCooldownMs: 30000,
+      flashThreshold: 2.0,
+      flappingWindowMs: 60000,
+      flappingCountThreshold: 4,
+      minimumOpenDurationMs: 10000,
+      probeObservationWindows: 5,
+      probeTrafficFraction: 0.05,
+      safeHazardMarginFactor: 0.7,
+      minimumConfidenceThreshold: 0.6,
+      safetyMarginRecoveryPercent: 0.20,
+      consecutiveWindowsForClose: 5,
+      consecutiveIntervalsForHalfOpen: 3
+    };
+    
+    const capabilitiesA = generateDefaultCapabilities(configA, DEFAULT_CIRCUIT_BREAKER_CONFIG);
+    const capabilitiesB = generateDefaultCapabilities(configB, DEFAULT_CIRCUIT_BREAKER_CONFIG);
+    
+    const resultA = deriveInterlockClass(configA, DEFAULT_CIRCUIT_BREAKER_CONFIG, capabilitiesA);
+    const resultB = deriveInterlockClass(configB, DEFAULT_CIRCUIT_BREAKER_CONFIG, capabilitiesB);
+    
+    classStabilityPassed = resultA.class === resultB.class;
+    
+    details.push(`Test 5 (class stability): ${classStabilityPassed ? '✓' : '✗'}`);
+    details.push(`  Config A: Class ${resultA.class}`);
+    details.push(`  Config B (reordered): Class ${resultB.class}`);
+    
+    // Both should be the same class
+    if (resultA.class !== resultB.class) {
+      details.push(`  ⚠️ Class derivation unstable - same config gave different classes`);
+    }
+  }
+  
+  const passed = qualityFloorAntiGamingPassed && 
+                 reflexOverrideAntiGamingPassed && 
+                 expiryTriggersPassed && 
+                 deterministicOutputPassed && 
+                 classStabilityPassed;
+  
+  return {
+    name: 'Class Certification Integrity',
+    description: 'Verify Interlock class derivation, anti-gaming, and badge expiry',
+    passed,
+    metrics: {
+      qualityFloorAntiGaming: qualityFloorAntiGamingPassed ? 1 : 0,
+      reflexOverrideAntiGaming: reflexOverrideAntiGamingPassed ? 1 : 0,
+      expiryTriggers: expiryTriggersPassed ? 1 : 0,
+      deterministicOutput: deterministicOutputPassed ? 1 : 0,
+      classStability: classStabilityPassed ? 1 : 0
+    },
+    details
+  };
+}
+
 // ============= Main Test Runner =============
 
 function runValidationTests(seed: number = 42): ValidationReport {
@@ -1701,6 +1997,12 @@ function runValidationTests(seed: number = 42): ValidationReport {
   testSeries.push(hardwareFingerprintResult);
   console.log(`  Result: ${hardwareFingerprintResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
   
+  // Test Series 12: Class Certification Integrity (NEW)
+  console.log('Running Test Series 12: Class Certification Integrity...');
+  const classCertificationResult = runClassCertificationIntegrityTest(seed);
+  testSeries.push(classCertificationResult);
+  console.log(`  Result: ${classCertificationResult.passed ? '✅ PASSED' : '❌ FAILED'}\n`);
+  
   const overallPassed = testSeries.every(t => t.passed);
   
   const report: ValidationReport = {
@@ -1773,7 +2075,8 @@ function generateValidationMarkdown(report: ValidationReport): string {
     ['Shadow mode (dry run) logs without interfering', report.testSeries[7]?.passed],
     ['State persistence survives restarts safely', report.testSeries[8]?.passed],
     ['Forensic data sanitization protects PII', report.testSeries[9]?.passed],
-    ['Hardware fingerprint prevents "hardware lottery" crashes', report.testSeries[10]?.passed]
+    ['Hardware fingerprint prevents "hardware lottery" crashes', report.testSeries[10]?.passed],
+    ['Class certification integrity (anti-gaming, expiry)', report.testSeries[11]?.passed]
   ];
   
   for (const [criterion, passed] of criteriaResults) {
@@ -1828,6 +2131,7 @@ Test Series:
   9. State Persistence - Verify state survives restarts safely
  10. Forensic Data Sanitization - Verify incident reports protect PII
  11. Hardware Fingerprint - Verify hardware mismatch invalidates cached state
+ 12. Class Certification Integrity - Verify class derivation, anti-gaming, badge expiry
 `);
       process.exit(0);
     }

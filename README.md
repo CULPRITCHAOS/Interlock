@@ -40,6 +40,32 @@ Interlock is a **failure forecasting and circuit-breaker system** for AI infrast
 
 ---
 
+## 🛡️ Interlock Classes (Class I-V)
+
+Interlock uses a **five-class rating system** that is deterministically derived from your configuration and enabled features. You cannot spoof your class by changing labels - it's computed from your actual setup.
+
+| Class | Name | Codename | Description |
+|-------|------|----------|-------------|
+| **I** | Observable | Mirror | Observability + boundary reporting, no interventions |
+| **II** | Static | Fuse | Static threshold breaker capability |
+| **III** | Dynamic | Governor | Forecast-driven preventative intervention |
+| **IV** | Reflexive | Airbag | Reflex override + hysteresis (anti-flap) |
+| **V** | Cognitive | Pilot | Trust decay + no false certainty + quality floor |
+
+### Anti-Gaming Rules
+
+- **Class V requires**: `qualityFloorEnabled=true`, `qualityFloor>0`, trust decay tracking, no false certainty
+- **Class IV requires**: `flashThreshold>0`, reflex override, hysteresis enabled
+- **Disabled features = lower class**: You can't claim Class V if quality floor is disabled
+
+### Badge Expiry
+
+Certifications expire after 30 days (configurable). This prevents "badge rot" - stale certifications that don't reflect current system state.
+
+For full details, see [INTERLOCK_CLASSES.md](./INTERLOCK_CLASSES.md).
+
+---
+
 ## 🏆 Tiered Certification System (Phase D7)
 
 Interlock uses **tiered, defensible labels** instead of ambiguous "CERTIFIED" verdicts. Each tier explicitly states what it guarantees and what it does NOT guarantee.
@@ -578,6 +604,10 @@ npm run validate
 | 6 | **Quality Floor Enforcement** | Verify refusal when recall < quality floor |
 | 7 | **No False Certainty** | Verify Interlock never claims certainty it doesn't have |
 | 8 | **Shadow Mode (Dry Run)** | Verify Interlock logs decisions without interfering with traffic |
+| 9 | **State Persistence** | Verify state survives restarts safely |
+| 10 | **Forensic Data Sanitization** | Verify incident reports protect PII |
+| 11 | **Hardware Fingerprint** | Verify hardware mismatch invalidates cached state |
+| 12 | **Class Certification Integrity** | Verify class derivation, anti-gaming, badge expiry |
 
 ### Success Criteria
 
@@ -589,6 +619,8 @@ npm run validate
 | No silent degradation | Quality Floor Enforcement |
 | Conservative escalation verified | Trust Decay, No False Certainty |
 | Shadow mode logs without interfering | Shadow Mode |
+| Class cannot be spoofed | Class Certification Integrity |
+| Badge expiry enforced | Class Certification Integrity |
 
 ---
 
@@ -847,38 +879,51 @@ For full certification documentation, see [CERTIFICATION.md](./CERTIFICATION.md)
 After running validation tests, generate a certification badge for your README:
 
 ```bash
+# Run validation tests first
+npm run validate
+
+# Generate badge
 npx tsx scripts/generate-badge.ts
 ```
 
 This generates:
-- `results/badge/interlock_shield.json` — Machine-readable badge data
-- `results/badge/interlock_shield.md` — Copy/paste badge block for README
+- `results/certification/interlock_shield.json` — Machine-readable badge data with expiry
+- `results/certification/interlock_shield.md` — Copy/paste badge block for README
+- `results/certification/interlock_shield.svg` — Visual badge image
 
-### Badge Fields
+### Badge Fields (v2.0)
 
 | Field | Description |
 |-------|-------------|
-| **Load Class** | I–V based on vectors/QPS tested |
+| **Interlock Class** | I–V based on enabled features + config (anti-gaming enforced) |
+| **Load Rating** | I–V based on vectors/QPS tested |
 | **Reflex** | Active (<Xms) or Disabled |
 | **Drift Tolerance** | Percentage tolerance for hardware changes |
 | **Quality Floor** | Enforced (min recall threshold) or Disabled |
 | **Last Audit** | Date of last validation run |
+| **Valid Until** | Badge expiry date (default: 30 days) |
 | **Tested On** | Hardware fingerprint (memory, cores, platform) |
 
 ### Example Badge Output
 
 ```markdown
-## 🛡️ Interlock Stress-Test Certified
+## 🛡️ Interlock: Class V (Cognitive)
+
+> *Trust decay + no false certainty + quality floor/refusal*
 
 | Field | Value |
 |-------|-------|
+| **Interlock Class** | V (Cognitive/Pilot) |
 | **Status** | ✅ Safety Certified |
-| **Load Class** | III (Heavy) |
+| **Load Rating** | Class III (Heavy) |
 | **Reflex** | Active (<30ms) |
 | **Drift Tolerance** | 20% |
 | **Quality Floor** | Enforced (min 50% recall) |
 | **Last Audit** | 2025-12-13 |
-| **Tests** | 11/11 passed |
+| **Valid Until** | 2026-01-12 |
+| **Tests** | 12/12 passed |
+
+> **Disclaimer**: This certification certifies that this configuration survived stress tests under controlled conditions. It does not guarantee future safety or behavior under different conditions.
 ```
 
 ---
