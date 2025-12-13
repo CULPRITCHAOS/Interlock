@@ -3,18 +3,20 @@ name: Stress Chamber Tests
 # Run stress tests daily to validate Interlock protection under extreme load
 on:
   schedule:
-    # Run daily at 2 AM UTC
+    # Run daily at 2 AM UTC with medium profile
     - cron: '0 2 * * *'
+    # Run weekly on Sunday at 3 AM UTC with heavy profile
+    - cron: '0 3 * * 0'
   workflow_dispatch:
     inputs:
       stability_cycles:
         description: 'Number of stability test cycles'
         required: false
         default: '50'
-      stress_growth_steps:
-        description: 'Growth steps for stress chamber'
+      stress_profile:
+        description: 'Stress profile (light, medium, heavy)'
         required: false
-        default: '25'
+        default: 'medium'
 
 # Only run one stress test at a time
 concurrency:
@@ -44,30 +46,38 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run stress chamber (protected)
+      - name: Determine stress profile
+        id: profile
         run: |
-          echo "Running stress chamber with Interlock protection..."
-          npx tsx scripts/stress-chamber.ts \
-            --seed 42 \
-            --initial-size 10000 \
-            --growth-steps ${{ github.event.inputs.stress_growth_steps || '25' }} \
-            --no-visualize \
-            --protected
+          # Check if this is the weekly Sunday run
+          # date -u +%u returns 1-7 where 1=Monday, 7=Sunday
+          DAY_OF_WEEK=$(date -u +%u)
+          HOUR=$(date -u +%H)
+          
+          if [ "$DAY_OF_WEEK" == "7" ] && [ "$HOUR" == "3" ] && [ "${{ github.event_name }}" == "schedule" ]; then
+            echo "profile=heavy" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.stress_profile }}" != "" ]; then
+            echo "profile=${{ github.event.inputs.stress_profile }}" >> $GITHUB_OUTPUT
+          else
+            echo "profile=medium" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Run stress chamber (control - expecting failure)
+      - name: Run stress chamber (both protected and control)
         run: |
-          echo "Running stress chamber without protection (control test)..."
+          echo "Running stress chamber with profile: ${{ steps.profile.outputs.profile }}"
           npx tsx scripts/stress-chamber.ts \
             --seed 42 \
             --initial-size 10000 \
-            --growth-steps ${{ github.event.inputs.stress_growth_steps || '25' }} \
-            --no-visualize \
-            --control || echo "Control test crashed as expected"
+            --profile ${{ steps.profile.outputs.profile }} \
+            --both \
+            --no-visualize
 
       - name: Collect stress chamber results
         if: always()
         run: |
           echo "# 🔥 Stress Chamber Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Profile:** ${{ steps.profile.outputs.profile }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ -d results/stress_chamber ]; then
@@ -87,7 +97,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: stress-chamber-results-${{ github.run_number }}
+          name: stress-chamber-results-${{ steps.profile.outputs.profile }}-${{ github.run_number }}
           path: |
             results/stress_chamber/**/*.md
             results/stress_chamber/**/*.json

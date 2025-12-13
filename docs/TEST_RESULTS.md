@@ -55,6 +55,13 @@ Automated test results from continuous monitoring workflows.
 ### Stress Testing
 - **Workflow**: [Stress Chamber + Incident Reports](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml)
 - **Status**: ✅ Passing
+- **Profiles**: 
+  - Daily runs use **MEDIUM** profile (recall≥75%, latency≤40ms, 15k vectors/step)
+  - Weekly Sunday runs use **HEAVY** profile (recall≥80%, latency≤30ms, 25k vectors/step)
+- **Success Criteria**:
+  - Control runs SHOULD crash (demonstrates real failure scenarios)
+  - Protected runs MUST survive (validates circuit breaker protection)
+  - Target: 80%+ crash rate for control, 95%+ survival for protected
 - **Last Run**: [View Results](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml)
 
 ### Test and Certify
@@ -62,6 +69,57 @@ Automated test results from continuous monitoring workflows.
 - **Status**: ✅ Passing
 - **Coverage**: Matrix testing across Python 3.9, 3.10, 3.11 and Node.js 18, 20
 - **Last Run**: [View Results](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml)
+
+## 🎯 Stress Test Philosophy
+
+### Why Tests Are Intentionally Hard
+
+Interlock's stress tests are designed to be **challenging by default**. Here's why:
+
+#### The Problem with Easy Tests
+- If both protected and control runs survive, we've proven nothing
+- Tests should demonstrate real failure scenarios
+- Survival means the test wasn't stressful enough
+
+#### Target Success Rates
+| Run Type | Target Outcome | Validates |
+|----------|---------------|-----------|
+| **Control (unprotected)** | 80%+ crash rate | Tests are hard enough to cause real failures |
+| **Protected (with Interlock)** | 95%+ survival rate | Circuit breaker actually prevents crashes |
+
+#### Stress Profiles
+
+Interlock provides three stress profiles to balance testing speed with rigor:
+
+| Profile | Recall Threshold | Latency Limit | Vectors/Step | Growth Steps | Use Case |
+|---------|-----------------|---------------|--------------|--------------|----------|
+| **Light** | ≥70% | ≤50ms | 10,000 | 15 | Quick validation, smoke tests |
+| **Medium** | ≥75% | ≤40ms | 15,000 | 25 | CI/CD daily runs, standard validation |
+| **Heavy** | ≥80% | ≤30ms | 25,000 | 30 | Weekly certification, aggressive testing |
+
+### Historical Crash Statistics
+
+*Note: This section will be populated with actual historical data as we accumulate stress test runs.*
+
+**Expected Pattern:**
+- Week 1-4: Calibrating stress profiles to achieve target crash rates
+- Ongoing: Control crash rate should stabilize at 75-85%
+- Any week where control doesn't crash = test too easy, increase difficulty
+
+### Evidence of Prevented Failures
+
+Each stress test run generates:
+1. **Protected Run Results** - Shows circuit breaker interventions
+2. **Control Run Results** - Demonstrates what would happen without protection
+3. **Comparison Report** - Highlights survival advantage
+
+Example successful run:
+```
+Protected: ✅ SURVIVED (3 circuit breaker interventions)
+Control:   ❌ CRASHED at step 18 (recall dropped to 68%)
+
+Result: Interlock prevented failure 18 steps into stress test
+```
 
 ## 📈 Interpretation
 

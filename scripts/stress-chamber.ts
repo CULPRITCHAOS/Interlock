@@ -20,10 +20,34 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+// ============= Stress Profiles =============
+const STRESS_PROFILES = {
+  light: {
+    recallThreshold: 0.7,
+    latencyThresholdMs: 50.0,
+    vectorsPerStep: 10000,
+    growthSteps: 15
+  },
+  medium: {
+    recallThreshold: 0.75,
+    latencyThresholdMs: 40.0,
+    vectorsPerStep: 15000,
+    growthSteps: 25
+  },
+  heavy: {
+    recallThreshold: 0.8,
+    latencyThresholdMs: 30.0,
+    vectorsPerStep: 25000,
+    growthSteps: 30
+  }
+} as const;
+
+type StressProfile = keyof typeof STRESS_PROFILES;
+
 // ============= Shared Constants =============
 const STRESS_CHAMBER_CONFIG = {
-  RECALL_THRESHOLD: 0.7,
-  LATENCY_THRESHOLD_MS: 50.0,
+  RECALL_THRESHOLD: 0.75, // Updated from 0.7 to be stricter
+  LATENCY_THRESHOLD_MS: 40.0, // Updated from 50.0 to be stricter
   HAZARD_THRESHOLD: 0.6,
   RECOVERY_CHECK_INTERVAL_S: 5.0,
   CONSECUTIVE_SUCCESSES_FOR_CLOSE: 3,
@@ -187,18 +211,28 @@ class StressChamberCircuitBreaker {
   private recentLatencies: number[] = [];
   private interventions: Intervention[] = [];
   
-  // Use shared constants
-  private config = {
-    recallThreshold: STRESS_CHAMBER_CONFIG.RECALL_THRESHOLD,
-    latencyThresholdMs: STRESS_CHAMBER_CONFIG.LATENCY_THRESHOLD_MS,
-    hazardThreshold: STRESS_CHAMBER_CONFIG.HAZARD_THRESHOLD,
-    recoveryCheckIntervalS: STRESS_CHAMBER_CONFIG.RECOVERY_CHECK_INTERVAL_S,
-    consecutiveSuccessesForClose: STRESS_CHAMBER_CONFIG.CONSECUTIVE_SUCCESSES_FOR_CLOSE,
-    degradedNprobe: STRESS_CHAMBER_CONFIG.DEGRADED_NPROBE,
-    optimalNprobe: STRESS_CHAMBER_CONFIG.OPTIMAL_NPROBE
+  // Use configurable thresholds
+  private config: {
+    recallThreshold: number;
+    latencyThresholdMs: number;
+    hazardThreshold: number;
+    recoveryCheckIntervalS: number;
+    consecutiveSuccessesForClose: number;
+    degradedNprobe: number;
+    optimalNprobe: number;
   };
 
-  constructor(private harness: StressChamberHarness) {}
+  constructor(private harness: StressChamberHarness, recallThreshold?: number, latencyThresholdMs?: number) {
+    this.config = {
+      recallThreshold: recallThreshold ?? STRESS_CHAMBER_CONFIG.RECALL_THRESHOLD,
+      latencyThresholdMs: latencyThresholdMs ?? STRESS_CHAMBER_CONFIG.LATENCY_THRESHOLD_MS,
+      hazardThreshold: STRESS_CHAMBER_CONFIG.HAZARD_THRESHOLD,
+      recoveryCheckIntervalS: STRESS_CHAMBER_CONFIG.RECOVERY_CHECK_INTERVAL_S,
+      consecutiveSuccessesForClose: STRESS_CHAMBER_CONFIG.CONSECUTIVE_SUCCESSES_FOR_CLOSE,
+      degradedNprobe: STRESS_CHAMBER_CONFIG.DEGRADED_NPROBE,
+      optimalNprobe: STRESS_CHAMBER_CONFIG.OPTIMAL_NPROBE
+    };
+  }
 
   calculateHazardScore(): number {
     if (this.recentRecalls.length < 2) return 0;
@@ -412,7 +446,7 @@ function clearScreen(): void {
   process.stdout.write('\x1B[2J\x1B[0f');
 }
 
-function renderStressChamberFrame(metrics: StressChamberMetrics, step: number, totalSteps: number, mode: string): void {
+function renderStressChamberFrame(metrics: StressChamberMetrics, step: number, totalSteps: number, mode: string, recallThreshold: number, latencyThresholdMs: number): void {
   clearScreen();
   
   console.log('╔════════════════════════════════════════════════════════════════════╗');
@@ -430,11 +464,11 @@ function renderStressChamberFrame(metrics: StressChamberMetrics, step: number, t
   
   // Latency
   const latencyMax = 100; // ms scale
-  const latencyBar = renderProgressBar(metrics.latencyP95Ms, latencyMax, 40, 50);
+  const latencyBar = renderProgressBar(metrics.latencyP95Ms, latencyMax, 40, latencyThresholdMs);
   console.log(`║  Latency: [${latencyBar}] ${metrics.latencyP95Ms.toFixed(1).padStart(6)} ms ║`);
   
   // Recall
-  const recallBar = renderProgressBar(metrics.recallAtK * 100, 100, 40, 70);
+  const recallBar = renderProgressBar(metrics.recallAtK * 100, 100, 40, recallThreshold * 100);
   console.log(`║  Recall:  [${recallBar}] ${(metrics.recallAtK * 100).toFixed(1).padStart(5)}%  ║`);
   
   // Hazard Score
@@ -453,7 +487,12 @@ function renderStressChamberFrame(metrics: StressChamberMetrics, step: number, t
   console.log('╠════════════════════════════════════════════════════════════════════╣');
   console.log('║  THRESHOLDS                                                        ║');
   console.log('║  │ denotes threshold on progress bars                              ║');
-  console.log('║  Memory limit: 80 MB | Latency limit: 50 ms | Recall min: 70%      ║');
+  const memLimit = '80 MB';
+  const latLimit = `${latencyThresholdMs} ms`;
+  const recallMin = `${(recallThreshold * 100).toFixed(0)}%`;
+  const thresholdLine = `║  Memory limit: ${memLimit} | Latency limit: ${latLimit} | Recall min: ${recallMin}`;
+  const paddingNeeded = 72 - thresholdLine.length;
+  console.log(thresholdLine + ' '.repeat(Math.max(0, paddingNeeded)) + '║');
   console.log('╚════════════════════════════════════════════════════════════════════╝');
 }
 
@@ -465,7 +504,9 @@ async function runStressChamber(
   growthSteps: number,
   vectorsPerStep: number,
   mode: 'protected' | 'control',
-  visualize: boolean = true
+  visualize: boolean = true,
+  recallThreshold: number = STRESS_CHAMBER_CONFIG.RECALL_THRESHOLD,
+  latencyThresholdMs: number = STRESS_CHAMBER_CONFIG.LATENCY_THRESHOLD_MS
 ): Promise<StressChamberResult> {
   const runId = `stress_chamber_${mode}_s${seed}_${Date.now()}`;
   const timestamps: StressChamberTimestamps = {
@@ -474,7 +515,7 @@ async function runStressChamber(
   };
   
   const harness = new StressChamberHarness(seed);
-  const circuitBreaker = mode === 'protected' ? new StressChamberCircuitBreaker(harness) : null;
+  const circuitBreaker = mode === 'protected' ? new StressChamberCircuitBreaker(harness, recallThreshold, latencyThresholdMs) : null;
   
   const metricsHistory: StressChamberMetrics[] = [];
   let crashed = false;
@@ -485,6 +526,7 @@ async function runStressChamber(
   
   console.log(`\n[Stress Chamber] Starting ${mode.toUpperCase()} run...`);
   console.log(`[Stress Chamber] Initial size: ${initialSize}, Growth steps: ${growthSteps}`);
+  console.log(`[Stress Chamber] Thresholds: Recall ≥ ${(recallThreshold * 100).toFixed(0)}%, Latency ≤ ${latencyThresholdMs}ms`);
   console.log(`[Stress Chamber] Protection: ${mode === 'protected' ? 'ENABLED' : 'DISABLED'}\n`);
   
   if (mode === 'control') {
@@ -522,20 +564,20 @@ async function runStressChamber(
       }
     } else {
       // Control mode: calculate hazard without protection
-      const hazard = calculateUnprotectedHazard(metrics);
+      const hazard = calculateUnprotectedHazard(metrics, recallThreshold, latencyThresholdMs);
       metrics.hazardScore = hazard;
       metrics.riskLevel = hazard >= 0.8 ? 'red' : hazard >= 0.5 ? 'yellow' : 'safe';
       metrics.circuitBreakerState = 'closed';
-      metrics.forecastedFailureIn = calculateUnprotectedForecast(metrics, harness.getSize());
+      metrics.forecastedFailureIn = calculateUnprotectedForecast(metrics, harness.getSize(), recallThreshold, latencyThresholdMs);
       
       // Check for crash (unprotected)
-      if (metrics.recallAtK < 0.7 || metrics.latencyP95Ms > 50) {
+      if (metrics.recallAtK < recallThreshold || metrics.latencyP95Ms > latencyThresholdMs) {
         crashed = true;
         crashPoint = {
           step,
-          reason: metrics.recallAtK < 0.7 
-            ? `Recall dropped below threshold (${(metrics.recallAtK * 100).toFixed(1)}% < 70%)`
-            : `Latency exceeded threshold (${metrics.latencyP95Ms.toFixed(1)}ms > 50ms)`,
+          reason: metrics.recallAtK < recallThreshold 
+            ? `Recall dropped below threshold (${(metrics.recallAtK * 100).toFixed(1)}% < ${(recallThreshold * 100).toFixed(0)}%)`
+            : `Latency exceeded threshold (${metrics.latencyP95Ms.toFixed(1)}ms > ${latencyThresholdMs}ms)`,
           metrics
         };
         metricsHistory.push(metrics);
@@ -550,7 +592,7 @@ async function runStressChamber(
     
     // Visualize
     if (visualize) {
-      renderStressChamberFrame(metrics, step + 1, growthSteps, mode.toUpperCase());
+      renderStressChamberFrame(metrics, step + 1, growthSteps, mode.toUpperCase(), recallThreshold, latencyThresholdMs);
       await sleep(300);
     } else {
       // Simple progress logging
@@ -575,26 +617,26 @@ async function runStressChamber(
   return result;
 }
 
-function calculateUnprotectedHazard(metrics: StressChamberMetrics): number {
-  const recallMargin = metrics.recallAtK - STRESS_CHAMBER_CONFIG.RECALL_THRESHOLD;
+function calculateUnprotectedHazard(metrics: StressChamberMetrics, recallThreshold: number, latencyThresholdMs: number): number {
+  const recallMargin = metrics.recallAtK - recallThreshold;
   const recallHazard = Math.max(0, 1 - (recallMargin / STRESS_CHAMBER_CONFIG.RECALL_MARGIN_DIVISOR));
   
-  const latencyMargin = STRESS_CHAMBER_CONFIG.LATENCY_THRESHOLD_MS - metrics.latencyP95Ms;
+  const latencyMargin = latencyThresholdMs - metrics.latencyP95Ms;
   const latencyHazard = Math.max(0, 1 - (latencyMargin / STRESS_CHAMBER_CONFIG.LATENCY_MARGIN_DIVISOR));
   
   return Math.min(1.0, 0.6 * recallHazard + 0.4 * latencyHazard);
 }
 
-function calculateUnprotectedForecast(metrics: StressChamberMetrics, currentSize: number): number {
+function calculateUnprotectedForecast(metrics: StressChamberMetrics, currentSize: number, recallThreshold: number, latencyThresholdMs: number): number {
   const recallDegradationPerStep = 0.01 * (currentSize / 50000);
   const latencyDegradationPerStep = 0.5 * (currentSize / 50000);
   
-  const recallMargin = metrics.recallAtK - STRESS_CHAMBER_CONFIG.RECALL_THRESHOLD;
+  const recallMargin = metrics.recallAtK - recallThreshold;
   const timeToRecallFailure = recallDegradationPerStep > 0 
     ? Math.ceil(recallMargin / recallDegradationPerStep)
     : 100;
   
-  const latencyMargin = STRESS_CHAMBER_CONFIG.LATENCY_THRESHOLD_MS - metrics.latencyP95Ms;
+  const latencyMargin = latencyThresholdMs - metrics.latencyP95Ms;
   const timeToLatencyFailure = latencyDegradationPerStep > 0
     ? Math.ceil(latencyMargin / latencyDegradationPerStep)
     : 100;
@@ -608,8 +650,43 @@ function sleep(ms: number): Promise<void> {
 
 // ============= Report Generation =============
 
+function validateStressTestResults(protectedResult: StressChamberResult, controlResult: StressChamberResult): {
+  controlCrashRate: number;
+  protectedSurvivalRate: number;
+  testTooEasy: boolean;
+  validationMessage: string;
+} {
+  // In a single run, we can only determine if it's too easy if both survived
+  const testTooEasy = protectedResult.survived && controlResult.survived;
+  
+  // For historical tracking, we'd need multiple runs
+  // For now, we report on this single run
+  const controlCrashRate = controlResult.survived ? 0 : 100;
+  const protectedSurvivalRate = protectedResult.survived ? 100 : 0;
+  
+  let validationMessage = '';
+  
+  if (testTooEasy) {
+    validationMessage = '⚠️  WARNING: Test too easy - both protected and control survived. Consider increasing stress parameters or using a heavier profile.';
+  } else if (protectedResult.survived && !controlResult.survived) {
+    validationMessage = '✅ SUCCESS: Protected run survived while control crashed - circuit breaker protection verified.';
+  } else if (!protectedResult.survived && controlResult.survived) {
+    validationMessage = '❌ FAILURE: Protected run crashed before control - circuit breaker may need tuning.';
+  } else {
+    validationMessage = '❌ FAILURE: Both runs crashed - stress level exceeded protection capability.';
+  }
+  
+  return {
+    controlCrashRate,
+    protectedSurvivalRate,
+    testTooEasy,
+    validationMessage
+  };
+}
+
 function generateStressChamberReport(protectedResult: StressChamberResult, controlResult: StressChamberResult): string {
   const lines: string[] = [];
+  const validation = validateStressTestResults(protectedResult, controlResult);
   
   lines.push('# Interlock Stress Chamber - Phase I Results');
   lines.push('');
@@ -617,6 +694,18 @@ function generateStressChamberReport(protectedResult: StressChamberResult, contr
   lines.push('');
   lines.push(`**Generated:** ${new Date().toISOString()}`);
   lines.push('');
+  
+  lines.push('## Validation Summary');
+  lines.push('');
+  lines.push(validation.validationMessage);
+  lines.push('');
+  if (validation.testTooEasy) {
+    lines.push('### Recommendations');
+    lines.push('- Use `--profile medium` for moderate stress');
+    lines.push('- Use `--profile heavy` for aggressive stress testing');
+    lines.push('- Control runs should crash in 80%+ of tests for effective validation');
+    lines.push('');
+  }
   
   lines.push('## Executive Summary');
   lines.push('');
@@ -726,21 +815,27 @@ function generateStressChamberReport(protectedResult: StressChamberResult, contr
 function parseArgs(args: string[]): {
   seed: number;
   initialSize: number;
-  growthSteps: number;
-  vectorsPerStep: number;
+  growthSteps?: number;
+  vectorsPerStep?: number;
   control: boolean;
   both: boolean;
   noVisualize: boolean;
   out: string;
+  profile: StressProfile;
+  recallThreshold?: number;
+  latencyThresholdMs?: number;
 } {
   let seed = 42;
   let initialSize = 10000;
-  let growthSteps = 15;
-  let vectorsPerStep = 10000;
+  let growthSteps: number | undefined;
+  let vectorsPerStep: number | undefined;
   let control = false;
   let both = false;
   let noVisualize = false;
   let out = 'results/stress_chamber';
+  let profile: StressProfile = 'medium'; // Default to medium
+  let recallThreshold: number | undefined;
+  let latencyThresholdMs: number | undefined;
   
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--seed' && args[i + 1]) {
@@ -754,6 +849,22 @@ function parseArgs(args: string[]): {
       i++;
     } else if (args[i] === '--vectors-per-step' && args[i + 1]) {
       vectorsPerStep = parseInt(args[i + 1], 10);
+      i++;
+    } else if (args[i] === '--profile' && args[i + 1]) {
+      const requestedProfile = args[i + 1].toLowerCase();
+      // Check if profile exists in STRESS_PROFILES
+      if (requestedProfile in STRESS_PROFILES) {
+        profile = requestedProfile as StressProfile;
+      } else {
+        console.error(`Invalid profile: ${args[i + 1]}. Valid options: ${Object.keys(STRESS_PROFILES).join(', ')}`);
+        process.exit(1);
+      }
+      i++;
+    } else if (args[i] === '--recall-threshold' && args[i + 1]) {
+      recallThreshold = parseFloat(args[i + 1]);
+      i++;
+    } else if (args[i] === '--latency-threshold' && args[i + 1]) {
+      latencyThresholdMs = parseFloat(args[i + 1]);
       i++;
     } else if (args[i] === '--control') {
       control = true;
@@ -773,31 +884,45 @@ Usage:
   npx tsx scripts/stress-chamber.ts [options]
 
 Options:
-  --seed <n>              Random seed (default: 42)
-  --initial-size <n>      Initial index size (default: 10000)
-  --growth-steps <n>      Number of growth steps (default: 15)
-  --vectors-per-step <n>  Vectors to add per step (default: 10000)
-  --control               Run without protection (crash demo)
-  --both                  Run both protected and control tests
-  --no-visualize          Disable real-time visualization
-  --out <dir>             Output directory (default: results/stress_chamber)
-  --help, -h              Show this help
+  --seed <n>                  Random seed (default: 42)
+  --initial-size <n>          Initial index size (default: 10000)
+  --growth-steps <n>          Number of growth steps (default: 25)
+  --vectors-per-step <n>      Vectors to add per step (default: 15000)
+  --profile <light|medium|heavy>  Stress profile (default: medium)
+                              - light:  recall≥70%, latency≤50ms, 10k vectors/step, 15 steps
+                              - medium: recall≥75%, latency≤40ms, 15k vectors/step, 25 steps
+                              - heavy:  recall≥80%, latency≤30ms, 25k vectors/step, 30 steps
+  --recall-threshold <n>      Override recall threshold (0-1)
+  --latency-threshold <n>     Override latency threshold (ms)
+  --control                   Run without protection (crash demo)
+  --both                      Run both protected and control tests
+  --no-visualize              Disable real-time visualization
+  --out <dir>                 Output directory (default: results/stress_chamber)
+  --help, -h                  Show this help
 
 Examples:
   npx tsx scripts/stress-chamber.ts --both --no-visualize
+  npx tsx scripts/stress-chamber.ts --profile heavy --both
   npx tsx scripts/stress-chamber.ts --control --growth-steps 20
-  npx tsx scripts/stress-chamber.ts --seed 123 --initial-size 5000
+  npx tsx scripts/stress-chamber.ts --seed 123 --profile light
 `);
       process.exit(0);
     }
   }
   
-  return { seed, initialSize, growthSteps, vectorsPerStep, control, both, noVisualize, out };
+  return { seed, initialSize, growthSteps, vectorsPerStep, control, both, noVisualize, out, profile, recallThreshold, latencyThresholdMs };
 }
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   const config = parseArgs(args);
+  
+  // Apply profile settings (can be overridden by explicit CLI args)
+  const profileSettings = STRESS_PROFILES[config.profile];
+  const growthSteps = config.growthSteps ?? profileSettings.growthSteps;
+  const vectorsPerStep = config.vectorsPerStep ?? profileSettings.vectorsPerStep;
+  const recallThreshold = config.recallThreshold ?? profileSettings.recallThreshold;
+  const latencyThresholdMs = config.latencyThresholdMs ?? profileSettings.latencyThresholdMs;
   
   console.log('\n╔════════════════════════════════════════════════════════════════════╗');
   console.log('║              INTERLOCK STRESS CHAMBER - PHASE I                    ║');
@@ -807,10 +932,13 @@ async function main(): Promise<void> {
   console.log('╚════════════════════════════════════════════════════════════════════╝');
   console.log('');
   console.log(`Configuration:`);
+  console.log(`  Profile: ${config.profile.toUpperCase()}`);
   console.log(`  Seed: ${config.seed}`);
   console.log(`  Initial Size: ${config.initialSize}`);
-  console.log(`  Growth Steps: ${config.growthSteps}`);
-  console.log(`  Vectors per Step: ${config.vectorsPerStep}`);
+  console.log(`  Growth Steps: ${growthSteps}`);
+  console.log(`  Vectors per Step: ${vectorsPerStep}`);
+  console.log(`  Recall Threshold: ${(recallThreshold * 100).toFixed(0)}%`);
+  console.log(`  Latency Threshold: ${latencyThresholdMs}ms`);
   console.log(`  Mode: ${config.both ? 'BOTH' : config.control ? 'CONTROL' : 'PROTECTED'}`);
   console.log('');
   
@@ -829,10 +957,12 @@ async function main(): Promise<void> {
     protectedResult = await runStressChamber(
       config.seed,
       config.initialSize,
-      config.growthSteps,
-      config.vectorsPerStep,
+      growthSteps,
+      vectorsPerStep,
       'protected',
-      !config.noVisualize
+      !config.noVisualize,
+      recallThreshold,
+      latencyThresholdMs
     );
     
     console.log(`\n[Protected Run] Outcome: ${protectedResult.survived ? '✅ SURVIVED' : '❌ CRASHED'}`);
@@ -846,10 +976,12 @@ async function main(): Promise<void> {
     controlResult = await runStressChamber(
       config.seed,
       config.initialSize,
-      config.growthSteps,
-      config.vectorsPerStep,
+      growthSteps,
+      vectorsPerStep,
       'control',
-      !config.noVisualize
+      !config.noVisualize,
+      recallThreshold,
+      latencyThresholdMs
     );
     
     console.log(`\n[Control Run] Outcome: ${controlResult.survived ? '✅ SURVIVED' : '❌ CRASHED'}`);
@@ -893,6 +1025,8 @@ async function main(): Promise<void> {
     if (protectedResult.survived && !controlResult.survived) {
       console.log(`\n🎯 Interlock prevented failure at step ${controlResult.crashPoint?.step}`);
       console.log(`   Circuit breaker protection verified.`);
+    } else if (protectedResult.survived && controlResult.survived) {
+      console.log(`\n⚠️  WARNING: Test too easy - both survived. Consider using --profile heavy`);
     }
   }
 }

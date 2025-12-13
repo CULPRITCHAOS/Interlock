@@ -274,9 +274,33 @@ One-line deployable protection:
 
 4. **Run Stress Chamber demo**
    ```bash
-   # Run both protected and control tests
-   npx tsx scripts/stress-chamber.ts --both --no-visualize --growth-steps 25
+   # Quick validation with light profile
+   npx tsx scripts/stress-chamber.ts --profile light --both --no-visualize
+   
+   # Standard testing with medium profile (default)
+   npx tsx scripts/stress-chamber.ts --both --no-visualize
+   
+   # Aggressive testing with heavy profile
+   npx tsx scripts/stress-chamber.ts --profile heavy --both --no-visualize
    ```
+
+### Stress Test Profiles
+
+Interlock provides three stress profiles for different testing scenarios:
+
+| Profile | Recall | Latency | Vectors/Step | Steps | Use Case |
+|---------|--------|---------|--------------|-------|----------|
+| **Light** | ≥70% | ≤50ms | 10,000 | 15 | Quick validation |
+| **Medium** | ≥75% | ≤40ms | 15,000 | 25 | CI/CD daily runs |
+| **Heavy** | ≥80% | ≤30ms | 25,000 | 30 | Certification runs |
+
+**Why tests are intentionally hard:**
+- Control runs SHOULD crash (demonstrates real failure scenarios)
+- Protected runs MUST survive (validates circuit breaker protection)
+- Target: 80%+ crash rate for control, 95%+ survival for protected
+- If both survive, the test wasn't stressful enough
+
+For detailed crash statistics and test philosophy, see [TEST_RESULTS.md](docs/TEST_RESULTS.md).
 
 ---
 

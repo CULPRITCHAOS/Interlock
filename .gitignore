@@ -34,5 +34,6 @@ venv
 # Results (keep only reports and summaries)
 results/**/gen_log.jsonl
 results/**/*.tmp
+results/stress_chamber/
 !/results/**/*.md
 !/results/**/*.json
