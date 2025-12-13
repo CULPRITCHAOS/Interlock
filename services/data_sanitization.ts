@@ -144,7 +144,7 @@ export function calculateContentHash(data: unknown): string {
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;
+    hash = hash | 0;  // Convert to 32bit integer
   }
   return Math.abs(hash).toString(16).padStart(8, '0') + '-' + str.length.toString(16);
 }
@@ -469,9 +469,13 @@ export function createSanitizedIncidentContext(
   let errorContext: SanitizedIncidentContext['errorContext'];
   if (rawContext.error) {
     const errorStr = rawContext.error.stack || rawContext.error.message || '';
+    // Safely extract error code if it exists
+    const errorCode = 'code' in rawContext.error && typeof rawContext.error.code === 'string'
+      ? rawContext.error.code
+      : undefined;
     errorContext = {
       errorClass: rawContext.error.name || 'Error',
-      errorCode: (rawContext.error as Error & { code?: string }).code,
+      errorCode,
       stackTraceHash: calculateContentHash(errorStr),
       affectedComponent: extractComponentFromStack(errorStr)
     };

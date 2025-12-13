@@ -63,23 +63,32 @@ export interface PersistedState {
   checksum: string;
 }
 
-// ============= Default State =============
+// ============= Default State Factory =============
 
-export const DEFAULT_PERSISTED_STATE: PersistedState = {
-  schemaVersion: STATE_SCHEMA_VERSION,
-  breakerState: 'closed',
-  lastTransitionTimestamp: Date.now(),
-  reflexCooldownRemaining: 0,
-  lastReflexTripTimestamp: null,
-  confidenceHistory: [],
-  lastIncidentId: null,
-  interventionCount: 0,
-  totalRefusals: 0,
-  persistedAt: Date.now(),
-  checksum: ''
-};
+/**
+ * Create a fresh default persisted state with current timestamps
+ */
+export function createDefaultPersistedState(): PersistedState {
+  const now = Date.now();
+  return {
+    schemaVersion: STATE_SCHEMA_VERSION,
+    breakerState: 'closed',
+    lastTransitionTimestamp: now,
+    reflexCooldownRemaining: 0,
+    lastReflexTripTimestamp: null,
+    confidenceHistory: [],
+    lastIncidentId: null,
+    interventionCount: 0,
+    totalRefusals: 0,
+    persistedAt: now,
+    checksum: ''
+  };
+}
 
-// ============= Safe Boot State =============
+// Legacy constant for backward compatibility (use factory function instead)
+export const DEFAULT_PERSISTED_STATE: PersistedState = createDefaultPersistedState();
+
+// ============= Safe Boot State Factory =============
 
 /**
  * Safe boot state when previous state was OPEN or HALF_OPEN
@@ -87,19 +96,25 @@ export const DEFAULT_PERSISTED_STATE: PersistedState = {
  * 
  * PRINCIPLE: Never auto-restore CLOSED without evidence
  */
-export const SAFE_BOOT_STATE: PersistedState = {
-  schemaVersion: STATE_SCHEMA_VERSION,
-  breakerState: 'open',  // Conservative: start in degraded mode
-  lastTransitionTimestamp: Date.now(),
-  reflexCooldownRemaining: 0,
-  lastReflexTripTimestamp: null,
-  confidenceHistory: [],
-  lastIncidentId: null,
-  interventionCount: 0,
-  totalRefusals: 0,
-  persistedAt: Date.now(),
-  checksum: ''
-};
+export function createSafeBootState(): PersistedState {
+  const now = Date.now();
+  return {
+    schemaVersion: STATE_SCHEMA_VERSION,
+    breakerState: 'open',  // Conservative: start in degraded mode
+    lastTransitionTimestamp: now,
+    reflexCooldownRemaining: 0,
+    lastReflexTripTimestamp: null,
+    confidenceHistory: [],
+    lastIncidentId: null,
+    interventionCount: 0,
+    totalRefusals: 0,
+    persistedAt: now,
+    checksum: ''
+  };
+}
+
+// Legacy constant for backward compatibility (use factory function instead)
+export const SAFE_BOOT_STATE: PersistedState = createSafeBootState();
 
 // ============= State Persistence Configuration =============
 
@@ -150,7 +165,7 @@ function calculateChecksum(state: Omit<PersistedState, 'checksum'>): string {
   for (let i = 0; i < data.length; i++) {
     const char = data.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash = hash & hash;  // Convert to 32bit integer
+    hash = hash | 0;  // Convert to 32bit integer
   }
   return Math.abs(hash).toString(16).padStart(8, '0');
 }
