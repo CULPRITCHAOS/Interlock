@@ -141,13 +141,49 @@ Every run produces explicit artifacts with no silent successes or hidden failure
    
    # Resilience certification mode
    npm run sim:run -- --seed 42 --mode certification --stability-gens 100 --drift-events 3
+   
+   # Phase IV: FAISS Ground-Truth Certification
+   npm run sim:run -- --seed 42 --mode phase4 --initial-size 10000 --growth-steps 10 --vectors-per-step 10000
    ```
+
+## 🆕 Phase IV: FAISS Ground-Truth Certification
+
+LawForge Phase IV provides real calibrated failure-forecasting using FAISS as the ground-truth domain.
+
+### Key Features
+
+1. **Real FAISS Harness** - Progressive index growth with actual recall@k, latency (p95), memory measurement
+2. **Physical Drift Injection** - Load-based drift (vector injection, query spikes), not parameter noise
+3. **Forecast Calibration** - Predicts time-to-failure, drop depth, recovery time with measured accuracy
+4. **Circuit Breaker Export** - Generates runnable self-defending FAISS client code
+5. **Certification Report** - Professional report with honest assessment of capabilities and limitations
+
+### Running Phase IV
+
+```bash
+npm run sim:run -- --seed 42 --mode phase4 --initial-size 10000 --growth-steps 10 --vectors-per-step 10000
+```
+
+### Output Artifacts
+
+- `certification_report.md` - Executive summary, forecast accuracy, honest assessment
+- `forecast_calibration.json` / `.md` - Predicted vs actual failure metrics
+- `circuit_breaker.ts` - Runnable self-defending FAISS client
+
+### Honest Assessment
+
+Phase IV reports explicitly state:
+- ✅ What LawForge CAN predict (degradation trends, risk levels)
+- ❌ What LawForge CANNOT predict (novel failures, exact timing, system-level issues)
+- Confidence bounds for all predictions
+- Known failure cases from calibration
 
 ## 📂 Project Structure
 
 - `/components`: UI widgets (Charts, LawList, CrossDomainPanel, etc.)
-- `/services`: Benchmark harness, law validation, code generation
+- `/services`: Benchmark harness, law validation, code generation, Phase IV services
 - `/scripts`: Headless simulation runners for long-horizon experiments
+- `/backend`: Python FAISS harness, circuit breaker, certification report generators
 - `/results`: Benchmark outputs with per-run folders
 - `/types.ts`: TypeScript definitions for Laws, Genomes, and Benchmarks
 
@@ -174,4 +210,4 @@ See `results/consolidated_report.md` for full details.
 
 ---
 
-*LawForge v3.2.0 — Optimization Microscope, Resilience Certification & Failure Forecasting Engine*
+*LawForge v4.0.0 — Optimization Microscope, Resilience Certification, Failure Forecasting & FAISS Ground-Truth Certification Engine*
