@@ -27,20 +27,20 @@ jobs:
     name: Stress Chamber Comparison
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run stress chamber (protected)
         run: |
           echo "Running stress chamber with Interlock protection..."
@@ -50,7 +50,7 @@ jobs:
             --growth-steps ${{ github.event.inputs.stress_growth_steps || '25' }} \
             --no-visualize \
             --protected
-      
+
       - name: Run stress chamber (control - expecting failure)
         run: |
           echo "Running stress chamber without protection (control test)..."
@@ -60,13 +60,13 @@ jobs:
             --growth-steps ${{ github.event.inputs.stress_growth_steps || '25' }} \
             --no-visualize \
             --control || echo "Control test crashed as expected"
-      
+
       - name: Collect stress chamber results
         if: always()
         run: |
           echo "# 🔥 Stress Chamber Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ -d results/stress_chamber ]; then
             LATEST_RESULT=$(ls -t results/stress_chamber/*.md 2>/dev/null | head -1)
             if [ -f "$LATEST_RESULT" ]; then
@@ -75,11 +75,11 @@ jobs:
               cat "$LATEST_RESULT" >> $GITHUB_STEP_SUMMARY
             fi
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "*Stress test completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
-      
+
       - name: Upload stress test artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -95,33 +95,33 @@ jobs:
     name: Long-Run Stability Test
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Run stability test
         run: |
           echo "Running long-run stability test..."
           npx tsx scripts/long-run-stability.ts \
             --cycles ${{ github.event.inputs.stability_cycles || '50' }} \
             --seed 42
-      
+
       - name: Analyze memory and performance
         if: always()
         run: |
           echo "# 📊 Stability Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ -d results/stability ]; then
             LATEST_RESULT=$(ls -t results/stability/*.md 2>/dev/null | head -1)
             if [ -f "$LATEST_RESULT" ]; then
@@ -129,35 +129,35 @@ jobs:
               echo "" >> $GITHUB_STEP_SUMMARY
               cat "$LATEST_RESULT" >> $GITHUB_STEP_SUMMARY
             fi
-            
+
             # Check for memory metrics
             LATEST_JSON=$(ls -t results/stability/*.json 2>/dev/null | head -1)
             if [ -f "$LATEST_JSON" ]; then
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "## Key Metrics" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
-              
+
               node -e "
                 const fs = require('fs');
                 try {
                   const data = JSON.parse(fs.readFileSync('$LATEST_JSON', 'utf8'));
-                  
+
                   console.log('| Metric | Value |');
                   console.log('|--------|-------|');
-                  
+
                   if (data.memory_leak_detected !== undefined) {
                     const status = data.memory_leak_detected ? '❌ DETECTED' : '✅ NONE';
                     console.log('| Memory Leak | ' + status + ' |');
                   }
-                  
+
                   if (data.total_cycles) {
                     console.log('| Cycles Completed | ' + data.total_cycles + ' |');
                   }
-                  
+
                   if (data.avg_latency_ms) {
                     console.log('| Avg Latency | ' + data.avg_latency_ms.toFixed(2) + ' ms |');
                   }
-                  
+
                   if (data.recall_degradation_pct) {
                     console.log('| Recall Degradation | ' + data.recall_degradation_pct.toFixed(2) + '% |');
                   }
@@ -167,11 +167,11 @@ jobs:
               " >> $GITHUB_STEP_SUMMARY
             fi
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "*Stability test completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
-      
+
       - name: Upload stability test artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -189,52 +189,52 @@ jobs:
     needs: [stress-chamber, stability-test]
     if: always()
     timeout-minutes: 20
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Download stress chamber results
         uses: actions/download-artifact@v4
         with:
           name: stress-chamber-results-${{ github.run_number }}
           path: results/stress_chamber
         continue-on-error: true
-      
+
       - name: Download stability results
         uses: actions/download-artifact@v4
         with:
           name: stability-test-results-${{ github.run_number }}
           path: results/stability
         continue-on-error: true
-      
+
       - name: Generate summary report
         run: |
           mkdir -p results/incidents
-          
+
           cat > results/incidents/stress_test_summary_${{ github.run_number }}.md << 'EOF'
           # Stress Test Summary - Run ${{ github.run_number }}
-          
+
           **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           **Workflow:** ${{ github.workflow }}
           **Triggered by:** ${{ github.event_name }}
-          
+
           ## Test Configuration
           - Stability Cycles: ${{ github.event.inputs.stability_cycles || '50' }}
           - Stress Growth Steps: ${{ github.event.inputs.stress_growth_steps || '25' }}
-          
+
           ## Results Summary
           - Stress Chamber: See artifacts
           - Stability Test: See artifacts
-          
+
           ## Artifacts
           - [Stress Chamber Results](../stress_chamber/)
           - [Stability Test Results](../stability/)
-          
+
           ---
           *Generated by Interlock CI/CD Pipeline*
           EOF
-      
+
       - name: Upload incident reports
         uses: actions/upload-artifact@v4
         with:
@@ -248,13 +248,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: [stress-chamber, stability-test, generate-incident-reports]
     if: always()
-    
+
     steps:
       - name: Generate final summary
         run: |
           echo "# 🎯 Stress Test Workflow Complete" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           echo "## Job Status" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
@@ -263,13 +263,13 @@ jobs:
           echo "| Stability Test | ${{ needs.stability-test.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Incident Reports | ${{ needs.generate-incident-reports.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           if [ "${{ needs.stress-chamber.result }}" == "success" ] && [ "${{ needs.stability-test.result }}" == "success" ]; then
             echo "✅ **All stress tests completed successfully**" >> $GITHUB_STEP_SUMMARY
           else
             echo "⚠️ **Some stress tests did not complete as expected**" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "*Workflow run: #${{ github.run_number }}*" >> $GITHUB_STEP_SUMMARY
