@@ -742,26 +742,34 @@ function identifyUnsafeRegions(
 }
 
 function determineVerdict(calibration: ForecastCalibration): [CertificationVerdict, string] {
+  // Use tiered certification based on Phase D7 requirements
+  // SAFETY_CERTIFIED: F1 >= 0.7 AND FN <= 1 (prioritizes avoiding failures)
+  // OPERATIONAL_CERTIFIED: F1 >= 0.5 AND bounded FP (prioritizes avoiding false alarms)
+  // NOT_CERTIFIED: Does not meet either criteria
+  
   if (calibration.f1Score >= 0.7 && calibration.falseNegatives <= 1) {
     return [
-      'CERTIFIED',
-      `The failure forecasting system demonstrates reliable prediction capability ` +
-      `with F1 score of ${calibration.f1Score.toFixed(2)}. The system is suitable for ` +
+      'SAFETY_CERTIFIED',
+      `Safety-Certified: The failure forecasting system demonstrates reliable prediction capability ` +
+      `with F1 score of ${calibration.f1Score.toFixed(2)} and minimal false negatives (${calibration.falseNegatives}). ` +
+      `The system prioritizes never missing a failure (min FN) and is suitable for ` +
       `production use with the recommended safety margins.`
     ];
-  } else if (calibration.f1Score >= 0.5) {
+  } else if (calibration.f1Score >= 0.5 && calibration.falsePositives <= 3) {
     return [
-      'CONDITIONAL',
-      `The failure forecasting system shows moderate prediction capability ` +
-      `with F1 score of ${calibration.f1Score.toFixed(2)}. Use with caution and ` +
-      `implement additional monitoring. Circuit breaker is strongly recommended.`
+      'OPERATIONAL_CERTIFIED',
+      `Operational-Certified: The failure forecasting system shows moderate prediction capability ` +
+      `with F1 score of ${calibration.f1Score.toFixed(2)} and bounded false positives (${calibration.falsePositives}). ` +
+      `This tier prioritizes not over-reacting (bounded FP). ` +
+      `Use with caution and implement additional monitoring. Circuit breaker is strongly recommended.`
     ];
   } else {
     return [
       'NOT_CERTIFIED',
-      `The failure forecasting system does not meet minimum accuracy requirements ` +
-      `(F1 score: ${calibration.f1Score.toFixed(2)}). Additional calibration data is needed ` +
-      `before production deployment.`
+      `Not Certified: The failure forecasting system does not meet minimum accuracy requirements ` +
+      `(F1 score: ${calibration.f1Score.toFixed(2)}, FN: ${calibration.falseNegatives}, FP: ${calibration.falsePositives}). ` +
+      `Additional calibration data is needed before production deployment. ` +
+      `Shadow mode is recommended for observation only.`
     ];
   }
 }
@@ -910,9 +918,11 @@ export function generateCertificationMarkdown(report: CertificationReport): stri
   lines.push('## Executive Summary');
   lines.push('');
   
-  const verdictEmoji = report.overallVerdict === 'CERTIFIED' ? '✅' : 
-                       report.overallVerdict === 'CONDITIONAL' ? '⚠️' : '❌';
-  lines.push(`### Verdict: ${verdictEmoji} ${report.overallVerdict}`);
+  const verdictEmoji = report.overallVerdict === 'SAFETY_CERTIFIED' ? '✅' : 
+                       report.overallVerdict === 'OPERATIONAL_CERTIFIED' ? '⚠️' : '❌';
+  const verdictLabel = report.overallVerdict === 'SAFETY_CERTIFIED' ? 'Safety-Certified' :
+                       report.overallVerdict === 'OPERATIONAL_CERTIFIED' ? 'Operational-Certified' : 'Not Certified';
+  lines.push(`### Verdict: ${verdictEmoji} ${verdictLabel}`);
   lines.push('');
   lines.push(report.summaryText);
   lines.push('');

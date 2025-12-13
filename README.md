@@ -40,6 +40,83 @@ Interlock is a **failure forecasting and circuit-breaker system** for AI infrast
 
 ---
 
+## 🏆 Tiered Certification System (Phase D7)
+
+Interlock uses **tiered, defensible labels** instead of ambiguous "CERTIFIED" verdicts. Each tier explicitly states what it guarantees and what it does NOT guarantee.
+
+### Certification Tiers
+
+| Tier | Icon | Criteria | Use Case |
+|------|------|----------|----------|
+| **Safety-Certified** | ✅ | F1 ≥ 0.7, FN ≤ 1 | Production systems where missing failures is unacceptable |
+| **Operational-Certified** | ⚠️ | F1 ≥ 0.5, FP ≤ 3 | Systems where false alarms are costly |
+| **Not Certified** | ❌ | Does not meet criteria | Shadow mode observation only |
+
+### Safety-Certified (✅)
+
+**Prioritizes**: Never missing a failure (min FN, FP tolerated)
+
+**Guarantees**:
+- False negative rate ≤ 5% (rarely misses real failures)
+- Will escalate conservatively when uncertain
+- Quality floor enforcement active
+- Flash crowd protection enabled
+
+**Does NOT Guarantee**:
+- Zero false positives (may trigger when not strictly necessary)
+- Exact prediction timing (stochastic variance exists)
+- Protection against novel failure modes outside calibration data
+
+### Operational-Certified (⚠️)
+
+**Prioritizes**: Avoiding over-reaction (bounded FP)
+
+**Guarantees**:
+- False positive rate bounded (minimizes unnecessary interventions)
+- Will not over-react to transient spikes
+- Hysteresis prevents flapping
+
+**Does NOT Guarantee**:
+- Catching all edge-case failures (may miss marginal cases)
+- Full safety in high-risk scenarios
+
+### Not Certified (❌)
+
+**Status**: Unsafe region - explicit refusal
+
+**Available**:
+- Logging and monitoring still operational
+- Shadow mode available for observation
+
+**Not Available**:
+- Active protection
+- Reliable predictions
+
+### Certification Report Structure
+
+Every certification includes:
+
+```json
+{
+  "overallVerdict": "SAFETY_CERTIFIED",
+  "certificationDetails": {
+    "tier": "SAFETY_CERTIFIED",
+    "confidenceLevel": 0.85,
+    "falseNegativeRate": 0.03,
+    "falsePositiveRate": 0.12,
+    "guarantees": ["..."],
+    "doesNotGuarantee": ["..."],
+    "knownBlindSpots": ["..."],
+    "validUnderConditions": ["..."],
+    "invalidUnderConditions": ["..."]
+  }
+}
+```
+
+> **Principle**: "Refuse capability rather than lie about safety."
+
+---
+
 ## 🔬 Proof: Key Components
 
 ### FailureForecastCalibrator

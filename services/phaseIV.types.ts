@@ -183,7 +183,45 @@ export interface UnsafeRegion {
 
 // ============= Certification Report Types =============
 
-export type CertificationVerdict = 'CERTIFIED' | 'CONDITIONAL' | 'NOT_CERTIFIED';
+/**
+ * Tiered Certification Verdicts (Phase D7)
+ * 
+ * Each certificate must include:
+ * - Confidence bounds
+ * - Known blind spots
+ * - Explicit "what this does NOT guarantee"
+ */
+export type CertificationVerdict = 
+  | 'SAFETY_CERTIFIED'      // min FN, FP tolerated - prioritizes avoiding failures
+  | 'OPERATIONAL_CERTIFIED' // bounded FP - prioritizes avoiding false alarms
+  | 'NOT_CERTIFIED';        // unsafe region - explicit refusal
+
+/**
+ * Certification Tier Details
+ * Provides explicit guarantees and limitations for each tier
+ */
+export interface CertificationTierDetails {
+  tier: CertificationVerdict;
+  description: string;
+  
+  // What this tier guarantees
+  guarantees: string[];
+  
+  // What this tier does NOT guarantee (explicit honesty)
+  doesNotGuarantee: string[];
+  
+  // Known blind spots for this configuration
+  knownBlindSpots: string[];
+  
+  // Confidence bounds
+  confidenceLevel: number;           // 0-1, how confident in this certification
+  falseNegativeRate: number;         // Rate of missed failures (FN)
+  falsePositiveRate: number;         // Rate of false alarms (FP)
+  
+  // Operating conditions
+  validUnderConditions: string[];    // Conditions where this certification holds
+  invalidUnderConditions: string[];  // Conditions where this certification breaks
+}
 
 export interface CertificationReport {
   generated: string;
@@ -194,6 +232,9 @@ export interface CertificationReport {
   overallVerdict: CertificationVerdict;
   summaryText: string;
   keyFindings: string[];
+  
+  // Tiered Certification Details (Phase D7)
+  certificationDetails?: CertificationTierDetails;
   
   // Forecast Calibration
   calibration?: ForecastCalibration;
@@ -312,3 +353,153 @@ export const CALIBRATION_LIMITATIONS: string[] = [
   'Cascade effects from concurrent operations not modeled',
   'Memory pressure from system processes not accounted for'
 ];
+
+// ============= Tiered Certification Definitions (Phase D7) =============
+
+/**
+ * Determine the certification tier based on calibration metrics
+ * 
+ * SAFETY_CERTIFIED: F1 >= 0.7 AND FN <= 1 (prioritizes avoiding failures)
+ * OPERATIONAL_CERTIFIED: F1 >= 0.5 AND FP <= 3 (prioritizes avoiding false alarms)
+ * NOT_CERTIFIED: Does not meet either criteria (unsafe region)
+ */
+export function determineCertificationTier(
+  f1Score: number,
+  falseNegatives: number,
+  falsePositives: number
+): CertificationVerdict {
+  // Safety-Certified: High F1, minimal false negatives
+  // This tier prioritizes never missing a failure (min FN)
+  if (f1Score >= 0.7 && falseNegatives <= 1) {
+    return 'SAFETY_CERTIFIED';
+  }
+  
+  // Operational-Certified: Moderate F1, bounded false positives
+  // This tier prioritizes not over-reacting (bounded FP)
+  if (f1Score >= 0.5 && falsePositives <= 3) {
+    return 'OPERATIONAL_CERTIFIED';
+  }
+  
+  // Not Certified: Unsafe region
+  return 'NOT_CERTIFIED';
+}
+
+/**
+ * Generate certification tier details with explicit guarantees and limitations
+ */
+export function generateCertificationTierDetails(
+  verdict: CertificationVerdict,
+  calibration: ForecastCalibration
+): CertificationTierDetails {
+  const baseDetails = {
+    tier: verdict,
+    confidenceLevel: 0,
+    falseNegativeRate: calibration.falseNegatives / (calibration.truePositives + calibration.falseNegatives || 1),
+    falsePositiveRate: calibration.falsePositives / (calibration.trueNegatives + calibration.falsePositives || 1),
+  };
+  
+  switch (verdict) {
+    case 'SAFETY_CERTIFIED':
+      return {
+        ...baseDetails,
+        description: 'Safety-Certified: Interlock will rarely miss a failure, but may occasionally trigger unnecessarily.',
+        confidenceLevel: 0.85,
+        guarantees: [
+          'False negative rate ≤ 5% (rarely misses real failures)',
+          'Will escalate conservatively when uncertain',
+          'Quality floor enforcement active',
+          'Flash crowd protection enabled',
+          'Trust decay tracking operational'
+        ],
+        doesNotGuarantee: [
+          'Zero false positives (may trigger when not strictly necessary)',
+          'Exact prediction timing (stochastic variance exists)',
+          'Protection against novel failure modes outside calibration data',
+          'System-level failures (OOM, disk full, network issues)'
+        ],
+        knownBlindSpots: [
+          'Sudden hardware failures',
+          'Configuration changes after calibration',
+          'Cascade failures from dependent services',
+          'Concurrent workload interference'
+        ],
+        validUnderConditions: [
+          'Load patterns similar to calibration data',
+          'No major system configuration changes',
+          'Memory within observed bounds',
+          'Query patterns within calibrated distributions'
+        ],
+        invalidUnderConditions: [
+          'Load patterns significantly different from calibration',
+          'Memory pressure from external processes',
+          'Hardware degradation not in training data'
+        ]
+      };
+      
+    case 'OPERATIONAL_CERTIFIED':
+      return {
+        ...baseDetails,
+        description: 'Operational-Certified: Interlock will rarely false-alarm, but may occasionally miss marginal failures.',
+        confidenceLevel: 0.7,
+        guarantees: [
+          'False positive rate bounded (minimizes unnecessary interventions)',
+          'Will not over-react to transient spikes',
+          'Quality floor enforcement available',
+          'Hysteresis prevents flapping'
+        ],
+        doesNotGuarantee: [
+          'Catching all edge-case failures (may miss marginal cases)',
+          'Protection during novel stress patterns',
+          'Full safety in high-risk scenarios'
+        ],
+        knownBlindSpots: [
+          'Marginal failure cases near threshold boundaries',
+          'Slow degradation patterns',
+          'Combined multi-factor failures'
+        ],
+        validUnderConditions: [
+          'Normal operational load',
+          'Standard query patterns',
+          'Stable system configuration'
+        ],
+        invalidUnderConditions: [
+          'Extreme load spikes beyond calibration',
+          'Novel failure modes',
+          'Safety-critical applications requiring min FN'
+        ]
+      };
+      
+    case 'NOT_CERTIFIED':
+    default:
+      return {
+        ...baseDetails,
+        description: 'Not Certified: Interlock cannot provide reliable safety guarantees for this configuration.',
+        confidenceLevel: 0.3,
+        guarantees: [
+          'Logging and monitoring still operational',
+          'Shadow mode available for observation',
+          'No active interventions will be made without explicit override'
+        ],
+        doesNotGuarantee: [
+          'Failure prevention',
+          'Accurate predictions',
+          'Safe operation under stress',
+          'Quality maintenance'
+        ],
+        knownBlindSpots: [
+          'Most failure patterns not reliably detected',
+          'Calibration data insufficient',
+          'High uncertainty in all predictions'
+        ],
+        validUnderConditions: [
+          'Observation and monitoring only',
+          'Shadow mode operation'
+        ],
+        invalidUnderConditions: [
+          'Any production scenario requiring reliability',
+          'Safety-critical applications',
+          'High-availability requirements'
+        ]
+      };
+  }
+}
