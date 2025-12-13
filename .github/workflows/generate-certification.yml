@@ -143,9 +143,9 @@ jobs:
               console.log('| **Interlock Class** | ' + (badge.interlockClass || 'undefined') + ' (' + (badge.interlockClassName || 'undefined') + ')' + ' |');
               console.log('| **Load Rating** | Class ' + (badge.loadRating || 'undefined') + ' (' + (badge.loadRatingLabel || 'undefined') + ')' + ' |');
               console.log('| **Repository** | ' + (badge.repository || 'undefined') + ' |');
-              console.log('| **Commit** | \`' + ((badge.repo_commit || 'undefined').substring(0, 8)) + '\` |');
+              console.log('| **Commit** | \`' + (badge.repo_commit ? badge.repo_commit.substring(0, 8) : 'undefined') + '\` |');
               console.log('| **Valid Until** | ' + (badge.valid_until ? badge.valid_until.split('T')[0] : 'undefined') + ' |');
-              console.log('| **Config Fingerprint** | \`' + ((badge.config_fingerprint || 'undefined').substring(0, 16)) + '...\` |');
+              console.log('| **Config Fingerprint** | \`' + (badge.config_fingerprint ? badge.config_fingerprint.substring(0, 16) + '...' : 'undefined') + '\` |');
               console.log('');
 
               console.log('## Capabilities');
@@ -170,7 +170,7 @@ jobs:
               console.log('Badge includes tamper-evident HMAC-SHA256 signature.');
               console.log('');
               console.log('\`\`\`');
-              console.log((badge.signature || 'undefined').substring(0, 64) + '...');
+              console.log((badge.signature ? badge.signature.substring(0, 64) + '...' : 'undefined'));
               console.log('\`\`\`');
             " >> $GITHUB_STEP_SUMMARY
 
