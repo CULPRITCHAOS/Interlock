@@ -55,13 +55,27 @@ export interface HysteresisConfig {
 }
 
 // ============= Shadow Block Record (Dry Run Mode) =============
+// Phase B: Shadow Mode Trust Upgrade
+// Reframed outputs for clarity - logs "SAFETY_MARGIN_VIOLATION" and "PROJECTED_FAILURE_WINDOW"
+// instead of confusing "SHADOW_BLOCK" terminology
+
+export type ShadowBlockType = 
+  | 'SAFETY_MARGIN_VIOLATION'    // System survived by luck, not safety
+  | 'PROJECTED_FAILURE_WINDOW'   // Interlock would have intervened here
+  | 'QUALITY_DEGRADATION'        // Quality floor breach detected
+  | 'CONFIDENCE_DECAY';          // Trust dropped below threshold
 
 export interface ShadowBlockRecord {
   timestamp: number;
+  
+  // Phase B: Reframed output type (replaces generic "SHADOW_BLOCK")
+  type: ShadowBlockType;
+  
   wouldHaveTransitioned: boolean;
   fromState: CircuitState;
   toState: CircuitState;
   trigger: string;
+  
   metrics: {
     hazardScore: number;
     recall: number;
@@ -69,7 +83,19 @@ export interface ShadowBlockRecord {
     confidence: number;
     load?: number;
   };
+  
+  // Phase B: New shadow mode metrics for trust building
+  distanceToBoundary: number;        // How close to hazard threshold (0 = at boundary, 1 = far)
+  durationInRedZone: number;         // ms spent above hazard threshold (accumulated)
+  counterfactualCrashPoint?: number; // Estimated step at which unprotected system would crash
+  
   reason: string;  // Human-readable explanation of what WOULD have happened
+  
+  // Phase B: Explicit explanation for audit
+  explanation: {
+    survivedByLuck: boolean;          // "System survived by luck, not safety"
+    interlockWouldHaveIntervened: boolean;  // "Interlock would have intervened here"
+  };
 }
 
 export const DEFAULT_HYSTERESIS_CONFIG: HysteresisConfig = {
@@ -186,6 +212,10 @@ export interface HysteresisState {
   // ============= NEW: Shadow Mode (Dry Run) =============
   shadowBlocks: ShadowBlockRecord[];        // History of "would have blocked" events
   totalShadowBlocks: number;                // Total shadow blocks recorded
+  
+  // ============= Phase B: Shadow Mode Trust Upgrade =============
+  redZoneEntryTimestamp: number | null;     // When system entered red zone (hazard above threshold)
+  accumulatedRedZoneDuration: number;       // Total ms spent in red zone
 }
 
 // ============= Hysteresis Lock Implementation =============
@@ -239,7 +269,10 @@ export class HysteresisLock {
       },
       // New: Shadow Mode (Dry Run)
       shadowBlocks: [],
-      totalShadowBlocks: 0
+      totalShadowBlocks: 0,
+      // Phase B: Shadow Mode Trust Upgrade
+      redZoneEntryTimestamp: null,
+      accumulatedRedZoneDuration: 0
     };
   }
 
@@ -321,24 +354,15 @@ export class HysteresisLock {
         
         // ============= SHADOW MODE: Log but don't intervene =============
         if (isShadowMode) {
-          // In shadow mode, record what WOULD have happened
-          shadowBlock = {
-            timestamp: now,
-            wouldHaveTransitioned: this.state.currentState !== 'open',
-            fromState: this.state.currentState,
-            toState: 'open',
-            trigger: 'reflex_trip',
-            metrics: {
-              hazardScore: metrics.hazardScore,
-              recall: metrics.recall,
-              latencyMs: metrics.latencyMs,
-              confidence: metrics.confidence,
-              load: metrics.load
-            },
-            reason: `SHADOW BLOCK: Would have triggered REFLEX TRIP - load spiked ${loadRatio.toFixed(1)}x ` +
-                    `(${this.state.previousLoad.toFixed(0)} → ${metrics.load.toFixed(0)}). ` +
-                    `In production mode, this would bypass forecast logic and enter cooldown.`
-          };
+          // In shadow mode, record what WOULD have happened using Phase B enhanced format
+          shadowBlock = this.createShadowBlock(
+            'reflex_trip',
+            'open',
+            metrics,
+            `SHADOW BLOCK: Would have triggered REFLEX TRIP - load spiked ${loadRatio.toFixed(1)}x ` +
+            `(${this.state.previousLoad.toFixed(0)} → ${metrics.load.toFixed(0)}). ` +
+            `In production mode, this would bypass forecast logic and enter cooldown.`
+          );
           this.recordShadowBlock(shadowBlock);
           
           // Update previous load and return WITHOUT intervention
@@ -413,23 +437,14 @@ export class HysteresisLock {
       
       // ============= SHADOW MODE: Log but don't intervene =============
       if (isShadowMode && this.state.currentState === 'closed') {
-        shadowBlock = {
-          timestamp: now,
-          wouldHaveTransitioned: true,
-          fromState: this.state.currentState,
-          toState: 'open',
-          trigger: 'quality_floor',
-          metrics: {
-            hazardScore: metrics.hazardScore,
-            recall: metrics.recall,
-            latencyMs: metrics.latencyMs,
-            confidence: metrics.confidence,
-            load: metrics.load
-          },
-          reason: `SHADOW BLOCK: Would have entered OPEN state - recall ${(metrics.recall * 100).toFixed(1)}% ` +
-                  `below quality floor ${(this.config.qualityFloor * 100).toFixed(0)}%. ` +
-                  `In production mode, requests would be refused to preserve semantic integrity.`
-        };
+        shadowBlock = this.createShadowBlock(
+          'quality_floor',
+          'open',
+          metrics,
+          `SHADOW BLOCK: Would have entered OPEN state - recall ${(metrics.recall * 100).toFixed(1)}% ` +
+          `below quality floor ${(this.config.qualityFloor * 100).toFixed(0)}%. ` +
+          `In production mode, requests would be refused to preserve semantic integrity.`
+        );
         this.recordShadowBlock(shadowBlock);
         // Don't transition in shadow mode
       } else if (!isShadowMode && this.state.currentState === 'closed') {
@@ -470,23 +485,14 @@ export class HysteresisLock {
           if (this.shouldOpenCircuit(metrics)) {
             // ============= SHADOW MODE: Log but don't intervene =============
             if (isShadowMode) {
-              shadowBlock = {
-                timestamp: now,
-                wouldHaveTransitioned: true,
-                fromState: 'closed',
-                toState: 'open',
-                trigger: 'hazard_threshold',
-                metrics: {
-                  hazardScore: metrics.hazardScore,
-                  recall: metrics.recall,
-                  latencyMs: metrics.latencyMs,
-                  confidence: metrics.confidence,
-                  load: metrics.load
-                },
-                reason: `SHADOW BLOCK: Would have entered OPEN state - hazard ${metrics.hazardScore.toFixed(3)} ` +
-                        `exceeded threshold ${this.circuitConfig.hazardThreshold}. ` +
-                        `In production mode, system would enter degraded mode.`
-              };
+              shadowBlock = this.createShadowBlock(
+                'hazard_threshold',
+                'open',
+                metrics,
+                `SHADOW BLOCK: Would have entered OPEN state - hazard ${metrics.hazardScore.toFixed(3)} ` +
+                `exceeded threshold ${this.circuitConfig.hazardThreshold}. ` +
+                `In production mode, system would enter degraded mode.`
+              );
               this.recordShadowBlock(shadowBlock);
             } else {
               intervention = this.transitionTo('open', metrics, 
@@ -499,23 +505,14 @@ export class HysteresisLock {
             // TRUST ENFORCEMENT: Escalate conservatively when confidence degrades
             // This ensures we don't claim false certainty
             if (isShadowMode) {
-              shadowBlock = {
-                timestamp: now,
-                wouldHaveTransitioned: true,
-                fromState: 'closed',
-                toState: 'open',
-                trigger: 'confidence_decay',
-                metrics: {
-                  hazardScore: metrics.hazardScore,
-                  recall: metrics.recall,
-                  latencyMs: metrics.latencyMs,
-                  confidence: metrics.confidence,
-                  load: metrics.load
-                },
-                reason: `SHADOW BLOCK: Would have entered OPEN state - confidence dropped to ${(metrics.confidence * 100).toFixed(1)}% ` +
-                        `(below ${(this.config.minimumConfidenceThreshold * 100).toFixed(0)}% threshold). ` +
-                        `In production mode, system would escalate conservatively.`
-              };
+              shadowBlock = this.createShadowBlock(
+                'confidence_decay',
+                'open',
+                metrics,
+                `SHADOW BLOCK: Would have entered OPEN state - confidence dropped to ${(metrics.confidence * 100).toFixed(1)}% ` +
+                `(below ${(this.config.minimumConfidenceThreshold * 100).toFixed(0)}% threshold). ` +
+                `In production mode, system would escalate conservatively.`
+              );
               this.recordShadowBlock(shadowBlock);
             } else {
               this.state.confidenceDecayMetrics.escalatedConservatively = true;
@@ -905,6 +902,87 @@ export class HysteresisLock {
   }
 
   // ============= NEW: Shadow Mode (Dry Run) Getters =============
+
+  /**
+   * Phase B: Create a shadow block record with enhanced metrics
+   * Replaces raw "SHADOW_BLOCK" with semantic violation types
+   */
+  private createShadowBlock(
+    trigger: string,
+    toState: CircuitState,
+    metrics: HysteresisMetrics,
+    reason: string
+  ): ShadowBlockRecord {
+    const now = Date.now();
+    
+    // Calculate distance to boundary (0 = at threshold, 1 = far from threshold)
+    const distanceToBoundary = Math.max(0, 
+      (this.circuitConfig.hazardThreshold - metrics.hazardScore) / this.circuitConfig.hazardThreshold
+    );
+    
+    // Track red zone duration
+    if (metrics.hazardScore >= this.circuitConfig.hazardThreshold) {
+      if (this.state.redZoneEntryTimestamp === null) {
+        this.state.redZoneEntryTimestamp = now;
+      }
+      const currentDuration = now - this.state.redZoneEntryTimestamp;
+      this.state.accumulatedRedZoneDuration += currentDuration;
+    } else {
+      this.state.redZoneEntryTimestamp = null;
+    }
+    
+    // Determine block type based on trigger
+    let type: ShadowBlockType = 'SAFETY_MARGIN_VIOLATION';
+    if (trigger === 'reflex_trip') {
+      type = 'PROJECTED_FAILURE_WINDOW';
+    } else if (trigger === 'quality_floor') {
+      type = 'QUALITY_DEGRADATION';
+    } else if (trigger === 'confidence_decay') {
+      type = 'CONFIDENCE_DECAY';
+    } else if (metrics.hazardScore >= this.circuitConfig.hazardThreshold) {
+      type = 'SAFETY_MARGIN_VIOLATION';
+    }
+    
+    // Estimate counterfactual crash point (simplified estimation)
+    // Based on hazard score trajectory
+    let counterfactualCrashPoint: number | undefined = undefined;
+    if (metrics.hazardScore >= 0.8) {
+      counterfactualCrashPoint = 0; // Imminent crash
+    } else if (metrics.hazardScore >= 0.7) {
+      counterfactualCrashPoint = 5; // ~5 steps to crash
+    } else if (metrics.hazardScore >= 0.6) {
+      counterfactualCrashPoint = 15; // ~15 steps to crash
+    }
+    
+    // Reformat reason to use new terminology
+    const enhancedReason = reason
+      .replace(/SHADOW BLOCK/g, type)
+      .replace(/Would have /g, 'PROJECTED: Would have ');
+    
+    return {
+      timestamp: now,
+      type,
+      wouldHaveTransitioned: this.state.currentState !== toState,
+      fromState: this.state.currentState,
+      toState,
+      trigger,
+      metrics: {
+        hazardScore: metrics.hazardScore,
+        recall: metrics.recall,
+        latencyMs: metrics.latencyMs,
+        confidence: metrics.confidence,
+        load: metrics.load
+      },
+      distanceToBoundary,
+      durationInRedZone: this.state.accumulatedRedZoneDuration,
+      counterfactualCrashPoint,
+      reason: enhancedReason,
+      explanation: {
+        survivedByLuck: metrics.hazardScore >= this.circuitConfig.hazardThreshold * 0.9,
+        interlockWouldHaveIntervened: toState === 'open'
+      }
+    };
+  }
 
   /**
    * Record a shadow block (internal method)
