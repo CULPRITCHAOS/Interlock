@@ -252,7 +252,7 @@ export interface Boundary {
   lawsInvalidated: string[];    // Laws that break at this boundary
 }
 
-// Optimization Landscape Report - LawForge's scientific core
+// Optimization Landscape Report - Interlock's scientific core
 export interface LandscapeReport {
   generated: string;
   runId: string;

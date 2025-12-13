@@ -1,6 +1,6 @@
 {
-  "name": "LawForge",
-  "version": "3.1.0",
-  "description": "An optimization microscope for discovering, falsifying, and stress-testing domain-scoped laws. Features optimization landscape measurement, law taxonomy with half-life metrics, and resilience certification. LawForge does not attempt universal transfer. It measures where transfer fails.",
+  "name": "Interlock",
+  "version": "4.0.0",
+  "description": "A failure forecasting and circuit-breaker system for AI infrastructure. Detects unsafe operating regions, forecasts collapse before it happens, and actively prevents catastrophic failure. Interlock does not optimize systems. It prevents them from breaking.",
   "requestFramePermissions": []
 }

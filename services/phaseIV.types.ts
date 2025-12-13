@@ -1,6 +1,6 @@
 /**
- * LawForge Phase IV: FAISS Ground-Truth Certification Types
- * =========================================================
+ * Interlock Phase IV: FAISS Ground-Truth Certification Types
+ * ==========================================================
  * TypeScript type definitions for Phase IV features:
  * - Real FAISS harness integration
  * - Physical drift injection

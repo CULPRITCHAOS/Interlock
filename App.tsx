@@ -96,7 +96,7 @@ const App: React.FC = () => {
   const [laws, setLaws] = useState<Law[]>(INITIAL_LAWS);
   const [crossInsights, setCrossInsights] = useState<CrossDomainInsight[]>([]);
   const [logs, setLogs] = useState<SimulationLog[]>([
-    { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'LawForge Laboratory Initialized.' },
+    { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'Interlock System Initialized.' },
     { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'info', message: '4 Parallel law discovery channels active.' },
     { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'info', message: `Benchmark seed locked: ${DEFAULT_BENCHMARK_CONFIG.seed}` },
   ]);
@@ -634,7 +634,7 @@ const App: React.FC = () => {
     if (isLiveMode && isConnected) {
       wsService.reset();
       setActiveTab('blueprint');
-      setLogs([{ id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'LawForge Reset (via Live Backend).' }]);
+      setLogs([{ id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'Interlock Reset (via Live Backend).' }]);
       return;
     }
     
@@ -668,7 +668,7 @@ const App: React.FC = () => {
     setGenomes(initial);
     setLaws(INITIAL_LAWS); // Reset laws to initial state
     setLogs([
-      { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'LawForge Reset.' },
+      { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'system', message: 'Interlock Reset.' },
       { id: generateId(), timestamp: new Date().toLocaleTimeString(), level: 'info', message: `Benchmark seed re-locked: ${benchmarkConfig.seed}` }
     ]);
   };
@@ -700,9 +700,9 @@ const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-blue-500">
-                LawForge
+                Interlock
             </h1>
-            <p className="text-slate-500 text-xs mt-0.5 font-mono">Optimization Microscope • Gen {generation}</p>
+            <p className="text-slate-500 text-xs mt-0.5 font-mono">Circuit Breaker for AI Infrastructure • Gen {generation}</p>
           </div>
         </div>
 

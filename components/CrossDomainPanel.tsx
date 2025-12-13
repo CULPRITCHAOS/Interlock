@@ -60,7 +60,7 @@ const CrossDomainPanel: React.FC<CrossDomainPanelProps> = ({ insights, mutationR
       <div className="mb-3 p-2 bg-amber-900/20 border border-amber-500/30 rounded text-[10px] text-amber-400">
         <span className="font-bold">⚠️ Experimental:</span> Transfer is not currently net-positive in aggregate benchmarks (27.4% success rate).
         <div className="mt-1 text-[9px] text-amber-500/80">
-          LawForge does not attempt universal transfer. It measures where transfer fails.
+          Interlock does not attempt universal transfer. It measures where transfer fails.
         </div>
       </div>
 
