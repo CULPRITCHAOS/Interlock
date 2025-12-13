@@ -212,7 +212,7 @@ jobs:
         run: |
           mkdir -p results/performance-trends
 
-          cat > results/performance-trends/trend_${{ github.run_number }}.md << 'EOF'
+          cat > results/performance-trends/trend_${{ github.run_number }}.md << EOF
           # Performance Trend Report - Run ${{ github.run_number }}
 
           **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")

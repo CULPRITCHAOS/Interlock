@@ -212,7 +212,7 @@ jobs:
         run: |
           mkdir -p results/incidents
 
-          cat > results/incidents/stress_test_summary_${{ github.run_number }}.md << 'EOF'
+          cat > results/incidents/stress_test_summary_${{ github.run_number }}.md << EOF
           # Stress Test Summary - Run ${{ github.run_number }}
 
           **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")

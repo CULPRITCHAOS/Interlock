@@ -79,7 +79,7 @@ jobs:
           mkdir -p results/production-evidence
 
           # Generate evidence summary
-          cat > results/production-evidence/evidence_${{ github.run_number }}.md << 'EOF'
+          cat > results/production-evidence/evidence_${{ github.run_number }}.md << EOF
           # Production Evidence Report - Run ${{ github.run_number }}
 
           **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
@@ -117,7 +117,7 @@ jobs:
               ;;
           esac
 
-          cat >> results/production-evidence/evidence_${{ github.run_number }}.md << 'EOF'
+          cat >> results/production-evidence/evidence_${{ github.run_number }}.md << EOF
 
           ## Evidence Collection
 
@@ -266,7 +266,7 @@ jobs:
           mkdir -p results/production-evidence
 
           # Calculate economic impact from collected evidence
-          cat > results/production-evidence/economic_impact_${{ github.run_number }}.md << 'EOF'
+          cat > results/production-evidence/economic_impact_${{ github.run_number }}.md << EOF
           # Economic Impact Report - Run ${{ github.run_number }}
 
           **Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
@@ -284,15 +284,15 @@ jobs:
           ## Economic Value Model
 
           ### Assumptions
-          - Cost per query: $0.01 (varies by use case)
-          - Cost of 1 minute downtime: $100 (example for small service)
+          - Cost per query: \$0.01 (varies by use case)
+          - Cost of 1 minute downtime: \$100 (example for small service)
           - Average recovery time: 15 minutes
 
           ### Calculated Impact
 
           If Interlock prevented 1 crash in testing:
           - Downtime prevented: 15 minutes
-          - Economic value: ~$1,500
+          - Economic value: ~\$1,500
           - Queries saved: Varies by load
 
           ## Claims Supported by Evidence

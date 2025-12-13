@@ -205,7 +205,7 @@ jobs:
 
       - name: Create release notes
         run: |
-          cat > release-notes.md << 'EOF'
+          cat > release-notes.md << EOF
           # Interlock Certification - Class ${{ steps.release_metadata.outputs.interlock_class }}
 
           **Certification Date:** $(date -u +"%Y-%m-%d")
@@ -215,8 +215,8 @@ jobs:
           ## Certification Artifacts
 
           This release includes:
-          - `interlock_shield.json` - Machine-readable badge with signature
-          - `interlock_shield.md` - Markdown badge for README
+          - \`interlock_shield.json\` - Machine-readable badge with signature
+          - \`interlock_shield.md\` - Markdown badge for README
           - Validation test results
           - Certification evidence
 
@@ -235,9 +235,9 @@ jobs:
 
           Add the badge to your README:
 
-          ```markdown
+          \`\`\`markdown
           See interlock_shield.md for badge markdown
-          ```
+          \`\`\`
 
           ---
 
