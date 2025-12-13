@@ -52,6 +52,31 @@ class ProtectionConfig:
     hazard_threshold: float = 0.6
     recovery_check_interval_s: float = 30.0
     consecutive_successes_for_close: int = 3
+    # Shadow Mode (Trust Acquisition) - logs decisions without interfering
+    dry_run: bool = False
+
+
+@dataclass
+class ShadowBlock:
+    """Record of what WOULD have happened in shadow/dry-run mode."""
+    timestamp: float
+    function_name: str
+    would_have_transitioned: bool
+    from_state: str
+    to_state: str
+    trigger: str
+    reason: str  # Human-readable explanation
+    
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "timestamp": self.timestamp,
+            "function_name": self.function_name,
+            "would_have_transitioned": self.would_have_transitioned,
+            "from_state": self.from_state,
+            "to_state": self.to_state,
+            "trigger": self.trigger,
+            "reason": self.reason
+        }
 
 
 @dataclass
@@ -106,6 +131,7 @@ class InterlockProtector:
     - Failover application
     - Intervention logging
     - Calibration data collection
+    - Shadow mode (dry run) for trust acquisition
     """
     
     _instances: Dict[str, 'InterlockProtector'] = {}
@@ -127,7 +153,11 @@ class InterlockProtector:
         self.interventions: list = []
         self.calibration_outcomes: list = []
         
-        logger.info(f"Initialized InterlockProtector for domain={config.domain}")
+        # Shadow Mode (Trust Acquisition)
+        self.shadow_blocks: list = []  # Records of what WOULD have happened
+        
+        mode_str = "SHADOW MODE (dry run)" if config.dry_run else "ACTIVE MODE"
+        logger.info(f"Initialized InterlockProtector for domain={config.domain} [{mode_str}]")
     
     @classmethod
     def get_instance(cls, key: str, config: ProtectionConfig) -> 'InterlockProtector':
@@ -174,14 +204,55 @@ class InterlockProtector:
         """
         Pre-call check: Assess risk and determine if failover is needed.
         
+        In Shadow Mode (dry_run=True): Calculates hazards and logs "virtual"
+        interventions as Shadow Blocks, but does NOT apply failover.
+        
         Returns:
-            (should_apply_failover, risk_level)
+            (should_apply_failover, risk_level, shadow_block)
         """
         risk_level = self.predict_risk_level()
         hazard = self.calculate_hazard_score()
         
         should_failover = False
+        shadow_block = None
         
+        # ============= SHADOW MODE: Log but don't intervene =============
+        if self.config.dry_run:
+            # In shadow mode, calculate what WOULD happen but don't actually do it
+            if self.state == CircuitState.CLOSED:
+                if hazard >= self.config.hazard_threshold:
+                    shadow_block = ShadowBlock(
+                        timestamp=time.time(),
+                        function_name=func_name,
+                        would_have_transitioned=True,
+                        from_state=self.state.value,
+                        to_state=CircuitState.OPEN.value,
+                        trigger=f"Hazard {hazard:.3f} exceeded threshold {self.config.hazard_threshold}",
+                        reason=f"SHADOW BLOCK: Would have entered OPEN state. "
+                               f"In production mode, failover would be applied."
+                    )
+                    self.shadow_blocks.append(shadow_block)
+                    logger.info(f"SHADOW BLOCK: {func_name} - Would have triggered failover "
+                               f"(hazard={hazard:.3f})")
+                elif self.consecutive_failures >= 3:
+                    shadow_block = ShadowBlock(
+                        timestamp=time.time(),
+                        function_name=func_name,
+                        would_have_transitioned=True,
+                        from_state=self.state.value,
+                        to_state=CircuitState.OPEN.value,
+                        trigger=f"Consecutive failures: {self.consecutive_failures}",
+                        reason=f"SHADOW BLOCK: Would have entered OPEN state due to failures. "
+                               f"In production mode, failover would be applied."
+                    )
+                    self.shadow_blocks.append(shadow_block)
+                    logger.info(f"SHADOW BLOCK: {func_name} - Would have triggered failover "
+                               f"(consecutive failures={self.consecutive_failures})")
+            
+            # In shadow mode, never apply failover
+            return False, risk_level, shadow_block
+        
+        # ============= ACTIVE MODE: Actually intervene =============
         if self.state == CircuitState.CLOSED:
             if hazard >= self.config.hazard_threshold:
                 # Transition to OPEN
@@ -216,7 +287,7 @@ class InterlockProtector:
             # Continue with normal settings to test recovery
             should_failover = False
         
-        return should_failover, risk_level
+        return should_failover, risk_level, shadow_block
     
     def record_post_call(
         self, 
@@ -305,7 +376,10 @@ class InterlockProtector:
             "consecutive_successes": self.consecutive_successes,
             "consecutive_failures": self.consecutive_failures,
             "total_interventions": len(self.interventions),
-            "total_outcomes": len(self.calibration_outcomes)
+            "total_outcomes": len(self.calibration_outcomes),
+            # Shadow Mode info
+            "dry_run": self.config.dry_run,
+            "total_shadow_blocks": len(self.shadow_blocks)
         }
     
     def get_interventions(self) -> list:
@@ -315,6 +389,14 @@ class InterlockProtector:
     def get_calibration_outcomes(self) -> list:
         """Get list of all calibration outcomes."""
         return [o.to_dict() for o in self.calibration_outcomes]
+    
+    def get_shadow_blocks(self) -> list:
+        """Get list of all shadow blocks (what WOULD have happened in dry_run mode)."""
+        return [s.to_dict() for s in self.shadow_blocks]
+    
+    def is_dry_run(self) -> bool:
+        """Check if running in shadow/dry-run mode."""
+        return self.config.dry_run
 
 
 def protect(
@@ -323,7 +405,8 @@ def protect(
     failover: Optional[Dict[str, Any]] = None,
     recall_threshold: float = 0.7,
     latency_threshold_ms: float = 50.0,
-    hazard_threshold: float = 0.6
+    hazard_threshold: float = 0.6,
+    dry_run: bool = False
 ) -> Callable:
     """
     One-line protection decorator for functions.
@@ -336,10 +419,23 @@ def protect(
         )
         def search_vectors(query):
             return index.search(query)
+        
+        # Shadow Mode (Trust Acquisition) - audit decisions before giving control
+        @interlock.protect(
+            domain="faiss",
+            dry_run=True  # Log "I WOULD have..." without touching traffic
+        )
+        def search_vectors(query):
+            return index.search(query)
     
     Behavior:
         - Pre-call: Check forecast risk
         - On hazard: Apply failover strategy, log intervention
+        - Post-call: Record outcome for calibration
+        
+        In Shadow Mode (dry_run=True):
+        - Pre-call: Check forecast risk, log as Shadow Block
+        - On hazard: DO NOT apply failover, just log
         - Post-call: Record outcome for calibration
     
     Args:
@@ -349,6 +445,7 @@ def protect(
         recall_threshold: Minimum acceptable recall (0-1)
         latency_threshold_ms: Maximum acceptable latency in milliseconds
         hazard_threshold: Hazard score threshold to trigger failover (0-1)
+        dry_run: If True, log decisions but don't interfere with traffic (Shadow Mode)
     
     Returns:
         Decorated function with automatic protection
@@ -362,7 +459,8 @@ def protect(
         failover=failover,
         recall_threshold=recall_threshold,
         latency_threshold_ms=latency_threshold_ms,
-        hazard_threshold=hazard_threshold
+        hazard_threshold=hazard_threshold,
+        dry_run=dry_run
     )
     
     def decorator(func: Callable) -> Callable:
@@ -375,13 +473,13 @@ def protect(
             func_name = func.__name__
             
             # PRE-CALL: Check forecast risk
-            should_failover, risk_level = protector.check_pre_call(func_name)
+            should_failover, risk_level, shadow_block = protector.check_pre_call(func_name)
             
-            # Apply failover if needed
+            # Apply failover if needed (NOT in dry_run mode)
             original_kwargs = kwargs.copy()
-            if should_failover:
-                kwargs.update(config.failover)
-                logger.info(f"Applying failover for {func_name}: {config.failover}")
+            if should_failover and not protector.config.dry_run:
+                kwargs.update(protector.config.failover)
+                logger.info(f"Applying failover for {func_name}: {protector.config.failover}")
             
             # CALL: Execute the function
             start_time = time.perf_counter()
@@ -457,6 +555,40 @@ def get_calibration_outcomes(func: Callable) -> list:
     if protector is None:
         return []
     return protector.get_calibration_outcomes()
+
+
+def get_shadow_blocks(func: Callable) -> list:
+    """
+    Get list of shadow blocks (what WOULD have happened) for a decorated function.
+    
+    Shadow blocks are only recorded when dry_run=True (Shadow Mode).
+    
+    Args:
+        func: The decorated function
+    
+    Returns:
+        List of shadow block dicts
+    """
+    protector = getattr(func, '_interlock_protector', None)
+    if protector is None:
+        return []
+    return protector.get_shadow_blocks()
+
+
+def is_dry_run(func: Callable) -> bool:
+    """
+    Check if a decorated function is in shadow/dry-run mode.
+    
+    Args:
+        func: The decorated function
+    
+    Returns:
+        True if in dry_run mode, False otherwise
+    """
+    protector = getattr(func, '_interlock_protector', None)
+    if protector is None:
+        return False
+    return protector.is_dry_run()
 
 
 # Module-level namespace class for clean imports

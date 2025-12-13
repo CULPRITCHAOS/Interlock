@@ -84,6 +84,16 @@ export interface CounterfactualEstimate {
     serviceImpactReduced: string;
   };
   benefitSummary: string;
+  // ============= ECONOMIC PROOF (Phase B4) =============
+  // Converts logs → business justification, safety → ROI
+  economicImpact?: {
+    controlCrashPoint: number;         // Step at which unprotected system crashed
+    maxLoadProtected: number;          // Max load the protected system handled
+    queriesSaved: number;              // Additional queries processed
+    costPerQuery?: number;             // Cost per query (configured by user)
+    valueRetained?: number;            // queriesSaved * costPerQuery
+    currency?: string;                 // Currency for value (e.g., "USD")
+  };
 }
 
 export interface StabilizationMetrics {
@@ -373,7 +383,15 @@ export function generateIncidentReport(
   },
   runId: string,
   sequenceNumber: number,
-  confidence: number
+  confidence: number,
+  // Optional economic data for "Saved Value" metric (Phase B4)
+  economicData?: {
+    controlCrashPoint?: number;      // Step at which control system crashed
+    maxLoadProtected?: number;       // Max load the protected system handled
+    queriesSaved?: number;           // Additional queries processed
+    costPerQuery?: number;           // Cost per query (user-configured)
+    currency?: string;               // Currency code (default: "USD")
+  }
 ): IncidentReport {
   const builder = new IncidentReportBuilder();
   
@@ -446,6 +464,32 @@ export function generateIncidentReport(
     },
     benefitSummary: `Prevented potential ${estimateDowntime(intervention.metrics.hazard)} second outage by entering degraded mode proactively`
   };
+
+  // Add economic impact if data provided (Phase B4: Saved Value Metric)
+  if (economicData) {
+    counterfactualEstimate.economicImpact = {
+      controlCrashPoint: economicData.controlCrashPoint ?? 0,
+      maxLoadProtected: economicData.maxLoadProtected ?? 0,
+      queriesSaved: economicData.queriesSaved ?? 0,
+      costPerQuery: economicData.costPerQuery,
+      currency: economicData.currency ?? 'USD'
+    };
+    
+    // Calculate value retained if cost per query is provided
+    if (economicData.costPerQuery && economicData.queriesSaved) {
+      counterfactualEstimate.economicImpact.valueRetained = 
+        economicData.queriesSaved * economicData.costPerQuery;
+      
+      // Update benefit summary to include economic value
+      const valueStr = counterfactualEstimate.economicImpact.valueRetained.toLocaleString('en-US', {
+        style: 'currency',
+        currency: economicData.currency ?? 'USD'
+      });
+      counterfactualEstimate.benefitSummary = 
+        `Interlock processed ${economicData.queriesSaved.toLocaleString()} additional queries that would have been lost. ` +
+        `Estimated value retained: ${valueStr}.`;
+    }
+  }
 
   // Build observed metrics
   const observedMetrics: ObservedMetrics = {
@@ -728,6 +772,40 @@ export function incidentReportToMarkdown(report: IncidentReport): string {
   lines.push('');
   lines.push(`**Summary:** ${report.estimatedAvoidedFailure.benefitSummary}`);
   lines.push('');
+
+  // Economic Impact (Phase B4: Saved Value Metric)
+  if (report.estimatedAvoidedFailure.economicImpact) {
+    const econ = report.estimatedAvoidedFailure.economicImpact;
+    lines.push('### 💰 Economic Impact (Saved Value)');
+    lines.push('');
+    lines.push('| Metric | Value |');
+    lines.push('|--------|-------|');
+    lines.push(`| Control Crash Point | Step ${econ.controlCrashPoint} |`);
+    lines.push(`| Max Load Protected | Step ${econ.maxLoadProtected} |`);
+    lines.push(`| Queries Saved | ${econ.queriesSaved.toLocaleString()} |`);
+    if (econ.costPerQuery !== undefined) {
+      lines.push(`| Cost Per Query | ${econ.costPerQuery.toFixed(4)} ${econ.currency || 'USD'} |`);
+    }
+    if (econ.valueRetained !== undefined) {
+      const valueStr = econ.valueRetained.toLocaleString('en-US', {
+        style: 'currency',
+        currency: econ.currency || 'USD'
+      });
+      lines.push(`| **Value Retained** | **${valueStr}** |`);
+    }
+    lines.push('');
+    if (econ.valueRetained !== undefined) {
+      const valueStr = econ.valueRetained.toLocaleString('en-US', {
+        style: 'currency',
+        currency: econ.currency || 'USD'
+      });
+      lines.push(`> *"Interlock processed ${econ.queriesSaved.toLocaleString()} additional queries that would have been lost.`);
+      lines.push(`> Estimated value retained: ${valueStr}."*`);
+    } else {
+      lines.push(`> *"Interlock processed ${econ.queriesSaved.toLocaleString()} additional queries that would have been lost."*`);
+    }
+    lines.push('');
+  }
 
   // Final System State
   lines.push('## Final System State');

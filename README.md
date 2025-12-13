@@ -40,6 +40,83 @@ Interlock is a **failure forecasting and circuit-breaker system** for AI infrast
 
 ---
 
+## 🏆 Tiered Certification System (Phase D7)
+
+Interlock uses **tiered, defensible labels** instead of ambiguous "CERTIFIED" verdicts. Each tier explicitly states what it guarantees and what it does NOT guarantee.
+
+### Certification Tiers
+
+| Tier | Icon | Criteria | Use Case |
+|------|------|----------|----------|
+| **Safety-Certified** | ✅ | F1 ≥ 0.7, FN ≤ 1 | Production systems where missing failures is unacceptable |
+| **Operational-Certified** | ⚠️ | F1 ≥ 0.5, FP ≤ 3 | Systems where false alarms are costly |
+| **Not Certified** | ❌ | Does not meet criteria | Shadow mode observation only |
+
+### Safety-Certified (✅)
+
+**Prioritizes**: Never missing a failure (min FN, FP tolerated)
+
+**Guarantees**:
+- False negative rate ≤ 5% (rarely misses real failures)
+- Will escalate conservatively when uncertain
+- Quality floor enforcement active
+- Flash crowd protection enabled
+
+**Does NOT Guarantee**:
+- Zero false positives (may trigger when not strictly necessary)
+- Exact prediction timing (stochastic variance exists)
+- Protection against novel failure modes outside calibration data
+
+### Operational-Certified (⚠️)
+
+**Prioritizes**: Avoiding over-reaction (bounded FP)
+
+**Guarantees**:
+- False positive rate bounded (minimizes unnecessary interventions)
+- Will not over-react to transient spikes
+- Hysteresis prevents flapping
+
+**Does NOT Guarantee**:
+- Catching all edge-case failures (may miss marginal cases)
+- Full safety in high-risk scenarios
+
+### Not Certified (❌)
+
+**Status**: Unsafe region - explicit refusal
+
+**Available**:
+- Logging and monitoring still operational
+- Shadow mode available for observation
+
+**Not Available**:
+- Active protection
+- Reliable predictions
+
+### Certification Report Structure
+
+Every certification includes:
+
+```json
+{
+  "overallVerdict": "SAFETY_CERTIFIED",
+  "certificationDetails": {
+    "tier": "SAFETY_CERTIFIED",
+    "confidenceLevel": 0.85,
+    "falseNegativeRate": 0.03,
+    "falsePositiveRate": 0.12,
+    "guarantees": ["..."],
+    "doesNotGuarantee": ["..."],
+    "knownBlindSpots": ["..."],
+    "validUnderConditions": ["..."],
+    "invalidUnderConditions": ["..."]
+  }
+}
+```
+
+> **Principle**: "Refuse capability rather than lie about safety."
+
+---
+
 ## 🔬 Proof: Key Components
 
 ### FailureForecastCalibrator
@@ -318,6 +395,78 @@ ELSE:
 
 ---
 
+## 👁️ Shadow Mode (Trust Acquisition / Dry Run)
+
+**Problem**: No Enterprise CTO will let you install an active circuit breaker that degrades their customer experience on Day 1. They're scared of false positives.
+
+**Solution**: A "Log Only" or "Shadow Mode" where Interlock pretends to trip the breaker and logs "I WOULD have downgraded precision here" but doesn't actually touch the traffic.
+
+### Configuration
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `dryRun` | false | If true, log decisions but don't interfere with traffic |
+
+### TypeScript Usage
+
+```typescript
+const shadowConfig: HysteresisConfig = {
+  ...DEFAULT_HYSTERESIS_CONFIG,
+  dryRun: true  // Enable shadow mode
+};
+
+const breaker = new HysteresisLock(shadowConfig, circuitBreakerConfig);
+const result = breaker.update(metrics);
+
+// In shadow mode:
+// - result.isShadowMode === true
+// - result.shadowBlock contains what WOULD have happened
+// - result.newState stays at 'closed' (no actual intervention)
+```
+
+### Python Usage
+
+```python
+from interlock import protect, get_shadow_blocks
+
+@protect(
+    domain="faiss",
+    dry_run=True  # Shadow Mode enabled
+)
+def search_vectors(query):
+    return index.search(query)
+
+# After running queries, audit the decisions
+shadow_blocks = get_shadow_blocks(search_vectors)
+for block in shadow_blocks:
+    print(f"Would have: {block['trigger']}")
+    print(f"Reason: {block['reason']}")
+```
+
+### Shadow Block Record
+
+| Field | Description |
+|-------|-------------|
+| `timestamp` | When the shadow block was recorded |
+| `wouldHaveTransitioned` | `true` if state would have changed |
+| `fromState` | Current state |
+| `toState` | State that would have been entered |
+| `trigger` | What triggered the virtual intervention |
+| `reason` | Human-readable explanation |
+
+### Use Case: Trust Acquisition
+
+1. **Week 1**: Deploy Interlock in shadow mode
+2. **Week 2**: Audit shadow blocks - review "I WOULD have..." decisions
+3. **Week 3**: If decisions align with expectations, enable active mode
+4. **Ongoing**: Keep shadow mode running on a subset for continuous validation
+
+### Market Language
+
+> **"Shadow mode lets you audit Interlock's decisions for a week before giving it control."**
+
+---
+
 ## 📉 Adaptive Risk Escalation (Confidence Decay Logic)
 
 **Problem**: Systems may claim false certainty when they should be uncertain.
@@ -428,6 +577,7 @@ npm run validate
 | 5 | **Flash Crowd Reflex** | Verify reflexive safety override on load spikes |
 | 6 | **Quality Floor Enforcement** | Verify refusal when recall < quality floor |
 | 7 | **No False Certainty** | Verify Interlock never claims certainty it doesn't have |
+| 8 | **Shadow Mode (Dry Run)** | Verify Interlock logs decisions without interfering with traffic |
 
 ### Success Criteria
 
@@ -438,6 +588,7 @@ npm run validate
 | Reports generated before failure | Incident Quality |
 | No silent degradation | Quality Floor Enforcement |
 | Conservative escalation verified | Trust Decay, No False Certainty |
+| Shadow mode logs without interfering | Shadow Mode |
 
 ---
 
