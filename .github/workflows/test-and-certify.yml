@@ -43,8 +43,8 @@ jobs:
       - name: Type check
         run: npm run lint
 
-      - name: Build project
-        run: npm run build
+      # NOTE: Build step removed - frontend (index.html) is excluded from public release
+      # Middleware services are TypeScript-only and don't require vite build
 
       - name: Run validation tests
         run: npm run validate
