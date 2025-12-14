@@ -1,17 +1,41 @@
 # Variance Distributions
 
-> **Purpose**: Prove distributional bounds, not just means. Move from "works" to "statistically reliable."
+> **Purpose**: Prove distributional bounds, not just means. Move from "works" to "empirically reliable."
+
+> [!NOTE]
+> These are **empirical bounds from tested scenarios**, not theoretical guarantees. Results may vary under different conditions.
 
 ---
 
-## Test Configuration
+## Methodology
+
+### Test Configuration
 
 | Parameter | Value |
 |-----------|-------|
-| **Test runs** | 50 |
-| **Shock types** | Flash crowd, memory pressure, latency jitter |
-| **Domains** | Pinecone, FAISS, Ollama |
-| **Date** | 2025-12-14 |
+| **Total runs (N)** | 50 |
+| **Runs per domain** | Pinecone: 20, FAISS: 15, Ollama: 15 |
+| **Shock types tested** | Flash crowd, memory pressure, latency jitter |
+| **Random seed policy** | Varied (new seed per run for independence) |
+| **Test environment** | Windows laptop, 16GB RAM, GPU |
+| **Date range** | 2025-12-14 |
+
+### What Counts as FP/FN
+
+| Metric | Operationalized As |
+|--------|-------------------|
+| **False Positive** | Interlock refused traffic when downstream latency < 100ms and error rate = 0% |
+| **False Negative** | Interlock allowed traffic when downstream latency > 500ms OR error rate > 5% |
+| **Degraded state** | Latency > 2× baseline OR error rate > 5% |
+| **Healthy state** | Latency within baseline ± 50% AND error rate < 1% |
+
+### Shock Taxonomy
+
+| Shock Type | Description | Intensity |
+|------------|-------------|-----------|
+| **Flash Crowd** | Traffic spike to 10× baseline | Moderate |
+| **Memory Pressure** | 80% RAM utilization | Moderate |
+| **Latency Jitter** | Random 100-500ms added delay | Moderate |
 
 ---
 

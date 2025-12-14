@@ -116,9 +116,20 @@ Incident #002: Circuit Breaker Activation
 └─ Confidence: 0.96 (High)
 ```
 
-> 📊 **Evidence**: [Live Incidents](./docs/LIVE_INCIDENTS.md) · [Variance & Calibration](./docs/validation/variance.md) · [Restart Continuity](./docs/validation/continuity.md) · [Case Study](./docs/CASE_STUDY.md)
+> 📊 **Evidence**: [Live Incidents](./docs/LIVE_INCIDENTS.md) · [Restart Continuity](./docs/validation/continuity.md) · [Case Study](./docs/CASE_STUDY.md)
 >
 > 📐 **Formal Schema**: [Interlock Primitives](./docs/primitives.md)
+
+### Measured Validation (v5.3.0)
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| **False Positive Rate** | 4.0% | Operational friction, within acceptable band |
+| **False Negative Rate** | 0% | No missed degradations |
+| **Recovery Time (P95)** | 58.3s | Tested across 3 domains |
+| **Cascade Failures** | 0 | In tested scenarios |
+
+> 📈 **Full methodology**: [Variance Distributions](./docs/validation/VARIANCE_DISTRIBUTIONS.md) · [Failure Modes](./docs/FAILURE_MODES.md)
 
 ## 🔌 Adoption Surface
 
