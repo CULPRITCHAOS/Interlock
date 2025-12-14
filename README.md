@@ -13,6 +13,10 @@ Standard circuit breakers only check if the server is up — they return HTTP 20
 
 **Interlock is different.** It tracks AI confidence, refuses to serve low-certainty responses, and produces cryptographically signed audit trails of every intervention. You get evidence, not apologies.
 
+### 🧬 Origin
+
+I started by researching whether AI systems could learn their own optimal operating parameters. That led me to a bigger question: if systems have optimal bounds, what happens when they operate outside them? That's when I built Interlock — to detect when AI systems are operating outside safe bounds, and refuse to serve rather than hallucinate.
+
 > 🤝 **Looking for pilot partners**: If you're running RAG, vector DBs, or LLMs in production and want to test Interlock in shadow mode (free, no risk), [reach out](mailto:13culprit@gmail.com).
 
 ✅ **7 Integrations** &nbsp;|&nbsp; ✅ **TS + Python** &nbsp;|&nbsp; ✅ **Stress Chamber Proof** &nbsp;|&nbsp; ✅ **Certification Classes I–V**
