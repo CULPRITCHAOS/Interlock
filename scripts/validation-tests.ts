@@ -69,13 +69,15 @@ import {
   InterlockCapabilities
 } from '../services/interlock_class.ts';
 import {
-  generateShield,
+  generateShield
+} from './generate-badge.ts';
+import {
+  InterlockShield,
   verifyBadgeSignature,
   extractSignedClaims,
   generateBadgeSignature,
-  buildCanonicalString,
-  InterlockShield
-} from './generate-badge.ts';
+  buildCanonicalString
+} from '../services/integrity.ts';
 
 // ============= Seeded Random Number Generator =============
 const LCG_MULTIPLIER = 1103515245;
@@ -2242,8 +2244,26 @@ Test Series:
   console.log(`Results saved to: ${outputDir}/`);
 
   // Exit with appropriate code
-  process.exit(report.overallPassed ? 0 : 1);
+  // Exit with appropriate code
+  if (!report.overallPassed) {
+    try {
+      const failuresLogPath = path.join(process.cwd(), 'results', 'failures.log');
+      const failureDetails = report.testSeries
+        .filter(t => !t.passed)
+        .map(t => `[${t.name}] FAILED:\n${t.details.join('\n')}`)
+        .join('\n\n');
+
+      fs.writeFileSync(failuresLogPath, `VALIDATION FAILURES (${new Date().toISOString()}):\n\n${failureDetails}\n`);
+      console.log(`Detailed failure log written to: ${failuresLogPath}`);
+    } catch (e) {
+      console.error('Failed to write failures.log', e);
+    }
+    process.exit(1);
+  } else {
+    process.exit(0);
+  }
 }
+
 
 // Run if executed directly
 const isMainModule = process.argv[1]?.includes('validation-tests');
