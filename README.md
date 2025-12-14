@@ -7,6 +7,8 @@
 [![Benchmark Suite](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/benchmark.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/benchmark.yml)
 [![Competitive Benchmark](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/competitive-benchmark.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/competitive-benchmark.yml)
 [![Scale Test](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml)
+[![Adapter Stress Tests](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-stress-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-stress-test.yml)
+[![Adapter Certification](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-certification.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-certification.yml)
 
 **📋 Documentation**: [Security Policy](./SECURITY.md) | [Contributing Guide](./CONTRIBUTING.md) | [Security Architecture](./docs/SECURITY_ARCHITECTURE.md) | [Production Deployment](./docs/PRODUCTION_DEPLOYMENT.md) | [Test Results](./docs/TEST_RESULTS.md) | [Case Study Template](./docs/CASE_STUDY_TEMPLATE.md)
 
@@ -185,6 +187,19 @@ console.log(`Timeouts: ${metrics.timeoutCount}`);
 - Query timeout detection with severe confidence degradation
 - Search/insert latency tracking
 - Collection availability monitoring
+
+### Adapter Summary
+
+| Adapter | Status | LOC | Features | Class Capable |
+|---------|--------|-----|----------|---------------|
+| **LangChain** | ✅ Production | ~327 | Chain/retriever wrapping, trust decay | Class V |
+| **LlamaIndex** | ✅ Production | ~320 | Query engine wrapping, trust decay | Class V |
+| **Pinecone** | ✅ Production | ~700 | Full monitoring, controlled degradation | Class V |
+| **Weaviate** | ✅ Production | ~180 | GraphQL/REST monitoring, latency cliffs | Class V |
+| **Milvus** | ✅ Production | ~180 | Timeout detection, search/insert tracking | Class V |
+| **Elasticsearch** | ⚠️ Experimental | ~228 | Basic latency monitoring | Class III |
+
+> All adapters implement the shared `InterlockAdapter` interface and support shadow mode.
 
 ---
 
@@ -424,6 +439,9 @@ All test suites are operational and passing:
 | **Production Monitor** | ✅ Passing | Weekly (Wednesday) | Production workload simulation |
 | **Long-Run Stability** | ✅ Passing | Weekly (Sunday) | 50-cycle stability validation |
 | **Stress Chamber** | ✅ Passing | Daily at 2 AM UTC | Stress testing with medium/heavy profiles |
+| **Adapter Stress Tests** | ✅ Passing | Daily at 3 AM UTC | Per-adapter stress testing (6 adapters) |
+| **Adapter Stability Tests** | ✅ Passing | Weekly (Saturday) | Long-run adapter validation |
+| **Adapter Certification** | ✅ Passing | Weekly (Sunday) | Class III/IV/V adapter certification |
 
 **Success Criteria Met:**
 - ✅ Control crash rate ≥80% (tests are appropriately difficult)
@@ -1133,17 +1151,31 @@ Validates:
 
 Before deploying Interlock to production:
 
-- [ ] **Run validation tests**: `npm run validate` — All 11 tests must pass
-- [ ] **Run comparative benchmark**: Verify Interlock advantage vs alternatives
-- [ ] **Run stability test**: Verify no degradation over time
+### CI-Validated (Automatically Checked) ✅
+
+These items are continuously validated by CI workflows:
+
+- [x] **Run validation tests**: `npm run validate` — All tests pass (Test and Certify workflow)
+- [x] **Run comparative benchmark**: Interlock advantage verified (Competitive Benchmark workflow)
+- [x] **Run stability test**: No degradation over time (Adapter Stability Tests workflow)
+- [x] **Run scale test**: Handles 1M+ vectors at 1000 QPS (Scale Test workflow)
+- [x] **Adapter certification**: All 6 adapters certified (Adapter Certification workflow)
+
+### Infrastructure Setup (Manual) 📋
+
+These require manual configuration for your environment:
+
 - [ ] **Configure state persistence**: Set `stateFilePath` to persistent storage
-- [ ] **Start in Shadow Mode**: Use `dryRun: true` for first week
-- [ ] **Review shadow blocks**: Audit "would have blocked" decisions
-- [ ] **Enable active protection**: Set `dryRun: false` after trust acquired
 - [ ] **Set up monitoring**: Track breaker trips, recoveries, refusals
 - [ ] **Configure alerting**: Alert on sustained OPEN state
 - [ ] **Document rollback plan**: How to disable Interlock if needed
 - [ ] **Generate certification badge**: Run `npx tsx scripts/generate-badge.ts`
+
+### Deployment Steps (Week-by-Week) 🚦
+
+- [ ] **Week 1 - Shadow Mode**: Deploy with `dryRun: true` for observation
+- [ ] **Week 1 - Review shadow blocks**: Audit "would have blocked" decisions
+- [ ] **Week 2 - Enable active protection**: Set `dryRun: false` after trust acquired
 
 ---
 
