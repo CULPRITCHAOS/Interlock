@@ -5,6 +5,16 @@
 Interlock is a safety certification and failure-survivability system for AI infrastructure.
 It predicts failures, intervenes before collapse, and produces cryptographically verifiable evidence of system behavior under stress.
 
+### 💡 Why Interlock?
+
+Every AI company is one hallucination away from a lawsuit.
+
+Standard circuit breakers only check if the server is up — they return HTTP 200 when your LLM confidently gives the wrong answer. Your users trust it. Your system logged "success." And you're liable.
+
+**Interlock is different.** It tracks AI confidence, refuses to serve low-certainty responses, and produces cryptographically signed audit trails of every intervention. You get evidence, not apologies.
+
+> 🤝 **Looking for pilot partners**: If you're running RAG, vector DBs, or LLMs in production and want to test Interlock in shadow mode (free, no risk), [reach out](mailto:13culprit@gmail.com).
+
 ✅ **7 Integrations** &nbsp;|&nbsp; ✅ **TS + Python** &nbsp;|&nbsp; ✅ **Stress Chamber Proof** &nbsp;|&nbsp; ✅ **Certification Classes I–V**
 
 [![Test and Certify](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml)
@@ -176,7 +186,11 @@ Interlock is [MIT licensed](./LICENSE) for open-source and evaluation use.
 | Milestone | Status |
 |-----------|--------|
 | Certification badge automation | ✅ Complete |
+| **Pilot customer deployment** | 🔍 Seeking partners |
+| **Published case study** | Planned |
+| **Enterprise pricing model** | Planned |
 | External chaos testing (k6, stress-ng, toxiproxy) | Planned |
 | Cross-domain variance benchmarks | Planned |
 
+> 💼 **Interested in a pilot?** Run Interlock in shadow mode for free. See what it catches. [Contact us](mailto:13culprit@gmail.com).
 
