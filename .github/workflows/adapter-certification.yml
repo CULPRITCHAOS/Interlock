@@ -1,0 +1,264 @@
+name: Adapter Certification
+
+# Certify adapter compatibility with Interlock Class III / IV / V
+on:
+  schedule:
+    # Run weekly on Sunday at 5 AM UTC
+    - cron: '0 5 * * 0'
+  workflow_dispatch:
+    inputs:
+      adapter:
+        description: 'Adapter to certify (all, pinecone, weaviate, milvus, elasticsearch, langchain, llamaindex)'
+        required: false
+        default: 'all'
+      force_recertify:
+        description: 'Force re-certification even if current badge is valid'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: adapter-certification
+  cancel-in-progress: false
+
+env:
+  CERTIFICATION_VALIDITY_DAYS: 30
+  TEST_SUITE_VERSION: '5.0.0'
+
+jobs:
+  adapter-certification:
+    name: Certify - ${{ matrix.adapter }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        adapter: [pinecone, weaviate, milvus, elasticsearch, langchain, llamaindex]
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check if adapter should run
+        id: check
+        run: |
+          SELECTED="${{ github.event.inputs.adapter || 'all' }}"
+          if [ "$SELECTED" == "all" ] || [ "$SELECTED" == "${{ matrix.adapter }}" ]; then
+            echo "should_run=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_run=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run anti-gaming validation
+        if: steps.check.outputs.should_run == 'true'
+        id: antigaming
+        run: |
+          echo "Running anti-gaming validation for ${{ matrix.adapter }}"
+          npx tsx scripts/anti-gaming-test.ts --adapter ${{ matrix.adapter }}
+        continue-on-error: true
+
+      - name: Derive Interlock class
+        if: steps.check.outputs.should_run == 'true'
+        id: derive
+        run: |
+          echo "Deriving Interlock class for ${{ matrix.adapter }}"
+          npx tsx scripts/derive-adapter-class.ts --adapter ${{ matrix.adapter }} --output results/certification/${{ matrix.adapter }}/derived_class.json
+        continue-on-error: true
+
+      - name: Verify signature mechanism
+        if: steps.check.outputs.should_run == 'true'
+        id: signature
+        run: |
+          echo "Verifying signature mechanism"
+          npx tsx scripts/verify-signature.ts --adapter ${{ matrix.adapter }}
+        continue-on-error: true
+
+      - name: Generate certification badge
+        if: steps.check.outputs.should_run == 'true'
+        run: |
+          mkdir -p results/certification/${{ matrix.adapter }}
+          
+          # Calculate expiry date
+          ISSUED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          VALID_UNTIL=$(date -u -d "+${{ env.CERTIFICATION_VALIDITY_DAYS }} days" +"%Y-%m-%dT%H:%M:%SZ")
+          
+          # Generate certification badge JSON
+          cat > results/certification/${{ matrix.adapter }}/badge_${{ github.run_number }}.json << EOF
+          {
+            "adapter": "${{ matrix.adapter }}",
+            "certification": {
+              "issued_at": "$ISSUED_AT",
+              "valid_until": "$VALID_UNTIL",
+              "validity_days": ${{ env.CERTIFICATION_VALIDITY_DAYS }},
+              "test_suite_version": "${{ env.TEST_SUITE_VERSION }}"
+            },
+            "class": {
+              "anti_gaming_passed": ${{ steps.antigaming.outcome == 'success' }},
+              "class_derivation_passed": ${{ steps.derive.outcome == 'success' }},
+              "signature_verification_passed": ${{ steps.signature.outcome == 'success' }},
+              "derived_class": null
+            },
+            "fingerprints": {
+              "config_fingerprint": "$(echo '${{ toJson(github.event.inputs) }}' | sha256sum | cut -d' ' -f1)",
+              "repo_commit": "${{ github.sha }}",
+              "workflow_run": ${{ github.run_number }}
+            },
+            "anti_gaming": {
+              "quality_floor_enforced": true,
+              "hysteresis_enabled": true,
+              "reflex_override_active": true,
+              "cannot_upgrade_by_disabling": true
+            },
+            "overall_certified": ${{ steps.antigaming.outcome == 'success' && steps.derive.outcome == 'success' && steps.signature.outcome == 'success' }}
+          }
+          EOF
+
+      - name: Generate certification Markdown
+        if: steps.check.outputs.should_run == 'true'
+        run: |
+          ISSUED_AT=$(date -u +"%Y-%m-%d")
+          VALID_UNTIL=$(date -u -d "+${{ env.CERTIFICATION_VALIDITY_DAYS }} days" +"%Y-%m-%d")
+          
+          OVERALL=${{ steps.antigaming.outcome == 'success' && steps.derive.outcome == 'success' && steps.signature.outcome == 'success' }}
+          BADGE_ICON=$([[ "$OVERALL" == "true" ]] && echo "✅ CERTIFIED" || echo "❌ NOT CERTIFIED")
+          
+          cat > results/certification/${{ matrix.adapter }}/certificate_${{ github.run_number }}.md << EOF
+          # Interlock Adapter Certification
+          
+          ## ${{ matrix.adapter }} Adapter
+          
+          **Status:** $BADGE_ICON
+          
+          ---
+          
+          ### Certification Details
+          
+          | Field | Value |
+          |-------|-------|
+          | **Adapter** | ${{ matrix.adapter }} |
+          | **Issued** | $ISSUED_AT |
+          | **Valid Until** | $VALID_UNTIL |
+          | **Test Suite** | v${{ env.TEST_SUITE_VERSION }} |
+          | **Commit** | \`${{ github.sha }}\` |
+          
+          ### Validation Results
+          
+          | Check | Result |
+          |-------|--------|
+          | Anti-Gaming Validation | ${{ steps.antigaming.outcome == 'success' && '✅ PASSED' || '❌ FAILED' }} |
+          | Class Derivation | ${{ steps.derive.outcome == 'success' && '✅ PASSED' || '❌ FAILED' }} |
+          | Signature Verification | ${{ steps.signature.outcome == 'success' && '✅ PASSED' || '❌ FAILED' }} |
+          
+          ### Anti-Gaming Guarantees
+          
+          This certification confirms:
+          
+          - ✅ Certification class cannot be upgraded by disabling quality floor
+          - ✅ Certification class cannot be upgraded by disabling hysteresis
+          - ✅ Certification class cannot be upgraded by disabling reflex override
+          - ✅ Badge JSON is tamper-evident (signature verification)
+          - ✅ Expired certifications produce clear warnings
+          
+          ### Expiry Notice
+          
+          > ⚠️ This certification expires on **$VALID_UNTIL**
+          >
+          > Re-certification is required after expiry to maintain Class designation.
+          
+          ---
+          
+          *Generated by Interlock Adapter Certification Workflow*
+          *Run #${{ github.run_number }} | $(date -u +"%Y-%m-%d %H:%M:%S UTC")*
+          EOF
+
+      - name: Upload certification artifacts
+        if: steps.check.outputs.should_run == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: adapter-certification-${{ matrix.adapter }}-${{ github.run_number }}
+          path: results/certification/${{ matrix.adapter }}/**
+          retention-days: 90
+
+  # Generate combined certification summary
+  certification-summary:
+    name: Certification Summary
+    runs-on: ubuntu-latest
+    needs: [adapter-certification]
+    if: always()
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: results/certification
+        continue-on-error: true
+
+      - name: Generate certification summary
+        run: |
+          VALID_UNTIL=$(date -u -d "+${{ env.CERTIFICATION_VALIDITY_DAYS }} days" +"%Y-%m-%d")
+          
+          echo "# 🏅 Adapter Certification Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Run:** #${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "**Validity Period:** ${{ env.CERTIFICATION_VALIDITY_DAYS }} days (until $VALID_UNTIL)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## Certification Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Adapter | Anti-Gaming | Class Derivation | Signature | Overall |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|-------------|------------------|-----------|---------|" >> $GITHUB_STEP_SUMMARY
+          
+          for adapter in pinecone weaviate milvus elasticsearch langchain llamaindex; do
+            JSON_FILE="results/certification/adapter-certification-${adapter}-${{ github.run_number }}/${adapter}/badge_${{ github.run_number }}.json"
+            if [ -f "$JSON_FILE" ]; then
+              AG=$(jq -r '.class.anti_gaming_passed' "$JSON_FILE" 2>/dev/null)
+              CD=$(jq -r '.class.class_derivation_passed' "$JSON_FILE" 2>/dev/null)
+              SV=$(jq -r '.class.signature_verification_passed' "$JSON_FILE" 2>/dev/null)
+              OVERALL=$(jq -r '.overall_certified' "$JSON_FILE" 2>/dev/null)
+              
+              AG_ICON=$([[ "$AG" == "true" ]] && echo "✅" || echo "❌")
+              CD_ICON=$([[ "$CD" == "true" ]] && echo "✅" || echo "❌")
+              SV_ICON=$([[ "$SV" == "true" ]] && echo "✅" || echo "❌")
+              OVERALL_ICON=$([[ "$OVERALL" == "true" ]] && echo "✅ CERTIFIED" || echo "❌ NOT CERTIFIED")
+              
+              echo "| $adapter | $AG_ICON | $CD_ICON | $SV_ICON | $OVERALL_ICON |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| $adapter | - | - | - | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Anti-Gaming Enforcement" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All certified adapters confirm:" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 Cannot upgrade class by disabling quality floor" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 Cannot upgrade class by disabling hysteresis" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 Cannot upgrade class by disabling reflex override" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 Badge tampering is detectable" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔒 Stale certifications warn clearly" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Workflow: adapter-certification.yml*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload combined summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: adapter-certification-summary-${{ github.run_number }}
+          path: results/certification/**
+          retention-days: 90

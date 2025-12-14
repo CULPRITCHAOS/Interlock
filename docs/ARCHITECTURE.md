@@ -299,6 +299,68 @@ Adapters provide framework-specific safety wrappers.
 
 **Recommended:** Shadow mode only
 
+#### 2.5 Weaviate Adapter
+
+**Files:** `adapters/weaviate/index.ts`
+
+**Status:** Production-ready
+
+**Exports:**
+- `createWeaviateAdapter(config)` — Create adapter
+- `WeaviateAdapter.wrapQuery(queryFn, queryType)` — Wrap query (GraphQL/REST/batch)
+- `WeaviateAdapter.observe()` — Get metrics
+- `WeaviateAdapter.getConfidence()` — Get confidence score
+
+**Features:**
+- Latency cliff detection (3x spike)
+- Silent degradation detection (50% increase)
+- GraphQL/REST per-endpoint monitoring
+- Batch import latency tracking
+- Shadow mode support
+
+**NOT in scope:**
+- Weaviate client implementation
+- GraphQL optimization
+- Schema management
+
+#### 2.6 Milvus Adapter
+
+**Files:** `adapters/milvus/index.ts`
+
+**Status:** Production-ready
+
+**Exports:**
+- `createMilvusAdapter(config)` — Create adapter
+- `MilvusAdapter.wrapOperation(operationFn, type, timeoutMs)` — Wrap operation with timeout
+- `MilvusAdapter.observe()` — Get metrics
+- `MilvusAdapter.getConfidence()` — Get confidence score
+
+**Features:**
+- Query timeout detection with severe confidence degradation
+- Latency cliff detection
+- Search/insert latency tracking
+- Collection availability awareness
+- Shadow mode support
+
+**NOT in scope:**
+- Milvus client implementation
+- Index tuning
+- Collection management
+
+#### 2.7 Shared Adapter Interface
+
+**File:** `adapters/adapter_interface.ts`
+
+**Purpose:** Provides common interface, types, and utility functions for all adapters.
+
+**Exports:**
+- `InterlockAdapter` interface
+- `AdapterMetrics` interface
+- `AdapterConfig` interface
+- `detectLatencyCliff()` — Cliff detection helper
+- `detectSilentDegradation()` — Degradation detection helper
+- `createRefusalError()` — Consistent refusal error formatting
+
 #### Adapter Interface Contract
 
 All adapters implement:
@@ -307,6 +369,7 @@ interface InterlockAdapter {
   observe(): Metrics;
   injectFailure?(): void; // Optional, for testing
   getConfidence(): number;
+  reset(): void;
 }
 ```
 
@@ -316,6 +379,61 @@ interface InterlockAdapter {
 - Observation + hooks only, no orchestration
 - Shadow mode support
 - Fail-safe defaults
+
+---
+
+### Adapter Data Flow
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        CLIENT REQUEST                            │
+└─────────────────────────────┬────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                      ADAPTER WRAPPER                             │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────────┐ │
+│  │ Pre-Execution   │  │ Original        │  │ Post-Execution   │ │
+│  │ Check           │──│ Function        │──│ Validation       │ │
+│  │ - Quality floor │  │ (unmodified)    │  │ - Record latency │ │
+│  │ - Trust decay   │  │                 │  │ - Detect cliffs  │ │
+│  │ - Refusal check │  │                 │  │ - Update conf.   │ │
+│  └─────────────────┘  └─────────────────┘  └──────────────────┘ │
+└─────────────────────────────┬────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    METRICS REGISTRY                              │
+│  - Latency history                                               │
+│  - Confidence score                                              │
+│  - Latency cliffs                                                │
+│  - Operation count                                               │
+└─────────────────────────────┬────────────────────────────────────┘
+                              │
+                              ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                    CLIENT RESPONSE                               │
+│  (or Interlock Refusal if confidence < floor)                    │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Where Metrics Live
+
+| Metric | Location | Updated By |
+|--------|----------|------------|
+| **Confidence Score** | Adapter instance state | Post-execution validation |
+| **Hazard Score** | Core services (`phaseIV.ts`) | Circuit breaker calculations |
+| **Trust Decay** | Adapter state | Pre-execution check |
+| **Latency History** | Adapter instance state | Every wrapped operation |
+| **Quality Floor** | Adapter config | User configuration |
+
+### Why Adapters Are Intentionally Thin
+
+1. **Single Responsibility**: Adapters only observe and hook, never orchestrate
+2. **LOC Limit (≤200)**: Forces focus, prevents feature creep
+3. **Zero Dependencies**: No dependency explosion beyond target SDK
+4. **Testability**: Simple adapters are easy to test in isolation
+5. **Portability**: Can be extracted to separate packages if needed
 
 ---
 

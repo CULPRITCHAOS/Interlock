@@ -129,6 +129,63 @@ const results = await safeSearch(searchParams);
 
 **Status:** Experimental — demonstrates Interlock's enterprise applicability
 
+#### Weaviate Adapter
+
+Production-ready adapter for Weaviate vector database with GraphQL and REST API monitoring:
+
+```typescript
+import { createWeaviateAdapter } from './adapters/weaviate';
+
+const adapter = createWeaviateAdapter({
+  qualityFloor: 0.5,
+  dryRun: false  // Set true for shadow mode
+});
+
+// Wrap GraphQL query function
+const safeQuery = adapter.wrapQuery(weaviateClient.graphql, 'graphql');
+
+// Execute with monitoring
+const results = await safeQuery(query);
+
+// Check metrics
+const metrics = adapter.observe();
+console.log(`GraphQL latency: ${metrics.graphqlLatencyMs}ms`);
+```
+
+**Protection provided:**
+- Latency cliff detection (3x spike threshold)
+- Silent degradation detection (50% increase)
+- GraphQL/REST per-endpoint monitoring
+- Batch import latency tracking
+
+#### Milvus Adapter
+
+Production-ready adapter for Milvus vector database with timeout detection:
+
+```typescript
+import { createMilvusAdapter } from './adapters/milvus';
+
+const adapter = createMilvusAdapter({
+  qualityFloor: 0.5,
+  dryRun: true  // Shadow mode for observation
+});
+
+// Wrap search with 30s timeout
+const safeSearch = adapter.wrapOperation(milvusClient.search, 'search', 30000);
+
+// Execute with timeout detection
+const results = await safeSearch(searchParams);
+
+// Monitor timeouts
+const metrics = adapter.observe();
+console.log(`Timeouts: ${metrics.timeoutCount}`);
+```
+
+**Protection provided:**
+- Query timeout detection with severe confidence degradation
+- Search/insert latency tracking
+- Collection availability monitoring
+
 ---
 
 ## 🏅 What Certification Means

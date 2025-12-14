@@ -533,6 +533,125 @@ Adapters integrate with Interlock's certification system:
 
 ---
 
+## Weaviate
+
+### Purpose
+
+The Weaviate adapter provides production-ready safety guardrails for Weaviate vector database operations, including GraphQL and REST API monitoring.
+
+### Failure Modes Protected
+
+- **Latency cliffs** — Sudden query time increases (3x+ previous latency)
+- **Silent degradation** — Gradual latency increases (>50% over recent average)
+- **GraphQL/REST API degradation** — Per-endpoint latency tracking
+- **Batch import slowdowns** — Bulk operation monitoring
+
+### Certification Impact
+
+**Production-ready adapter:**
+
+- Enables Class III+ (confidence tracking)
+- Enables Class V (with quality floor enabled)
+- Shadow mode available for dry-run testing
+
+**Anti-gaming:** Disabling the adapter or quality floor will downgrade certification class.
+
+### Example Usage
+
+```typescript
+import { createWeaviateAdapter } from './adapters/weaviate';
+
+// Create adapter with custom config
+const adapter = createWeaviateAdapter({
+  qualityFloor: 0.6,
+  dryRun: false  // Set true for shadow mode
+});
+
+// Wrap your Weaviate query function
+const safeQuery = adapter.wrapQuery(weaviateClient.graphql, 'graphql');
+
+// Execute with monitoring
+try {
+  const results = await safeQuery(graphqlQuery);
+} catch (error) {
+  console.error(`Interlock refused query: ${error.message}`);
+}
+
+// Observe metrics
+const metrics = adapter.observe();
+console.log(`Confidence: ${metrics.confidenceScore}`);
+console.log(`GraphQL latency: ${metrics.graphqlLatencyMs}ms`);
+```
+
+### What Interlock Refuses to Do
+
+- **Does not implement Weaviate client** — Use official Weaviate SDK
+- **Does not optimize queries** — No GraphQL optimization
+- **Does not manage schemas** — No schema creation/modification
+- **Does not abstract Weaviate API** — Native API unchanged
+
+---
+
+## Milvus
+
+### Purpose
+
+The Milvus adapter provides production-ready safety guardrails for Milvus vector database operations, including timeout detection and collection monitoring.
+
+### Failure Modes Protected
+
+- **Latency cliffs** — Sudden search/insert time increases
+- **Query timeouts** — Severe confidence degradation on timeout
+- **Silent degradation** — Gradual performance decline
+- **Collection availability issues** — Connection status monitoring
+
+### Certification Impact
+
+**Production-ready adapter:**
+
+- Enables Class III+ (confidence tracking)
+- Enables Class V (with quality floor enabled)
+- Shadow mode available for observation
+
+**Anti-gaming:** Disabling features downgrades certification.
+
+### Example Usage
+
+```typescript
+import { createMilvusAdapter } from './adapters/milvus';
+
+// Create adapter
+const adapter = createMilvusAdapter({
+  qualityFloor: 0.5,
+  dryRun: true  // Shadow mode
+});
+
+// Wrap Milvus operations
+const safeSearch = adapter.wrapOperation(milvusClient.search, 'search', 30000);
+const safeInsert = adapter.wrapOperation(milvusClient.insert, 'insert', 60000);
+
+// Execute with timeout detection
+try {
+  const results = await safeSearch(searchParams);
+} catch (error) {
+  console.error(`Operation failed: ${error.message}`);
+}
+
+// Check metrics
+const metrics = adapter.observe();
+console.log(`Timeouts: ${metrics.timeoutCount}`);
+console.log(`Search latency: ${metrics.searchLatencyMs}ms`);
+```
+
+### What Interlock Refuses to Do
+
+- **Does not implement Milvus client** — Use official PyMilvus or Node SDK
+- **Does not optimize searches** — No index tuning
+- **Does not manage collections** — No collection creation/deletion
+- **Does not abstract Milvus API** — Native API unchanged
+
+---
+
 ## Choosing an Adapter
 
 | Use Case | Adapter | Status | Certification Level |
@@ -540,11 +659,13 @@ Adapters integrate with Interlock's certification system:
 | LangChain chains/retrievers | LangChain | Production | Class V capable |
 | LlamaIndex query engines | LlamaIndex | Production | Class V capable |
 | Pinecone vector DB | Pinecone | Production | Class V capable |
+| Weaviate vector DB | Weaviate | Production | Class V capable |
+| Milvus vector DB | Milvus | Production | Class V capable |
 | Elasticsearch vector search | Elasticsearch | Experimental | Observability only |
 
 **Production recommendation:** Start with shadow mode, calibrate thresholds, then enable enforcement.
 
-**Enterprise use:** Pinecone adapter provides most comprehensive monitoring for vector databases.
+**Enterprise use:** Pinecone, Weaviate, and Milvus adapters provide comprehensive monitoring for vector databases.
 
 **Legacy systems:** Elasticsearch adapter demonstrates extensibility (experimental).
 
