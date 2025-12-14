@@ -62,7 +62,15 @@ jobs:
         continue-on-error: true
         run: |
           for i in {1..35}; do
+            # 1. Hit the Client to check for Refusal (The Test)
             curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8000/work >> responses.log
+            
+            # 2. Hit the Brain to TRIGGER the failure (The Simulation)
+            # This runs the wrapped query, which sees FORCE_ERROR, which drops Confidence.
+            curl -s -X POST http://localhost:3000/search \
+              -H "Content-Type: application/json" \
+              -d '{"vector":[0.1]}' > /dev/null &
+              
             sleep 0.1
           done
 
