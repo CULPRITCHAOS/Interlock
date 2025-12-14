@@ -24,11 +24,12 @@ Interlock is an **active protection layer** that sits between your users and you
 graph LR
     A[User Request] --> B{Interlock}
     B -- Safe --> C[AI / Vector DB]
-    B -- Unsafe --> D[Refusal (503)]
+    B -- Unsafe --> D[Refusal 503]
     
-    subgraph "The Brain (Loop)"
+    subgraph Brain [The Brain Loop]
+    direction TB
     E[Observe Latency] --> F[Forecast Collapse]
-    F --> G[Decide (Confidence Score)]
+    F --> G[Decide Confidence]
     G --> B
     end
 ```
