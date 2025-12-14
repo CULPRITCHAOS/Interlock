@@ -21,9 +21,6 @@ jobs:
     name: Real Pinecone API Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
-    # Only run if PINECONE_API_KEY is configured
-    if: ${{ vars.PINECONE_API_KEY != '' || secrets.PINECONE_API_KEY != '' }}
 
     steps:
       - name: Checkout repository
@@ -40,7 +37,19 @@ jobs:
           npm ci
           npm install @pinecone-database/pinecone
 
+      - name: Check for API key
+        id: check_key
+        run: |
+          if [ -z "${{ secrets.PINECONE_API_KEY }}" ]; then
+            echo "has_key=false" >> $GITHUB_OUTPUT
+            echo "⚠️ PINECONE_API_KEY not configured - will skip real API test"
+          else
+            echo "has_key=true" >> $GITHUB_OUTPUT
+            echo "✅ PINECONE_API_KEY found"
+          fi
+
       - name: Run real Pinecone integration test
+        if: steps.check_key.outputs.has_key == 'true'
         id: pinecone_test
         env:
           PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
@@ -49,8 +58,8 @@ jobs:
             --vectors ${{ github.event.inputs.vector_count || '1000' }} \
             --queries ${{ github.event.inputs.query_count || '100' }}
 
-      - name: Generate summary
-        if: always()
+      - name: Generate summary (with key)
+        if: steps.check_key.outputs.has_key == 'true'
         run: |
           echo "# 🌲 Real Pinecone Integration Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -76,21 +85,8 @@ jobs:
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "*Real Pinecone test completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
 
-      - name: Upload Pinecone results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: real-pinecone-results-${{ github.run_number }}
-          path: results/pinecone-integration/
-          retention-days: 30
-
-  # Job that runs when no API key is configured
-  no-api-key:
-    name: Pinecone API Key Not Configured
-    runs-on: ubuntu-latest
-    if: ${{ vars.PINECONE_API_KEY == '' && secrets.PINECONE_API_KEY == '' }}
-    steps:
-      - name: Skip notification
+      - name: Generate summary (no key)
+        if: steps.check_key.outputs.has_key == 'false'
         run: |
           echo "# ⚠️ Pinecone API Key Not Configured" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -101,3 +97,11 @@ jobs:
           echo "2. Get your API key from the Pinecone console" >> $GITHUB_STEP_SUMMARY
           echo "3. Add it as a GitHub secret: Settings → Secrets → Actions → New secret" >> $GITHUB_STEP_SUMMARY
           echo "4. Name: \`PINECONE_API_KEY\`, Value: your API key" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Pinecone results
+        if: steps.check_key.outputs.has_key == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-pinecone-results-${{ github.run_number }}
+          path: results/pinecone-integration/
+          retention-days: 30
