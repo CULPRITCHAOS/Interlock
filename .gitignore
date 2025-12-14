@@ -37,3 +37,17 @@ results/**/*.tmp
 results/stress_chamber/
 !/results/**/*.md
 !/results/**/*.json
+
+# --- TRADE SECRET EXCLUSIONS ---
+# Exclude Game/Dashboard Components
+components/
+backend/
+services/
+
+# Exclude React Game App Entrypoints
+App.tsx
+index.tsx
+index.html
+
+# Exclude All Historical Results (except summary docs if any)
+results/
