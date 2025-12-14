@@ -21,7 +21,7 @@
  * Interlock does not prevent failure. It makes failure visible early — and survivable.
  */
 
-import { CircuitState, Intervention, FAISSMetrics } from './phaseIV.types';
+import { CircuitState, Intervention, FAISSMetrics } from './phaseIV.types.ts';
 
 // Version constant - update when package.json version changes
 export const INTERLOCK_VERSION = '5.0.0';
@@ -146,14 +146,14 @@ export interface IncidentReport {
   id: string;
   version: string;
   generated: string;
-  
+
   // Executive Summary
   executiveSummary: {
     outcome: 'failure_prevented' | 'impact_reduced' | 'monitoring_only';
     headline: string;
     keyTakeaways: string[];
   };
-  
+
   // Required Fields (from problem statement)
   timestampOfIntervention: string;
   triggerConditions: TriggerCondition[];
@@ -164,17 +164,17 @@ export interface IncidentReport {
   timeToStabilization: StabilizationMetrics;
   finalSystemState: FinalSystemState;
   forecastConfidenceAtTrigger: number;
-  
+
   // Optional but Recommended Fields
   unsafeOperatingRegions?: UnsafeOperatingRegion[];
   recommendedConfigurationChanges?: ConfigurationRecommendation[];
   historicalComparison?: HistoricalComparison;
-  
+
   // Metadata
   interlockVersion: string;
   runId: string;
   interventionSequenceNumber: number;
-  
+
   // Limitations (honesty)
   limitations: string[];
 }
@@ -286,10 +286,10 @@ export class IncidentReportBuilder {
   private buildExecutiveSummary(): void {
     const finalState = this.report.finalSystemState;
     const counterfactual = this.report.estimatedAvoidedFailure;
-    
+
     let outcome: 'failure_prevented' | 'impact_reduced' | 'monitoring_only';
     let headline: string;
-    
+
     if (finalState?.isStable && counterfactual?.withoutIntervention.estimatedTimeToFailure === 0) {
       outcome = 'failure_prevented';
       headline = `Circuit breaker prevented imminent system failure`;
@@ -302,7 +302,7 @@ export class IncidentReportBuilder {
     }
 
     const keyTakeaways: string[] = [];
-    
+
     if (this.report.triggerConditions && this.report.triggerConditions.length > 0) {
       const criticalTriggers = this.report.triggerConditions.filter(t => t.breachSeverity === 'critical');
       if (criticalTriggers.length > 0) {
@@ -337,7 +337,7 @@ export class IncidentReportBuilder {
     if (!this.report.id) {
       this.report.id = `incident-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 11)}`;
     }
-    
+
     if (!this.report.generated) {
       this.report.generated = new Date().toISOString();
     }
@@ -394,10 +394,10 @@ export function generateIncidentReport(
   }
 ): IncidentReport {
   const builder = new IncidentReportBuilder();
-  
+
   // Calculate trigger conditions from metrics
   const triggerConditions: TriggerCondition[] = [];
-  
+
   if (intervention.metrics.hazard >= 0.6) {
     triggerConditions.push({
       metric: 'hazardScore',
@@ -407,7 +407,7 @@ export function generateIncidentReport(
       breachSeverity: intervention.metrics.hazard >= 0.8 ? 'critical' : 'warning'
     });
   }
-  
+
   if (intervention.metrics.recall < 0.7) {
     triggerConditions.push({
       metric: 'recall',
@@ -417,7 +417,7 @@ export function generateIncidentReport(
       breachSeverity: intervention.metrics.recall < 0.6 ? 'critical' : 'warning'
     });
   }
-  
+
   if (intervention.metrics.latencyMs > 50) {
     triggerConditions.push({
       metric: 'latencyP95Ms',
@@ -474,18 +474,18 @@ export function generateIncidentReport(
       costPerQuery: economicData.costPerQuery,
       currency: economicData.currency ?? 'USD'
     };
-    
+
     // Calculate value retained if cost per query is provided
     if (economicData.costPerQuery && economicData.queriesSaved) {
-      counterfactualEstimate.economicImpact.valueRetained = 
+      counterfactualEstimate.economicImpact.valueRetained =
         economicData.queriesSaved * economicData.costPerQuery;
-      
+
       // Update benefit summary to include economic value
       const valueStr = counterfactualEstimate.economicImpact.valueRetained.toLocaleString('en-US', {
         style: 'currency',
         currency: economicData.currency ?? 'USD'
       });
-      counterfactualEstimate.benefitSummary = 
+      counterfactualEstimate.benefitSummary =
         `Interlock processed ${economicData.queriesSaved.toLocaleString()} additional queries that would have been lost. ` +
         `Estimated value retained: ${valueStr}.`;
     }
@@ -619,19 +619,19 @@ function getMitigationType(newState: string): MitigationAction['type'] {
 
 function parseMitigationParameters(actionTaken: string): Record<string, number | string> {
   const params: Record<string, number | string> = {};
-  
+
   // Extract nprobe value if present
   const nprobeMatch = actionTaken.match(/nprobe=(\d+)/);
   if (nprobeMatch) {
     params['nprobe'] = parseInt(nprobeMatch[1], 10);
   }
-  
+
   // Extract probe traffic percentage if present
   const probeMatch = actionTaken.match(/(\d+)%\s*probe/i);
   if (probeMatch) {
     params['probeTrafficPercent'] = parseInt(probeMatch[1], 10);
   }
-  
+
   return params;
 }
 
@@ -658,7 +658,7 @@ export function incidentReportToJSON(report: IncidentReport): string {
  */
 export function incidentReportToMarkdown(report: IncidentReport): string {
   const lines: string[] = [];
-  
+
   // Header
   lines.push(`# Interlock Incident Report`);
   lines.push('');

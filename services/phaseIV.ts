@@ -33,7 +33,7 @@ import {
   WHAT_CAN_PREDICT,
   WHAT_CANNOT_PREDICT,
   CALIBRATION_LIMITATIONS
-} from './phaseIV.types';
+} from './phaseIV.types.ts';
 
 // ============= Seeded Random Number Generator =============
 
@@ -87,7 +87,7 @@ export class FAISSHarnessSimulator {
   constructor(config: FAISSConfig = DEFAULT_FAISS_CONFIG, seed: number = 42) {
     this.config = config;
     this.rng = new SeededRandom(seed);
-    
+
     // Calculate memory per vector based on dimensions and index type
     this.memoryPerVector = (config.dimensions * 4) / (1024 * 1024); // MB per vector
     if (config.indexType === 'HNSW') {
@@ -115,24 +115,24 @@ export class FAISSHarnessSimulator {
     const recallDegradation = Math.min(0.3, sizeFactor * 0.1);
     const probeBoost = Math.min(0.2, (this.config.nprobe / 100) * 0.15);
     const noise = (this.rng.next() - 0.5) * 0.02;
-    
-    const recall = Math.max(0.5, Math.min(0.99, 
+
+    const recall = Math.max(0.5, Math.min(0.99,
       this.baseRecall - recallDegradation + probeBoost + noise
     ));
-    
+
     // Latency increases with size and nprobe
     const latencyBase = this.baseLatency;
     const latencySizeMultiplier = 1 + (this.currentSize / 100000);
     const latencyProbeMultiplier = 1 + (this.config.nprobe / 50) * 0.5;
     const latencyNoise = (this.rng.next() - 0.5) * 2;
-    
+
     const latencyP50 = Math.max(0.5, latencyBase * latencySizeMultiplier * latencyProbeMultiplier + latencyNoise);
     const latencyP95 = latencyP50 * (1.3 + this.rng.next() * 0.4);
     const latencyP99 = latencyP95 * (1.2 + this.rng.next() * 0.3);
-    
+
     // Memory is straightforward
     const memory = this.currentSize * this.memoryPerVector;
-    
+
     return {
       recallAtK: recall,
       latencyP50Ms: latencyP50,
@@ -188,7 +188,7 @@ export class PhysicalDriftInjector {
       this.harness.addVectors(vectorsPerStep);
       const metrics = this.harness.query(100);
       history.push(metrics);
-      
+
       peakLatency = Math.max(peakLatency, metrics.latencyP95Ms);
       minRecall = Math.min(minRecall, metrics.recallAtK);
     }
@@ -210,7 +210,7 @@ export class PhysicalDriftInjector {
     for (let i = 0; i < bursts; i++) {
       const metrics = this.harness.query(queriesPerBurst);
       history.push(metrics);
-      
+
       peakLatency = Math.max(peakLatency, metrics.latencyP95Ms);
       minRecall = Math.min(minRecall, metrics.recallAtK);
     }
@@ -258,22 +258,22 @@ export class ForecastCalibrationEngine {
     const currentSize = metrics.indexSize;
     const currentRecall = metrics.recallAtK;
     const currentLatency = metrics.latencyP95Ms;
-    
+
     // Estimate degradation rates from observed behavior
     const recallDegradationPerStep = 0.01 * (currentSize / 50000);
     const latencyDegradationPerStep = 0.5 * (currentSize / 50000);
-    
+
     // Time to failure
     let timeToRecallFailure: number;
     if (currentRecall <= recallThreshold) {
       timeToRecallFailure = 0;
     } else {
       const recallMargin = currentRecall - recallThreshold;
-      timeToRecallFailure = recallDegradationPerStep > 0 
+      timeToRecallFailure = recallDegradationPerStep > 0
         ? Math.ceil(recallMargin / recallDegradationPerStep)
         : 100;
     }
-    
+
     let timeToLatencyFailure: number;
     if (currentLatency >= latencyThresholdMs) {
       timeToLatencyFailure = 0;
@@ -283,16 +283,16 @@ export class ForecastCalibrationEngine {
         ? Math.ceil(latencyMargin / latencyDegradationPerStep)
         : 100;
     }
-    
+
     const timeToFailure = Math.min(timeToRecallFailure, timeToLatencyFailure);
-    
+
     // Predicted drop depth
     const predictedDropDepth = Math.min(0.5, recallDegradationPerStep * 10);
-    
+
     // Recovery time estimate
     const rebuildTimeFactor = 1.0 + (currentSize / 100000);
     const predictedRecoveryTime = Math.ceil(5 * rebuildTimeFactor);
-    
+
     // Risk level
     let riskLevel: 'safe' | 'yellow' | 'red';
     if (timeToFailure <= 2) {
@@ -302,10 +302,10 @@ export class ForecastCalibrationEngine {
     } else {
       riskLevel = 'safe';
     }
-    
+
     // Confidence
     const confidence = Math.min(0.9, 0.5 + (currentSize / 200000));
-    
+
     const prediction: Prediction = {
       timestamp: Date.now(),
       currentSize,
@@ -317,7 +317,7 @@ export class ForecastCalibrationEngine {
       riskLevel,
       confidence
     };
-    
+
     this.predictions.push(prediction);
     return prediction;
   }
@@ -330,7 +330,7 @@ export class ForecastCalibrationEngine {
     failureOccurred: boolean
   ): void {
     if (predictionIndex >= this.predictions.length) return;
-    
+
     this.observations.push({
       predictionIndex,
       actualTimeToFailure,
@@ -370,23 +370,23 @@ export class ForecastCalibrationEngine {
     const dropErrors: number[] = [];
     const recoveryErrors: number[] = [];
     const calibrationData: CalibrationPrediction[] = [];
-    
+
     let tp = 0, fp = 0, tn = 0, fn = 0;
-    
+
     for (const obs of this.observations) {
       const pred = this.predictions[obs.predictionIndex];
-      
+
       timeErrors.push(Math.abs(pred.predictedTimeToFailure - obs.actualTimeToFailure));
       dropErrors.push(Math.abs(pred.predictedDropDepth - obs.actualDropDepth));
       recoveryErrors.push(Math.abs(pred.predictedRecoveryTime - obs.actualRecoveryTime));
-      
+
       const predictedFailure = pred.riskLevel === 'red' || pred.riskLevel === 'yellow';
-      
+
       if (predictedFailure && obs.failureOccurred) tp++;
       else if (predictedFailure && !obs.failureOccurred) fp++;
       else if (!predictedFailure && obs.failureOccurred) fn++;
       else tn++;
-      
+
       calibrationData.push({
         predictedTimeToFailure: pred.predictedTimeToFailure,
         actualTimeToFailure: obs.actualTimeToFailure,
@@ -398,29 +398,29 @@ export class ForecastCalibrationEngine {
         failureOccurred: obs.failureOccurred
       });
     }
-    
+
     const n = this.observations.length;
-    
+
     // Calculate means
     const timeMean = timeErrors.reduce((a, b) => a + b, 0) / n;
     const dropMean = dropErrors.reduce((a, b) => a + b, 0) / n;
     const recoveryMean = recoveryErrors.reduce((a, b) => a + b, 0) / n;
-    
+
     // Calculate medians
     const sorted = (arr: number[]) => [...arr].sort((a, b) => a - b);
     const timeMedian = sorted(timeErrors)[Math.floor(n / 2)];
     const dropMedian = sorted(dropErrors)[Math.floor(n / 2)];
     const recoveryMedian = sorted(recoveryErrors)[Math.floor(n / 2)];
-    
+
     // Precision/Recall/F1
     const precision = (tp + fp) > 0 ? tp / (tp + fp) : 0;
     const recall = (tp + fn) > 0 ? tp / (tp + fn) : 0;
     const f1 = (precision + recall) > 0 ? 2 * precision * recall / (precision + recall) : 0;
-    
+
     // 95% CI
     const accuracy = (tp + tn) / n;
     const ciWidth = 1.96 * Math.sqrt(accuracy * (1 - accuracy) / n);
-    
+
     return {
       runId,
       generated: new Date().toISOString(),
@@ -475,44 +475,44 @@ export function runPhaseIVCertification(
   // Initialize harness
   const harness = new FAISSHarnessSimulator(fullConfig.faissConfig, seed);
   harness.initialize(fullConfig.initialSize);
-  
+
   // Initialize calibrator
   const calibrator = new ForecastCalibrationEngine();
-  
+
   // Initialize drift injector
   const driftInjector = new PhysicalDriftInjector(harness);
-  
+
   // Collect metrics
   const metricsHistory: FAISSMetrics[] = [];
   let baselineRecall = 1.0;
-  
+
   // Run stress test with predictions
   for (let step = 0; step < fullConfig.growthSteps; step++) {
     const currentMetrics = harness.query(100);
     metricsHistory.push(currentMetrics);
-    
+
     if (step === 0) {
       baselineRecall = currentMetrics.recallAtK;
     }
-    
+
     // Make prediction
     const prediction = calibrator.predictFailure(
       currentMetrics,
       fullConfig.vectorsPerStep
     );
-    
+
     // Inject vector drift
     if (fullConfig.enableVectorDrift) {
       harness.addVectors(fullConfig.vectorsPerStep);
     }
-    
+
     // Get post-drift metrics
     const postMetrics = harness.query(100);
-    
+
     // Calculate actual outcomes
     const actualDrop = baselineRecall - postMetrics.recallAtK;
     const failureOccurred = postMetrics.recallAtK < 0.7 || postMetrics.latencyP95Ms > 50;
-    
+
     // Record observation
     calibrator.recordObservation(
       step,
@@ -522,30 +522,30 @@ export function runPhaseIVCertification(
       failureOccurred
     );
   }
-  
+
   // Calculate calibration
   const calibration = calibrator.calculateCalibration(runId);
-  
+
   // Extract failure boundaries
   const failureBoundaries = extractFailureBoundaries(metricsHistory);
-  
+
   // Define safe zones
   const safeZones = defineSafeOperatingZones(metricsHistory);
-  
+
   // Calculate safety margins
   const safetyMargins = calculateSafetyMargins(metricsHistory, failureBoundaries);
-  
+
   // Identify unsafe regions
   const unsafeRegions = identifyUnsafeRegions(metricsHistory, failureBoundaries);
-  
+
   // Determine verdict
   const [verdict, summary] = determineVerdict(calibration);
-  
+
   // Generate circuit breaker config
-  const cbConfig = fullConfig.generateCircuitBreaker 
+  const cbConfig = fullConfig.generateCircuitBreaker
     ? generateCircuitBreakerConfig(failureBoundaries)
     : undefined;
-  
+
   return {
     generated: new Date().toISOString(),
     runId,
@@ -571,62 +571,62 @@ export function runPhaseIVCertification(
 
 function extractFailureBoundaries(metrics: FAISSMetrics[]): FailureBoundaryMap[] {
   const boundaries: FailureBoundaryMap[] = [];
-  
+
   if (!metrics.length) return boundaries;
-  
+
   const recalls = metrics.map(m => m.recallAtK);
   const sizes = metrics.map(m => m.indexSize);
-  
+
   // Find recall degradation boundary
   for (let i = 1; i < recalls.length; i++) {
-    if (recalls[i-1] >= 0.8 && recalls[i] < 0.8) {
+    if (recalls[i - 1] >= 0.8 && recalls[i] < 0.8) {
       boundaries.push({
         boundaryId: 'recall_degradation_boundary',
         parameter: 'index_size',
         criticalValue: sizes[i],
-        safeRange: [0, sizes[i-1]],
+        safeRange: [0, sizes[i - 1]],
         unsafeRange: [sizes[i], sizes[sizes.length - 1] * 1.5],
-        abruptness: Math.abs(recalls[i] - recalls[i-1]) / 0.1,
+        abruptness: Math.abs(recalls[i] - recalls[i - 1]) / 0.1,
         observedConsequences: ['Recall drops below 80%', 'Query quality degradation'],
         confidence: 0.8
       });
       break;
     }
   }
-  
+
   // Find latency boundary
   const latencies = metrics.map(m => m.latencyP95Ms);
   for (let i = 1; i < latencies.length; i++) {
-    if (latencies[i-1] <= 30 && latencies[i] > 30) {
+    if (latencies[i - 1] <= 30 && latencies[i] > 30) {
       boundaries.push({
         boundaryId: 'latency_spike_boundary',
         parameter: 'index_size',
         criticalValue: sizes[i],
-        safeRange: [0, sizes[i-1]],
+        safeRange: [0, sizes[i - 1]],
         unsafeRange: [sizes[i], sizes[sizes.length - 1] * 1.5],
-        abruptness: Math.min(1.0, (latencies[i] - latencies[i-1]) / 20),
+        abruptness: Math.min(1.0, (latencies[i] - latencies[i - 1]) / 20),
         observedConsequences: ['Latency exceeds 30ms p95', 'User experience degradation'],
         confidence: 0.75
       });
       break;
     }
   }
-  
+
   return boundaries;
 }
 
 function defineSafeOperatingZones(metrics: FAISSMetrics[]): SafeOperatingZone[] {
   const zones: SafeOperatingZone[] = [];
-  
+
   if (!metrics.length) return zones;
-  
+
   const stableMetrics = metrics.filter(m => m.recallAtK >= 0.8 && m.latencyP95Ms <= 30);
-  
+
   if (stableMetrics.length) {
     const minSize = Math.min(...stableMetrics.map(m => m.indexSize));
     const maxSize = Math.max(...stableMetrics.map(m => m.indexSize));
     const maxMemory = Math.max(...stableMetrics.map(m => m.memoryMb));
-    
+
     zones.push({
       zoneId: 'optimal_zone',
       parameters: {
@@ -644,7 +644,7 @@ function defineSafeOperatingZones(metrics: FAISSMetrics[]): SafeOperatingZone[] 
       ]
     });
   }
-  
+
   zones.push({
     zoneId: 'conservative_zone',
     parameters: {
@@ -661,7 +661,7 @@ function defineSafeOperatingZones(metrics: FAISSMetrics[]): SafeOperatingZone[] 
       'Lower recall trade-off for guaranteed performance'
     ]
   });
-  
+
   return zones;
 }
 
@@ -670,11 +670,11 @@ function calculateSafetyMargins(
   boundaries: FailureBoundaryMap[]
 ): SafetyMargin[] {
   const margins: SafetyMargin[] = [];
-  
+
   if (!metrics.length) return margins;
-  
+
   const lastMetrics = metrics[metrics.length - 1];
-  
+
   for (const b of boundaries) {
     if (b.parameter === 'index_size') {
       margins.push({
@@ -688,7 +688,7 @@ function calculateSafetyMargins(
       break;
     }
   }
-  
+
   margins.push({
     parameter: 'recall_at_k',
     currentValue: lastMetrics.recallAtK,
@@ -697,7 +697,7 @@ function calculateSafetyMargins(
     marginPercent: 7.1,
     rationale: 'Maintain 5% margin above 0.7 threshold'
   });
-  
+
   margins.push({
     parameter: 'latency_p95_ms',
     currentValue: lastMetrics.latencyP95Ms,
@@ -706,7 +706,7 @@ function calculateSafetyMargins(
     marginPercent: 20,
     rationale: 'Stay 20% below 50ms threshold'
   });
-  
+
   return margins;
 }
 
@@ -715,7 +715,7 @@ function identifyUnsafeRegions(
   boundaries: FailureBoundaryMap[]
 ): UnsafeRegion[] {
   const regions: UnsafeRegion[] = [];
-  
+
   for (const b of boundaries) {
     if (b.parameter === 'index_size') {
       regions.push({
@@ -728,7 +728,7 @@ function identifyUnsafeRegions(
       });
     }
   }
-  
+
   regions.push({
     regionId: 'under_searched',
     parameters: { nprobe: [0, 2] },
@@ -737,7 +737,7 @@ function identifyUnsafeRegions(
     observedFailures: 0,
     mitigation: 'Increase nprobe to at least 5 for reasonable recall'
   });
-  
+
   return regions;
 }
 
@@ -746,7 +746,7 @@ function determineVerdict(calibration: ForecastCalibration): [CertificationVerdi
   // SAFETY_CERTIFIED: F1 >= 0.7 AND FN <= 1 (prioritizes avoiding failures)
   // OPERATIONAL_CERTIFIED: F1 >= 0.5 AND bounded FP (prioritizes avoiding false alarms)
   // NOT_CERTIFIED: Does not meet either criteria
-  
+
   if (calibration.f1Score >= 0.7 && calibration.falseNegatives <= 1) {
     return [
       'SAFETY_CERTIFIED',
@@ -794,21 +794,21 @@ function generateKeyFindings(
   metrics: FAISSMetrics[]
 ): string[] {
   const findings: string[] = [];
-  
+
   findings.push(`Forecast precision: ${(calibration.precision * 100).toFixed(1)}%`);
   findings.push(`Forecast recall: ${(calibration.recall * 100).toFixed(1)}%`);
   findings.push(`False positive rate: ${calibration.falsePositives}/${calibration.validatedForecasts}`);
   findings.push(`False negative rate: ${calibration.falseNegatives}/${calibration.validatedForecasts}`);
-  
+
   if (boundaries.length) {
     findings.push(`Identified ${boundaries.length} failure boundaries`);
   }
-  
+
   if (metrics.length) {
     const maxSize = Math.max(...metrics.map(m => m.indexSize));
     findings.push(`Tested index sizes up to ${maxSize.toLocaleString()} vectors`);
   }
-  
+
   return findings;
 }
 
@@ -835,28 +835,28 @@ function getKnownFailureCases(
   metrics: FAISSMetrics[]
 ): string[] {
   const cases: string[] = [];
-  
+
   if (calibration.falseNegatives > 0) {
     cases.push(
       `Missed ${calibration.falseNegatives} actual failures - ` +
       `forecaster may underestimate risk in some conditions`
     );
   }
-  
+
   if (calibration.falsePositives > 0) {
     cases.push(
       `Raised ${calibration.falsePositives} false alarms - ` +
       `forecaster may be overly conservative`
     );
   }
-  
+
   if (metrics.length) {
     const minRecall = Math.min(...metrics.map(m => m.recallAtK));
     if (minRecall < 0.7) {
       cases.push(`Observed recall dropped to ${minRecall.toFixed(2)} during stress testing`);
     }
   }
-  
+
   return cases;
 }
 
@@ -900,7 +900,7 @@ export function generateCertificationJSON(report: CertificationReport): object {
 
 export function generateCertificationMarkdown(report: CertificationReport): string {
   const lines: string[] = [];
-  
+
   // Header
   lines.push('# Interlock Phase IV – Ground-Truth Certification Report');
   lines.push('');
@@ -911,29 +911,29 @@ export function generateCertificationMarkdown(report: CertificationReport): stri
   lines.push(`**Run ID:** ${report.runId}`);
   lines.push(`**Version:** ${report.version}`);
   lines.push('');
-  
+
   // Executive Summary
   lines.push('---');
   lines.push('');
   lines.push('## Executive Summary');
   lines.push('');
-  
-  const verdictEmoji = report.overallVerdict === 'SAFETY_CERTIFIED' ? '✅' : 
-                       report.overallVerdict === 'OPERATIONAL_CERTIFIED' ? '⚠️' : '❌';
+
+  const verdictEmoji = report.overallVerdict === 'SAFETY_CERTIFIED' ? '✅' :
+    report.overallVerdict === 'OPERATIONAL_CERTIFIED' ? '⚠️' : '❌';
   const verdictLabel = report.overallVerdict === 'SAFETY_CERTIFIED' ? 'Safety-Certified' :
-                       report.overallVerdict === 'OPERATIONAL_CERTIFIED' ? 'Operational-Certified' : 'Not Certified';
+    report.overallVerdict === 'OPERATIONAL_CERTIFIED' ? 'Operational-Certified' : 'Not Certified';
   lines.push(`### Verdict: ${verdictEmoji} ${verdictLabel}`);
   lines.push('');
   lines.push(report.summaryText);
   lines.push('');
-  
+
   lines.push('### Key Findings');
   lines.push('');
   for (const finding of report.keyFindings) {
     lines.push(`- ${finding}`);
   }
   lines.push('');
-  
+
   // Forecast Accuracy
   if (report.calibration) {
     lines.push('---');
@@ -951,13 +951,13 @@ export function generateCertificationMarkdown(report: CertificationReport): stri
     lines.push(`| True Negatives | ${report.calibration.trueNegatives} |`);
     lines.push('');
   }
-  
+
   // Failure Boundaries
   lines.push('---');
   lines.push('');
   lines.push('## Failure Boundary Maps');
   lines.push('');
-  
+
   if (report.failureBoundaries.length) {
     for (const boundary of report.failureBoundaries) {
       const riskIcon = boundary.abruptness > 0.7 ? '🔴' : boundary.abruptness > 0.4 ? '🟡' : '🟢';
@@ -976,13 +976,13 @@ export function generateCertificationMarkdown(report: CertificationReport): stri
     lines.push('*No failure boundaries identified in this run.*');
     lines.push('');
   }
-  
+
   // Safe Operating Zones
   lines.push('---');
   lines.push('');
   lines.push('## Safe Operating Zones');
   lines.push('');
-  
+
   for (const zone of report.safeOperatingZones) {
     lines.push(`### 🟢 ${zone.zoneId}`);
     lines.push('');
@@ -1002,7 +1002,7 @@ export function generateCertificationMarkdown(report: CertificationReport): stri
     }
     lines.push('');
   }
-  
+
   // HONEST Assessment
   lines.push('---');
   lines.push('');
@@ -1011,21 +1011,21 @@ export function generateCertificationMarkdown(report: CertificationReport): stri
   lines.push('> This section contains no marketing language.');
   lines.push('> It states explicitly what Interlock can and cannot do.');
   lines.push('');
-  
+
   lines.push('### ✅ What Interlock CAN Predict');
   lines.push('');
   for (const item of report.whatCanPredict) {
     lines.push(`- ${item}`);
   }
   lines.push('');
-  
+
   lines.push('### ❌ What Interlock CANNOT Predict');
   lines.push('');
   for (const item of report.whatCannotPredict) {
     lines.push(`- ${item}`);
   }
   lines.push('');
-  
+
   lines.push('### Known Failure Cases');
   lines.push('');
   if (report.knownFailureCases.length) {
@@ -1036,14 +1036,14 @@ export function generateCertificationMarkdown(report: CertificationReport): stri
     lines.push('*No failure cases identified in this calibration run.*');
   }
   lines.push('');
-  
+
   // Footer
   lines.push('---');
   lines.push('');
   lines.push('*Generated by Interlock Phase IV Ground-Truth Certification Engine*');
   lines.push('');
   lines.push('**Guiding Principle:** Interlock does not optimize systems. It prevents them from breaking.');
-  
+
   return lines.join('\n');
 }
 
