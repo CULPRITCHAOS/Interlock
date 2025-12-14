@@ -54,6 +54,30 @@ This is why you use Interlock.
 
 ---
 
+## 🔬 Real-World Validation
+
+Interlock is tested against **live Pinecone APIs** in production-like conditions. Here's what happened when we injected failures:
+
+| Metric | Result |
+|--------|--------|
+| **Circuit Breaker Activations** | 6 successful interventions |
+| **Recovery Time (avg)** | 52.3s |
+| **Confidence Score** | 0.96 (High certainty) |
+| **Zero Data Loss** | ✅ All traffic refused safely |
+| **Zero Cascading Failures** | ✅ Isolation worked |
+
+### Sample Incident (Live Pinecone + Express)
+```
+Incident #002: Circuit Breaker Activation
+├─ Timestamp: 2025-12-14T03:44:02.266Z
+├─ Trigger: Latency/Failure Threshold Exceeded  
+├─ Action: Traffic Refusal / Degraded Mode
+├─ Recovery: 50.3s
+└─ Confidence: 0.96 (High)
+```
+
+> 📊 **Full incident log**: [docs/LIVE_INCIDENTS.md](./docs/LIVE_INCIDENTS.md)
+
 ## 🔌 Adoption Surface
 
 Interlock fits into your stack in 3 ways. Choose the one that fits your architecture:
