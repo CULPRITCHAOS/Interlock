@@ -11,7 +11,7 @@
     "sim:run": "npx tsx scripts/sim-runner.ts",
     "validate": "npx tsx scripts/validation-tests.ts",
     "test": "echo 'No unit tests configured yet'",
-    "lint": "npx tsc --noEmit",
+    "lint": "npx tsc --noEmit -p tsconfig.ci.json",
     "competitive-benchmark": "npx tsx scripts/comparative-benchmark.ts",
     "scale-test": "npx tsx scripts/scale-test.ts",
     "chaos-test": "npx tsx scripts/chaos-test.ts",
