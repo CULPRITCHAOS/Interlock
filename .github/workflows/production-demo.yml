@@ -1,0 +1,55 @@
+name: Production Demo
+
+# Comprehensive production simulation comparing Interlock vs unprotected
+on:
+  schedule:
+    # Run weekly on Sunday at 4 AM UTC
+    - cron: '0 4 * * 0'
+  workflow_dispatch:
+
+jobs:
+  production-demo:
+    name: Production Demo Comparison
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run production demo
+        id: demo
+        run: npx tsx scripts/production-demo.ts
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "# 🚀 Production Demo Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f results/production-demo/demo_report.md ]; then
+            cat results/production-demo/demo_report.md >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Demo report not found" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Demo completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload demo results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-demo-results-${{ github.run_number }}
+          path: results/production-demo/
+          retention-days: 90
