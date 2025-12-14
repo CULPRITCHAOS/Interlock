@@ -79,10 +79,12 @@ jobs:
 
       - name: Verify Refusal (503s)
         run: |
-          SC503=$(grep -c "503" responses.log)
+          # grep returns exit code 1 if count is 0, which crashes the script.
+          # force success so we can check the value manually.
+          SC503=$(grep -c "503" responses.log || echo "0")
           echo "Refusals: $SC503"
-          if [ $SC503 -lt 5 ]; then
-             echo "Failure: Expected at least 5 refusals, got $SC503"
+          if [ "$SC503" -lt 5 ]; then
+             echo "Failure: Expected at least 5 refusals (Circuit Breaker didn't trip), got $SC503"
              exit 1
           fi
 
