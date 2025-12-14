@@ -13,7 +13,7 @@
 [![Adapter Stress Tests](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-stress-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-stress-test.yml)
 [![Adapter Certification](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-certification.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-certification.yml)
 
-**📋 Documentation**: [Security Policy](./SECURITY.md) | [Contributing Guide](./CONTRIBUTING.md) | [Security Architecture](./docs/SECURITY_ARCHITECTURE.md) | [Production Deployment](./docs/PRODUCTION_DEPLOYMENT.md) | [Test Results](./docs/TEST_RESULTS.md) | [**Case Study** 📊](./docs/CASE_STUDY.md)
+**📋 Documentation**: [Security Policy](./SECURITY.md) | [Standard Governance 🏛️](./docs/GOVERNANCE.md) | [Contributing Guide](./CONTRIBUTING.md) | [Security Architecture](./docs/SECURITY_ARCHITECTURE.md) | [Production Deployment](./docs/PRODUCTION_DEPLOYMENT.md) | [Test Results](./docs/TEST_RESULTS.md) | [**Case Study** 📊](./docs/CASE_STUDY.md)
 
 Interlock is a failure forecasting and circuit-breaker system for AI infrastructure. It detects unsafe operating regions, forecasts collapse before it happens, and actively prevents catastrophic failure.
 
