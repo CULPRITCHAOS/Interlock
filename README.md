@@ -104,6 +104,7 @@ Interlock is tested against **live Pinecone APIs** in production-like conditions
 | Stress Chamber | [stress-chamber.yml](./.github/workflows/stress-chamber.yml) | [![Stress](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml) |
 | Scale Test | [scale-test.yml](./.github/workflows/scale-test.yml) | [![Scale](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml) |
 | Live Pinecone | [real-pinecone-test.yml](./.github/workflows/real-pinecone-test.yml) | Weekly |
+| **Local AI (Ollama)** | [LOCAL_AI_VALIDATION.md](./docs/LOCAL_AI_VALIDATION.md) | ✅ Tested |
 
 ### Sample Incident (Live Pinecone + Express)
 ```
