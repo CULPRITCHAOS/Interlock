@@ -8,6 +8,7 @@
 [![Competitive Benchmark](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/competitive-benchmark.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/competitive-benchmark.yml)
 [![Scale Test](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml)
 [![Real FAISS Validation](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/real-faiss-validation.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/real-faiss-validation.yml)
+[![Real Pinecone Test](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/real-pinecone-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/real-pinecone-test.yml)
 [![Adapter Stress Tests](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-stress-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-stress-test.yml)
 [![Adapter Certification](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-certification.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-certification.yml)
 
@@ -441,6 +442,7 @@ All test suites are operational and passing:
 | **Long-Run Stability** | ✅ Passing | Weekly (Sunday) | 50-cycle stability validation |
 | **Stress Chamber** | ✅ Passing | Daily at 2 AM UTC | Stress testing with medium/heavy profiles |
 | **Real FAISS Validation** | ✅ Passing | Weekly (Saturday) | **Actual FAISS operations, not simulation** |
+| **Real Pinecone Test** | 🔑 Needs API Key | Weekly (Sunday) | **Actual Pinecone API calls** |
 | **Adapter Stress Tests** | ✅ Passing | Daily at 3 AM UTC | Per-adapter stress testing (6 adapters) |
 | **Adapter Stability Tests** | ✅ Passing | Weekly (Saturday) | Long-run adapter validation |
 | **Adapter Certification** | ✅ Passing | Weekly (Sunday) | Class III/IV/V adapter certification |
