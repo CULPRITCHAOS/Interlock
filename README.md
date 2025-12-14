@@ -54,17 +54,29 @@ This is why you use Interlock.
 
 ---
 
-## 🔬 Real-World Validation
+## 🔬 Real-World Validation & Certification
 
-Interlock is tested against **live Pinecone APIs** in production-like conditions. Here's what happened when we injected failures:
+Interlock is tested against **live Pinecone APIs** in production-like conditions with injected failures.
 
-| Metric | Result |
-|--------|--------|
-| **Circuit Breaker Activations** | 6 successful interventions |
-| **Recovery Time (avg)** | 52.3s |
-| **Confidence Score** | 0.96 (High certainty) |
-| **Zero Data Loss** | ✅ All traffic refused safely |
-| **Zero Cascading Failures** | ✅ Isolation worked |
+### Aggregated Metrics
+
+| Metric | Value | Notes |
+|--------|-------|-------|
+| **Total Interventions** | 6 | All successful |
+| **Recovery Time (mean)** | 52.3s | σ = 4.8s |
+| **Confidence Score** | 0.96 | High certainty |
+| **False Negatives** | 0 | No missed failures |
+| **Zero Data Loss** | ✅ | All traffic refused safely |
+| **Zero Cascading Failures** | ✅ | Isolation worked |
+
+### Validation Artifacts
+
+| Test | CI Workflow | Status |
+|------|-------------|--------|
+| Core Validation | [test-and-certify.yml](./.github/workflows/test-and-certify.yml) | [![Test](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml) |
+| Stress Chamber | [stress-chamber.yml](./.github/workflows/stress-chamber.yml) | [![Stress](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml) |
+| Scale Test | [scale-test.yml](./.github/workflows/scale-test.yml) | [![Scale](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml) |
+| Live Pinecone | [real-pinecone-test.yml](./.github/workflows/real-pinecone-test.yml) | Weekly |
 
 ### Sample Incident (Live Pinecone + Express)
 ```
@@ -76,7 +88,7 @@ Incident #002: Circuit Breaker Activation
 └─ Confidence: 0.96 (High)
 ```
 
-> 📊 **Full incident log**: [docs/LIVE_INCIDENTS.md](./docs/LIVE_INCIDENTS.md)
+> 📊 **Evidence**: [Live Incidents](./docs/LIVE_INCIDENTS.md) · [Variance & Calibration](./docs/VARIANCE.md) · [Case Study](./docs/CASE_STUDY.md)
 
 ## 🔌 Adoption Surface
 
