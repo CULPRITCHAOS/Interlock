@@ -88,7 +88,9 @@ Incident #002: Circuit Breaker Activation
 └─ Confidence: 0.96 (High)
 ```
 
-> 📊 **Evidence**: [Live Incidents](./docs/LIVE_INCIDENTS.md) · [Variance & Calibration](./docs/VARIANCE.md) · [Case Study](./docs/CASE_STUDY.md)
+> 📊 **Evidence**: [Live Incidents](./docs/LIVE_INCIDENTS.md) · [Variance & Calibration](./docs/validation/variance.md) · [Restart Continuity](./docs/validation/continuity.md) · [Case Study](./docs/CASE_STUDY.md)
+>
+> 📐 **Formal Schema**: [Interlock Primitives](./docs/primitives.md)
 
 ## 🔌 Adoption Surface
 
@@ -153,4 +155,14 @@ All integrations are verified via CI/CD pipelines.
 Interlock is [MIT licensed](./LICENSE) for open-source and evaluation use.
 
 [Commercial licenses](./COMMERCIAL-LICENSE.md) are available for organizations requiring enterprise support, SLAs, or custom certification.
+
+---
+
+## 🔮 Roadmap
+
+| Milestone | Status |
+|-----------|--------|
+| External chaos testing (k6, stress-ng, toxiproxy) | Planned |
+| Cross-domain variance benchmarks | Planned |
+| Certification badge automation | Planned |
 
