@@ -14,10 +14,9 @@ For organizations requiring enterprise-grade deployment, we offer commercial lic
 
 ## Contact
 
-For commercial licensing inquiries, please reach out:
+For commercial licensing inquiries:
 
-📧 **Email:** [your-email@domain.com]  
-🔗 **Website:** [your-website.com]
+📧 **Email:** 13culprit@gmail.com
 
 ---
 
