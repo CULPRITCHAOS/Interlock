@@ -15,6 +15,19 @@ It predicts failures, intervenes before collapse, and produces cryptographically
 
 **Docs**: [⚡ Quickstart](./docs/QUICKSTART.md) | [📚 Middleware Guide](./docs/MIDDLEWARE.md) | [🏛️ Governance](./docs/GOVERNANCE.md) | [📊 Case Study](./docs/CASE_STUDY.md)
 
+### 🆕 What's New in v5.2
+
+| Feature | What It Does |
+|---------|--------------|
+| **Auto Badge Generation** | Certification badge generates automatically on every release tag |
+| **Shields.io Endpoint** | Dynamic badge for your README via `results/badge/shields.json` |
+| **Version History** | Every certification archived to `results/badge/history/` for audit trail |
+| **Formal Primitives** | Standardized vocabulary: Hazard, Reflex, Guard, State, Confidence, Trust Decay |
+| **Restart Continuity** | Protection survives process restarts (anti-amnesia) |
+| **Variance Reports** | Recovery time distribution, calibration tables, shock type analysis |
+
+> 📖 **Full details**: [Primitives](./docs/primitives.md) · [Variance](./docs/validation/variance.md) · [Continuity](./docs/validation/continuity.md)
+
 ---
 
 ## 🏗️ Architecture
