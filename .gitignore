@@ -52,4 +52,10 @@ index.tsx
 index.html
 
 # Exclude All Historical Results (except summary docs if any)
-results/
+# But allow results/validation/ for CI artifact uploads
+results/**
+!results/
+!results/validation/
+!results/validation/**
+!results/badge/
+!results/badge/**
