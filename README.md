@@ -19,7 +19,7 @@ I started by researching whether AI systems could learn their own optimal operat
 
 > 🤝 **Looking for pilot partners**: If you're running RAG, vector DBs, or LLMs in production and want to test Interlock in shadow mode (free, no risk), [reach out](mailto:13culprit@gmail.com).
 
-✅ **7 Integrations** &nbsp;|&nbsp; ✅ **TS + Python** &nbsp;|&nbsp; ✅ **Local AI (Ollama)** &nbsp;|&nbsp; ✅ **Certification Classes I–V**
+✅ **6 Vector DBs** &nbsp;|&nbsp; ✅ **Local AI (Ollama)** &nbsp;|&nbsp; ✅ **TS + Python** &nbsp;|&nbsp; ✅ **Certification Classes I–V**
 
 [![Test and Certify](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml)
 [![Stress Chamber](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml)
@@ -91,7 +91,7 @@ Interlock is tested against **live Pinecone APIs** in production-like conditions
 |--------|-------|-------|
 | **Total Interventions** | 6 | All successful |
 | **Recovery Time (mean)** | 52.3s | σ = 4.8s |
-| **Confidence Score** | 0.96 | High certainty |
+| **Intervention Confidence** | 0.96 | Certainty the intervention was correct |
 | **False Negatives** | 0 | No missed failures |
 | **Zero Data Loss** | ✅ | All traffic refused safely |
 | **Zero Cascading Failures** | ✅ | Isolation worked |
@@ -170,6 +170,7 @@ All integrations are verified via CI/CD pipelines.
 | **LlamaIndex** | ✅ Production | [Matrix Test](./.github/workflows/test-and-certify.yml) |
 | **Weaviate** | ✅ Stable | Adapter Certification |
 | **Milvus** | ✅ Stable | Adapter Certification |
+| **Ollama / Local AI** | ✅ Tested | [Validation Report](./docs/LOCAL_AI_VALIDATION.md) |
 
 ---
 
