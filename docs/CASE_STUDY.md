@@ -19,6 +19,29 @@ Interlock is a failure forecasting and circuit-breaker system for AI infrastruct
 
 ---
 
+## 🔬 Formal Definitions
+
+To ensure rigor validation, we define our terms precisely:
+
+### Survival
+A system is considered to have **survived** a scenario if:
+1. It processes at least 10% of total requests during the stress peak (does not completely lock up).
+2. It returns to <100ms P95 latency within 30 seconds of stress subsiding.
+3. The process does not exit, crash, or run out of memory (OOM).
+
+### Failure
+A system **fails** if:
+1. The Node.js process terminates (exit code != 0).
+2. P95 latency exceeds 5 seconds for >10 consecutive seconds.
+3. Heap usage exceeds 90% of available memory (simulated OOM).
+
+### Quality Floor
+A **Quality Violation** occurs if:
+1. A degraded response relies on data/logic with <0.5 confidence score.
+2. The system returns a result marked as "unsafe" without an explicit refusal signal.
+
+---
+
 ## Validation Evidence
 
 ### 1. Real FAISS Operations ✅
