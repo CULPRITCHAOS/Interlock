@@ -85,6 +85,8 @@ This is why you use Interlock.
 
 Interlock is tested against **live Pinecone APIs** in production-like conditions with injected failures.
 
+> ❄️ *Validation artifacts are frozen as of v5.3.x; new evidence will be added only in response to external reports or pilots.*
+
 ### Aggregated Metrics
 
 | Metric | Value | Notes |
