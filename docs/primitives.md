@@ -4,65 +4,139 @@
 
 ---
 
-## Hazard
+## Core Primitives
 
-A measurable deviation from the expected operating envelope. Hazards are detected through confidence decay, latency spikes, or error rate increases. A hazard does not imply action—it implies heightened monitoring.
+### Hazard
 
-**Observable indicators**: Confidence < threshold, latency > baseline × 2, error rate > 5%.
+A measurable deviation from the expected operating envelope.
+
+| Property | Value |
+|----------|-------|
+| **Type** | Observable Event |
+| **Triggers** | Confidence < threshold, latency > baseline × 2, error rate > 5% |
+| **Implication** | Heightened monitoring, not necessarily action |
+
+**Behavior Contract**:
+- `detect(metrics) → Hazard | null`
+- `severity(hazard) → LOW | MEDIUM | HIGH`
+- Hazards are stateless; they do not persist across cycles
 
 ---
 
-## Reflex
+### Reflex
 
-An immediate, non-forecast safety action triggered when hazard severity exceeds tolerance. Reflexes are reactive, not predictive. They execute within a single decision cycle and do not require state coordination.
+An immediate, non-forecast safety action.
+
+| Property | Value |
+|----------|-------|
+| **Type** | Reactive Action |
+| **Trigger** | Hazard severity exceeds tolerance |
+| **Duration** | Single decision cycle |
+
+**Behavior Contract**:
+- `trigger(hazard) → Action`
+- `execute(action) → Result`
+- Reflexes do NOT require state coordination
+- Reflexes are idempotent
 
 **Examples**: Traffic refusal, request shedding, immediate degradation.
 
 ---
 
-## Guard
+### Guard
 
-A sustained intervention that persists across multiple decision cycles. Guards implement protective policies (circuit breakers, quality floors) and require state management. Guards are lifted through explicit recovery criteria, not timeouts alone.
+A sustained intervention across multiple decision cycles.
 
-**Examples**: Circuit breaker (OPEN state), quality floor enforcement, rate limiting.
+| Property | Value |
+|----------|-------|
+| **Type** | Stateful Policy |
+| **Trigger** | Sustained hazard detection |
+| **Duration** | Until explicit recovery criteria met |
 
----
+**Behavior Contract**:
+- `activate(guard) → State.OPEN`
+- `probe(guard) → State.HALF_OPEN`
+- `deactivate(guard) → State.CLOSED`
+- Guards are NOT lifted by timeout alone; recovery requires success signal
 
-## State
-
-The operating mode of the circuit breaker, following standard patterns:
-
-| State | Behavior |
-|-------|----------|
-| **CLOSED** | Normal operation. All traffic passes. Monitoring active. |
-| **OPEN** | Breaker tripped. Traffic refused. Recovery timer running. |
-| **HALF_OPEN** | Probe mode. Limited traffic allowed. Success → CLOSED, Failure → OPEN. |
-
-**Hysteresis**: State transitions require sustained signals (not single events) to prevent flapping.
+**Examples**: Circuit breaker, quality floor, rate limiting.
 
 ---
 
-## Confidence
+### State
 
-Internal belief in forecast validity, expressed as a value in [0, 1]. Confidence is computed from recent observation history and decays over time without reinforcement.
+The operating mode of the circuit breaker.
 
-| Range | Interpretation |
-|-------|----------------|
-| ≥ 0.8 | High certainty. Normal operation. |
-| 0.5–0.79 | Moderate certainty. Protective mode preferred. |
-| < 0.5 | Low certainty. Refusal required. |
+```mermaid
+stateDiagram-v2
+    [*] --> CLOSED
+    CLOSED --> OPEN : Hazard threshold exceeded
+    OPEN --> HALF_OPEN : Recovery timer expires
+    HALF_OPEN --> CLOSED : Probe succeeds
+    HALF_OPEN --> OPEN : Probe fails
+```
+
+| State | Behavior | Entry Condition | Exit Condition |
+|-------|----------|-----------------|----------------|
+| **CLOSED** | Normal. All traffic passes. | Probe success OR initial state | Hazard threshold |
+| **OPEN** | Breaker tripped. Traffic refused. | Hazard threshold OR probe failure | Timer expiry |
+| **HALF_OPEN** | Limited probes allowed. | Timer expiry from OPEN | Probe result |
+
+**Invariant**: State transitions require sustained signals (hysteresis), not single events.
 
 ---
 
-## Trust Decay
+### Confidence
 
-The derivative of confidence over time. Trust decay measures how rapidly the system is losing certainty about its operating environment.
+Internal belief in forecast validity.
 
-- **Positive decay (dC/dt < 0)**: Conditions deteriorating. Increase vigilance.
-- **Zero decay**: Stable state.
-- **Negative decay (dC/dt > 0)**: Conditions improving. Consider recovery.
+| Property | Value |
+|----------|-------|
+| **Type** | Continuous value ∈ [0, 1] |
+| **Source** | Recent observation history |
+| **Decay** | Time-based without reinforcement |
 
-Trust decay enables proactive intervention before confidence crosses thresholds.
+**Thresholds**:
+| Range | Interpretation | Action |
+|-------|----------------|--------|
+| ≥ 0.8 | High certainty | Normal operation |
+| 0.5–0.79 | Moderate certainty | Protective mode |
+| < 0.5 | Low certainty | Refusal required |
+
+**Behavior Contract**:
+- `compute(observations) → Confidence`
+- `decay(confidence, dt) → Confidence'`
+- Confidence is monotonically decreasing without positive signals
+
+---
+
+### Trust Decay
+
+The derivative of confidence over time: `dC/dt`.
+
+| Sign | Interpretation | Response |
+|------|----------------|----------|
+| Negative (dC/dt < 0) | Conditions deteriorating | Increase vigilance |
+| Zero | Stable state | Maintain current mode |
+| Positive (dC/dt > 0) | Conditions improving | Consider recovery |
+
+**Behavior Contract**:
+- `compute_decay(C, C_prev, dt) → dC/dt`
+- Trust decay enables proactive intervention BEFORE confidence crosses thresholds
+
+---
+
+## Formal Invariants
+
+These properties MUST hold for any Interlock-compliant implementation:
+
+| Invariant | Statement |
+|-----------|-----------|
+| **No False Negatives** | If system is in failure state, Interlock MUST detect it |
+| **Graceful Degradation** | Refusal is preferred over serving corrupt data |
+| **Hysteresis** | State transitions require N consecutive signals, not N=1 |
+| **Recovery Safety** | HALF_OPEN probes are limited and monitored |
+| **Audit Trail** | Every state transition is logged with timestamp and cause |
 
 ---
 
@@ -78,10 +152,30 @@ Hazard Detection
        ↓
    [Sustained?]
        ↓
-   Yes → Guard (state change)
+   Yes → Guard (State.OPEN)
    No → Return to monitoring
+       ↓
+   [Recovery?]
+       ↓
+   Timer → State.HALF_OPEN
+   Probe Success → State.CLOSED
+   Probe Fail → State.OPEN
 ```
 
 ---
 
+## Implementation Status
+
+| Primitive | Implemented | Tested | CI Verified |
+|-----------|-------------|--------|-------------|
+| Hazard | ✅ | ✅ | ✅ |
+| Reflex | ✅ | ✅ | ✅ |
+| Guard | ✅ | ✅ | ✅ |
+| State | ✅ | ✅ | ✅ |
+| Confidence | ✅ | ✅ | ✅ |
+| Trust Decay | ✅ | ✅ | ✅ |
+
+---
+
 *This schema is designed for cross-domain reasoning and standards-level clarity.*
+
