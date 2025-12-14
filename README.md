@@ -162,7 +162,8 @@ Interlock is [MIT licensed](./LICENSE) for open-source and evaluation use.
 
 | Milestone | Status |
 |-----------|--------|
+| Certification badge automation | ✅ Complete |
 | External chaos testing (k6, stress-ng, toxiproxy) | Planned |
 | Cross-domain variance benchmarks | Planned |
-| Certification badge automation | Planned |
+
 
