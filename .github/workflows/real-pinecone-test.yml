@@ -40,7 +40,7 @@ jobs:
       - name: Check for API key
         id: check_key
         env:
-          PINECONE_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_KEY: ${{ secrets.PINECONE_API_KEY || '' }}
         run: |
           if [ -z "$PINECONE_KEY" ]; then
             echo "has_key=false" >> $GITHUB_OUTPUT
@@ -54,7 +54,7 @@ jobs:
         if: steps.check_key.outputs.has_key == 'true'
         id: pinecone_test
         env:
-          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY || '' }}
         run: |
           npx tsx scripts/real-pinecone-test.ts \
             --vectors ${{ github.event.inputs.vector_count || '1000' }} \
