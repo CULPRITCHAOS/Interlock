@@ -19,7 +19,7 @@ I started by researching whether AI systems could learn their own optimal operat
 
 > 🤝 **Looking for pilot partners**: If you're running RAG, vector DBs, or LLMs in production and want to test Interlock in shadow mode (free, no risk), [reach out](mailto:13culprit@gmail.com).
 
-✅ **7 Integrations** &nbsp;|&nbsp; ✅ **TS + Python** &nbsp;|&nbsp; ✅ **Stress Chamber Proof** &nbsp;|&nbsp; ✅ **Certification Classes I–V**
+✅ **7 Integrations** &nbsp;|&nbsp; ✅ **TS + Python** &nbsp;|&nbsp; ✅ **Local AI (Ollama)** &nbsp;|&nbsp; ✅ **Certification Classes I–V**
 
 [![Test and Certify](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml)
 [![Stress Chamber](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml)
@@ -27,7 +27,7 @@ I started by researching whether AI systems could learn their own optimal operat
 [![Middleware Express](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/middleware-express.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/middleware-express.yml)
 [![Middleware FastAPI](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/middleware-fastapi.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/middleware-fastapi.yml)
 
-**Docs**: [⚡ Quickstart](./docs/QUICKSTART.md) | [📚 Middleware Guide](./docs/MIDDLEWARE.md) | [🏛️ Governance](./docs/GOVERNANCE.md) | [📊 Case Study](./docs/CASE_STUDY.md)
+**Docs**: [⚡ Quickstart](./docs/QUICKSTART.md) | [🏠 Local AI](./docs/quickstart/local-ai.md) | [📚 Middleware Guide](./docs/MIDDLEWARE.md) | [📊 Case Study](./docs/CASE_STUDY.md)
 
 ### 🆕 What's New in v5.2
 
