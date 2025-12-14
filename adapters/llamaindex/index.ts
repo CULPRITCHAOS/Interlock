@@ -18,8 +18,8 @@
  * Design: Observation + hooks only, no orchestration logic.
  */
 
-import { MetricsRegistry } from '../../services/metrics';
-import { HysteresisConfig } from '../../services/hysteresis';
+import { MetricsRegistry } from '../../services/metrics.ts';
+import { HysteresisConfig } from '../../services/hysteresis.ts';
 
 // ============= Adapter Interface =============
 
@@ -153,7 +153,7 @@ export function wrapChain<TQuery = any, TResponse = any>(
       if (!preCheck.safe) {
         state.refusalCount++;
         state.registry.incQualityRefusals();
-        
+
         if (config.dryRun) {
           console.log(`[Interlock Shadow Mode] WOULD REFUSE QUERY: ${preCheck.reason}`);
         } else {
@@ -182,7 +182,7 @@ export function wrapChain<TQuery = any, TResponse = any>(
       if (!postCheck.safe) {
         state.safetyViolations++;
         state.confidenceScore *= 0.9;
-        
+
         if (config.dryRun) {
           console.log(`[Interlock Shadow Mode] VALIDATION FAILED: ${postCheck.reason}`);
         } else {
@@ -253,7 +253,7 @@ export function wrapRetriever<TQuery = any, TNode = any>(
       if (!preCheck.safe) {
         state.refusalCount++;
         state.registry.incQualityRefusals();
-        
+
         if (config.dryRun) {
           console.log(`[Interlock Shadow Mode] WOULD REFUSE RETRIEVAL: ${preCheck.reason}`);
           return await retrieverFn(query); // Shadow mode: allow but log

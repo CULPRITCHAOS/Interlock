@@ -42,8 +42,10 @@ results/stress_chamber/
 # Exclude Game/Dashboard Components
 components/
 backend/
-services/
-
+# Exclude specific Game Services (Keep Middleware Services!)
+services/ai.ts
+services/codeGenerator.ts
+services/websocket.ts
 # Exclude React Game App Entrypoints
 App.tsx
 index.tsx
