@@ -13,7 +13,7 @@
 [![Adapter Stress Tests](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-stress-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-stress-test.yml)
 [![Adapter Certification](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-certification.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-certification.yml)
 
-**📋 Documentation**: [Security Policy](./SECURITY.md) | [Contributing Guide](./CONTRIBUTING.md) | [Security Architecture](./docs/SECURITY_ARCHITECTURE.md) | [Production Deployment](./docs/PRODUCTION_DEPLOYMENT.md) | [Test Results](./docs/TEST_RESULTS.md) | [Case Study Template](./docs/CASE_STUDY_TEMPLATE.md)
+**📋 Documentation**: [Security Policy](./SECURITY.md) | [Contributing Guide](./CONTRIBUTING.md) | [Security Architecture](./docs/SECURITY_ARCHITECTURE.md) | [Production Deployment](./docs/PRODUCTION_DEPLOYMENT.md) | [Test Results](./docs/TEST_RESULTS.md) | [**Case Study** 📊](./docs/CASE_STUDY.md)
 
 Interlock is a failure forecasting and circuit-breaker system for AI infrastructure. It detects unsafe operating regions, forecasts collapse before it happens, and actively prevents catastrophic failure.
 
@@ -442,7 +442,7 @@ All test suites are operational and passing:
 | **Production Monitor** | ✅ Passing | Weekly (Wednesday) | Production workload simulation |
 | **Long-Run Stability** | ✅ Passing | Weekly (Sunday) | 50-cycle stability validation |
 | **Stress Chamber** | ✅ Passing | Daily at 2 AM UTC | Stress testing with medium/heavy profiles |
-| **Production Demo** | 🆕 New | Weekly (Sunday) | **100% vs 40% survival - 60% advantage** |
+| **Production Demo** | ✅ Passing | Weekly (Sunday) | **100% vs 40% survival - 60% advantage** |
 | **Real FAISS Validation** | ✅ Passing | Weekly (Saturday) | **Actual FAISS operations, not simulation** |
 | **Real Pinecone Test** | ✅ Passing | Weekly (Sunday) | **Actual Pinecone API calls** |
 | **Adapter Stress Tests** | ✅ Passing | Daily at 3 AM UTC | Per-adapter stress testing (6 adapters) |
