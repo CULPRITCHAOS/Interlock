@@ -83,8 +83,12 @@ jobs:
           # force success so we can check the value manually.
           SC503=$(grep -c "503" responses.log || echo "0")
           echo "Refusals: $SC503"
+          
+          # Debug: Show what we actually got if it failed
           if [ "$SC503" -lt 5 ]; then
              echo "Failure: Expected at least 5 refusals (Circuit Breaker didn't trip), got $SC503"
+             echo "--- RESPONSE LOG TAIL ---"
+             tail -n 20 responses.log
              exit 1
           fi
 

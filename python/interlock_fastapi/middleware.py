@@ -33,15 +33,20 @@ class InterlockMiddleware(BaseHTTPMiddleware):
         if not decision.get("allowed", True):
             refusal = decision["refusal"]
             
-            # Log Incident (Async to not block too much, but here strictly for simplicity)
-            # In production, use background task.
-            self.sink.log_event({
-                "incident_id": refusal.get("incident_id"),
-                "trigger": "Remote Refusal",
-                "action": "Traffic Refusal",
-                "failure_class": "Remote Decision",
-                "confidence": refusal.get("confidence")
-            })
+            # Log Incident (Safe Wrap)
+            # We must never crash the response generation just because logging failed.
+            try:
+                self.sink.log_event({
+                    "incident_id": refusal.get("incident_id"),
+                    "trigger": "Remote Refusal",
+                    "action": "Traffic Refusal",
+                    "failure_class": "Remote Decision",
+                    "confidence": refusal.get("confidence")
+                })
+            except Exception as e:
+                # If logging fails, we still return the 503.
+                # In production, we might emit to stderr or a fallback.
+                print(f"[Interlock Middleware] Logging failed: {e}")
 
             if not self.dry_run:
                 return JSONResponse(
