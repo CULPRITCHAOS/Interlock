@@ -1,0 +1,207 @@
+name: Scale Test
+
+# Run scale tests: Test Interlock at enterprise scale
+on:
+  schedule:
+    # Run weekly on Saturdays at 4 AM UTC
+    - cron: '0 4 * * 6'
+  workflow_dispatch:
+    inputs:
+      vectors:
+        description: 'Number of vectors to test (default: 1000000)'
+        required: false
+        default: '1000000'
+      duration_hours:
+        description: 'Test duration in hours (default: 1)'
+        required: false
+        default: '1'
+      target_qps:
+        description: 'Target queries per second (default: 1000)'
+        required: false
+        default: '1000'
+      enable_chaos:
+        description: 'Enable chaos scenarios (true/false)'
+        required: false
+        default: 'false'
+
+# Only run one scale test at a time
+concurrency:
+  group: scale-test
+  cancel-in-progress: false
+
+jobs:
+  scale-test:
+    name: Scale Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run scale test
+        run: |
+          echo "Running scale test with Interlock protection..."
+          npx tsx scripts/scale-test.ts \
+            --vectors ${{ github.event.inputs.vectors || '1000000' }} \
+            --duration-hours ${{ github.event.inputs.duration_hours || '1' }} \
+            --target-qps ${{ github.event.inputs.target_qps || '1000' }} \
+            ${{ github.event.inputs.enable_chaos == 'true' && '--enable-chaos' || '' }}
+
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "# 📊 Scale Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -d results/scale-test ]; then
+            LATEST_REPORT=$(ls -t results/scale-test/scale_report_*.md 2>/dev/null | head -1)
+            if [ -f "$LATEST_REPORT" ]; then
+              echo "## Scale Test Report" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              cat "$LATEST_REPORT" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            # Check for JSON metrics
+            LATEST_JSON=$(ls -t results/scale-test/scale_metrics_*.json 2>/dev/null | head -1)
+            if [ -f "$LATEST_JSON" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "## Key Metrics" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+
+              node -e "
+                const fs = require('fs');
+                try {
+                  const data = JSON.parse(fs.readFileSync('$LATEST_JSON', 'utf8'));
+
+                  console.log('| Metric | Value |');
+                  console.log('|--------|-------|');
+
+                  if (data.totalVectors !== undefined) {
+                    console.log('| Total Vectors | ' + data.totalVectors.toLocaleString() + ' |');
+                  }
+
+                  if (data.testDurationSeconds !== undefined) {
+                    const hours = (data.testDurationSeconds / 3600).toFixed(2);
+                    console.log('| Duration | ' + hours + ' hours |');
+                  }
+
+                  if (data.targetQPS !== undefined) {
+                    console.log('| Target QPS | ' + data.targetQPS + ' |');
+                  }
+
+                  if (data.actualQPS !== undefined) {
+                    console.log('| Actual QPS | ' + data.actualQPS.toFixed(1) + ' |');
+                  }
+
+                  if (data.p95LatencyMs !== undefined) {
+                    console.log('| P95 Latency | ' + data.p95LatencyMs.toFixed(2) + ' ms |');
+                  }
+
+                  if (data.p99LatencyMs !== undefined) {
+                    console.log('| P99 Latency | ' + data.p99LatencyMs.toFixed(2) + ' ms |');
+                  }
+
+                  if (data.peakMemoryMB !== undefined) {
+                    console.log('| Peak Memory | ' + data.peakMemoryMB.toFixed(1) + ' MB |');
+                  }
+
+                  if (data.crashed !== undefined) {
+                    const status = data.crashed ? '❌ CRASHED' : '✅ SURVIVED';
+                    console.log('| Status | ' + status + ' |');
+                  }
+
+                  if (data.interventions !== undefined) {
+                    console.log('| Interventions | ' + data.interventions + ' |');
+                  }
+
+                  if (data.successCriteria) {
+                    console.log('');
+                    console.log('### Success Criteria');
+                    console.log('');
+                    const sc = data.successCriteria;
+                    
+                    if (sc.handled1MPlus !== undefined) {
+                      const status = sc.handled1MPlus ? '✅' : '❌';
+                      console.log('- ' + status + ' Handled 1M+ vectors');
+                    }
+                    
+                    if (sc.p95Under100ms !== undefined) {
+                      const status = sc.p95Under100ms ? '✅' : '❌';
+                      console.log('- ' + status + ' P95 latency < 100ms @ 1000 QPS');
+                    }
+                    
+                    if (sc.gracefulDegradation !== undefined) {
+                      const status = sc.gracefulDegradation ? '✅' : '❌';
+                      console.log('- ' + status + ' Graceful degradation under load');
+                    }
+                    
+                    if (sc.qualityMaintained !== undefined) {
+                      const status = sc.qualityMaintained ? '✅' : '❌';
+                      console.log('- ' + status + ' Quality maintained (recall > 50%)');
+                    }
+                  }
+                } catch (e) {
+                  console.log('Could not parse scale test metrics');
+                }
+              " >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Scale test completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload scale test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scale-test-results-${{ github.run_number }}
+          path: |
+            results/scale-test/**/*.md
+            results/scale-test/**/*.json
+            results/scale-test/**/*.svg
+          retention-days: 90
+
+  scale-test-summary:
+    name: Scale Test Summary
+    runs-on: ubuntu-latest
+    needs: [scale-test]
+    if: always()
+
+    permissions: {}
+
+    steps:
+      - name: Generate final summary
+        run: |
+          echo "# 🎯 Scale Test Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Job Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Scale Test | ${{ needs.scale-test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.scale-test.result }}" == "success" ]; then
+            echo "✅ **Scale test completed successfully**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ **Scale test did not complete as expected**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Workflow run: #${{ github.run_number }}*" >> $GITHUB_STEP_SUMMARY

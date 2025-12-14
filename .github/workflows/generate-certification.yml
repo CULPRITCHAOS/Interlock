@@ -1,0 +1,323 @@
+name: Generate Certification Badge
+
+# Manual workflow to generate and publish Interlock certification badge
+on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create GitHub Release with certification'
+        required: false
+        type: boolean
+        default: true
+      release_class:
+        description: 'Release tag suffix (e.g., class-IV)'
+        required: false
+        default: 'auto'
+
+jobs:
+  generate-badge:
+    name: Generate Certification Badge
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run validation tests (for evidence)
+        run: npm run validate
+        continue-on-error: false
+
+      - name: Generate certification badge
+        run: npx tsx scripts/generate-badge.ts
+        env:
+          INTERLOCK_SIGNING_KEY: ${{ secrets.INTERLOCK_SIGNING_KEY || 'github-actions-default-key' }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      - name: Validate badge metadata (fail hard on undefined)
+        id: badge_metadata
+        run: |
+          if [ ! -f results/badge/interlock_shield.json ]; then
+            echo "ERROR: Badge file not found"
+            exit 1
+          fi
+
+          # Use camelCase field names (interlockClass, loadRating, etc.)
+          INTERLOCK_CLASS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).interlockClass)")
+          LOAD_RATING=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).loadRating)")
+          VALID_UNTIL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).valid_until)")
+          REPOSITORY=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).repository)")
+          COMMIT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('results/badge/interlock_shield.json', 'utf8')).repo_commit || 'unknown')")
+
+          # Validate required fields - FAIL HARD if undefined
+          if [ "$INTERLOCK_CLASS" == "undefined" ] || [ -z "$INTERLOCK_CLASS" ]; then
+            echo "CERTIFICATION FAILURE: Interlock Class is undefined or empty"
+            exit 1
+          fi
+
+          if [ "$LOAD_RATING" == "undefined" ] || [ -z "$LOAD_RATING" ]; then
+            echo "CERTIFICATION FAILURE: Load Rating is undefined or empty"
+            exit 1
+          fi
+
+          if [ "$REPOSITORY" == "undefined" ] || [ -z "$REPOSITORY" ]; then
+            echo "CERTIFICATION FAILURE: Repository is undefined or empty"
+            exit 1
+          fi
+
+          if [ "$COMMIT" == "undefined" ] || [ -z "$COMMIT" ]; then
+            echo "CERTIFICATION FAILURE: Commit is undefined or empty"
+            exit 1
+          fi
+
+          if [ "$VALID_UNTIL" == "undefined" ] || [ -z "$VALID_UNTIL" ]; then
+            echo "CERTIFICATION FAILURE: Valid Until is undefined or empty"
+            exit 1
+          fi
+
+          # All validations passed
+          echo "interlock_class=$INTERLOCK_CLASS" >> $GITHUB_OUTPUT
+          echo "load_rating=$LOAD_RATING" >> $GITHUB_OUTPUT
+          echo "valid_until=$VALID_UNTIL" >> $GITHUB_OUTPUT
+          echo "repository=$REPOSITORY" >> $GITHUB_OUTPUT
+          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
+
+          echo "✅ Badge generated: Class $INTERLOCK_CLASS, Load Rating $LOAD_RATING"
+          echo "✅ Repository: $REPOSITORY"
+          echo "✅ Commit: $COMMIT"
+
+      - name: Commit badge files
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+          # Add badge files if they exist
+          if [ -f results/badge/interlock_shield.json ]; then
+            git add results/badge/interlock_shield.json
+          fi
+          if [ -f results/badge/interlock_shield.md ]; then
+            git add results/badge/interlock_shield.md
+          fi
+          # Add any SVG files if they exist
+          if ls results/badge/*.svg 1> /dev/null 2>&1; then
+            git add results/badge/*.svg
+          fi
+
+          # Check if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update Interlock certification badge - Class ${{ steps.badge_metadata.outputs.interlock_class }}"
+            git push
+          fi
+
+      - name: Generate workflow summary
+        run: |
+          echo "# 🛡️ Certification Badge Generated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f results/badge/interlock_shield.json ]; then
+            node -e "
+              const fs = require('fs');
+              const badge = JSON.parse(fs.readFileSync('results/badge/interlock_shield.json', 'utf8'));
+
+              console.log('## Badge Metadata');
+              console.log('');
+              console.log('| Property | Value |');
+              console.log('|----------|-------|');
+              console.log('| **Interlock Class** | ' + badge.interlockClass + ' (' + badge.interlockClassName + ')' + ' |');
+              console.log('| **Load Rating** | Class ' + badge.loadRating + ' (' + badge.loadRatingLabel + ')' + ' |');
+              console.log('| **Repository** | ' + badge.repository + ' |');
+              console.log('| **Commit** | \`' + (badge.repo_commit ? badge.repo_commit.substring(0, 8) : 'null') + '\` |');
+              console.log('| **Valid Until** | ' + badge.valid_until.split('T')[0] + ' |');
+              console.log('| **Config Fingerprint** | \`' + badge.config_fingerprint.substring(0, 16) + '...\` |');
+              console.log('');
+
+              console.log('## Capabilities');
+              console.log('');
+
+              const capabilities = [];
+              if (badge.reflexStatus === 'Active') capabilities.push('✅ Flash Crowd Reflex');
+              if (badge.qualityFloorEnforced) capabilities.push('✅ Quality Floor Enforcement');
+              if (badge.driftTolerancePercent) capabilities.push('✅ Drift Tolerance (' + badge.driftTolerancePercent + '%)');
+              // Trust decay is implied for Class V
+              if (badge.interlockClass === 'V') capabilities.push('✅ Trust Decay');
+
+              if (capabilities.length > 0) {
+                capabilities.forEach(cap => console.log('- ' + cap));
+              } else {
+                console.log('*No advanced capabilities enabled*');
+              }
+
+              console.log('');
+              console.log('## Signature');
+              console.log('');
+              console.log('Badge includes tamper-evident HMAC-SHA256 signature.');
+              console.log('');
+              console.log('\`\`\`');
+              console.log(badge.signature.substring(0, 64) + '...');
+              console.log('\`\`\`');
+            " >> $GITHUB_STEP_SUMMARY
+
+            if [ -f results/badge/interlock_shield.md ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "## Badge Markdown" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```markdown' >> $GITHUB_STEP_SUMMARY
+              head -20 results/badge/interlock_shield.md >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Badge generated at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload badge artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: certification-badge-${{ steps.badge_metadata.outputs.interlock_class }}
+          path: |
+            results/badge/interlock_shield.json
+            results/badge/interlock_shield.md
+            results/badge/*.svg
+            results/validation/**/*.md
+            results/validation/**/*.json
+          retention-days: 365
+
+  create-release:
+    name: Create Certification Release
+    runs-on: ubuntu-latest
+    needs: generate-badge
+    if: github.event.inputs.create_release == 'true'
+    timeout-minutes: 15
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download badge artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: certification-badge-*
+          path: release-artifacts
+
+      - name: Extract badge metadata for release
+        id: release_metadata
+        run: |
+          BADGE_FILE=$(find release-artifacts -name "interlock_shield.json" | head -1)
+          if [ ! -f "$BADGE_FILE" ]; then
+            echo "ERROR: Badge file not found"
+            exit 1
+          fi
+
+          # Use camelCase field names
+          INTERLOCK_CLASS=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$BADGE_FILE', 'utf8')).interlockClass)")
+          VALID_UNTIL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$BADGE_FILE', 'utf8')).valid_until)")
+
+          # Validate fields
+          if [ "$INTERLOCK_CLASS" == "undefined" ] || [ -z "$INTERLOCK_CLASS" ]; then
+            echo "CERTIFICATION FAILURE: Interlock Class is undefined in badge"
+            exit 1
+          fi
+
+          # Generate release tag using lowercase class name
+          INTERLOCK_CLASS_LOWER=$(echo "$INTERLOCK_CLASS" | tr '[:upper:]' '[:lower:]')
+          DATE_TAG=$(date -u +"%Y%m%d")
+          if [ "${{ github.event.inputs.release_class }}" == "auto" ]; then
+            RELEASE_TAG="cert-${DATE_TAG}-class-${INTERLOCK_CLASS_LOWER}"
+          else
+            RELEASE_TAG="cert-${DATE_TAG}-${{ github.event.inputs.release_class }}"
+          fi
+
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "interlock_class=$INTERLOCK_CLASS" >> $GITHUB_OUTPUT
+          echo "valid_until=$VALID_UNTIL" >> $GITHUB_OUTPUT
+
+          echo "✅ Release tag: $RELEASE_TAG"
+          echo "✅ Interlock Class: $INTERLOCK_CLASS"
+
+      - name: Create release notes
+        run: |
+          cat > release-notes.md << EOF
+          # Interlock Certification - Class ${{ steps.release_metadata.outputs.interlock_class }}
+
+          **Certification Date:** $(date -u +"%Y-%m-%d")
+          **Valid Until:** ${{ steps.release_metadata.outputs.valid_until }}
+          **Interlock Class:** ${{ steps.release_metadata.outputs.interlock_class }}
+
+          ## Certification Artifacts
+
+          This release includes:
+          - \`interlock_shield.json\` - Machine-readable badge with signature
+          - \`interlock_shield.md\` - Markdown badge for README
+          - Validation test results
+          - Certification evidence
+
+          ## Verification
+
+          The badge includes a tamper-evident HMAC-SHA256 signature covering:
+          - Interlock Class
+          - Load Rating
+          - Valid Until date
+          - Repository commit
+          - Configuration fingerprint
+          - Hardware fingerprint
+          - Test suite version
+
+          ## Usage
+
+          Add the badge to your README:
+
+          \`\`\`markdown
+          See interlock_shield.md for badge markdown
+          \`\`\`
+
+          ---
+
+          *Generated by Interlock CI/CD Pipeline*
+          *Commit: ${{ github.sha }}*
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.release_metadata.outputs.release_tag }}
+          name: "Certification: Class ${{ steps.release_metadata.outputs.interlock_class }} - ${{ steps.release_metadata.outputs.valid_until }}"
+          body_path: release-notes.md
+          files: |
+            release-artifacts/**/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release summary
+        run: |
+          echo "# 🎉 Certification Release Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Release Tag:** \`${{ steps.release_metadata.outputs.release_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Interlock Class:** ${{ steps.release_metadata.outputs.interlock_class }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Valid Until:** ${{ steps.release_metadata.outputs.valid_until }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "View release: https://github.com/${{ github.repository }}/releases/tag/${{ steps.release_metadata.outputs.release_tag }}" >> $GITHUB_STEP_SUMMARY

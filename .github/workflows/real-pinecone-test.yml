@@ -1,0 +1,109 @@
+name: Real Pinecone Integration Test
+
+# Tests Interlock Pinecone adapter with ACTUAL Pinecone API calls
+on:
+  schedule:
+    # Run weekly on Sunday at 6 AM UTC
+    - cron: '0 6 * * 0'
+  workflow_dispatch:
+    inputs:
+      vector_count:
+        description: 'Number of vectors to upsert'
+        required: false
+        default: '1000'
+      query_count:
+        description: 'Number of queries to run'
+        required: false
+        default: '100'
+
+jobs:
+  real-pinecone-test:
+    name: Real Pinecone API Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          npm install @pinecone-database/pinecone
+
+      - name: Check for API key
+        id: check_key
+        env:
+          PINECONE_KEY: ${{ secrets.PINECONE_API_KEY }}
+        run: |
+          if [ -z "$PINECONE_KEY" ]; then
+            echo "has_key=false" >> $GITHUB_OUTPUT
+            echo "⚠️ PINECONE_API_KEY not configured - will skip real API test"
+          else
+            echo "has_key=true" >> $GITHUB_OUTPUT
+            echo "✅ PINECONE_API_KEY found"
+          fi
+
+      - name: Run real Pinecone integration test
+        if: steps.check_key.outputs.has_key == 'true'
+        id: pinecone_test
+        env:
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
+        run: |
+          npx tsx scripts/real-pinecone-test.ts \
+            --vectors ${{ github.event.inputs.vector_count || '1000' }} \
+            --queries ${{ github.event.inputs.query_count || '100' }}
+
+      - name: Generate summary (with key)
+        if: steps.check_key.outputs.has_key == 'true'
+        run: |
+          echo "# 🌲 Real Pinecone Integration Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> **This test uses ACTUAL Pinecone API calls, not mocks.**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f results/pinecone-integration/real_pinecone_metrics.json ]; then
+            echo "## Metrics" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            cat results/pinecone-integration/real_pinecone_metrics.json >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -f results/pinecone-integration/adapter_metrics.json ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## Adapter Metrics" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            cat results/pinecone-integration/adapter_metrics.json >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Real Pinecone test completed at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate summary (no key)
+        if: steps.check_key.outputs.has_key == 'false'
+        run: |
+          echo "# ⚠️ Pinecone API Key Not Configured" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "To run real Pinecone tests, add \`PINECONE_API_KEY\` as a repository secret." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Setup Instructions" >> $GITHUB_STEP_SUMMARY
+          echo "1. Create a free Pinecone account at https://www.pinecone.io/" >> $GITHUB_STEP_SUMMARY
+          echo "2. Get your API key from the Pinecone console" >> $GITHUB_STEP_SUMMARY
+          echo "3. Add it as a GitHub secret: Settings → Secrets → Actions → New secret" >> $GITHUB_STEP_SUMMARY
+          echo "4. Name: \`PINECONE_API_KEY\`, Value: your API key" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Pinecone results
+        if: steps.check_key.outputs.has_key == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: real-pinecone-results-${{ github.run_number }}
+          path: results/pinecone-integration/
+          retention-days: 30

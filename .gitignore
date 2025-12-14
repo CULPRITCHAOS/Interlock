@@ -1,0 +1,53 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.venv
+venv
+.env
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Results (keep only reports and summaries)
+results/**/gen_log.jsonl
+results/**/*.tmp
+results/stress_chamber/
+!/results/**/*.md
+!/results/**/*.json
+
+# --- TRADE SECRET EXCLUSIONS ---
+# Exclude Game/Dashboard Components
+components/
+backend/
+services/
+
+# Exclude React Game App Entrypoints
+App.tsx
+index.tsx
+index.html
+
+# Exclude All Historical Results (except summary docs if any)
+results/

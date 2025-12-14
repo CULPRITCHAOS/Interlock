@@ -1,0 +1,6 @@
+{
+  "name": "Interlock",
+  "version": "4.0.0",
+  "description": "A failure forecasting and circuit-breaker system for AI infrastructure. Detects unsafe operating regions, forecasts collapse before it happens, and actively prevents catastrophic failure. Interlock does not optimize systems. It prevents them from breaking.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,67 @@
+name: Interlock Express Middleware Verification
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'packages/interlock-express/**'
+      - 'apps/examples/express-demo/**'
+  workflow_dispatch:
+
+jobs:
+  verify-express:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: |
+          npm install
+          npm install -g tsx kill-port
+
+      - name: Start Reference Service (Express Demo)
+        run: |
+          npx tsx apps/examples/express-demo/server.ts &
+          echo "Server started with PID $!"
+          echo "SERVER_PID=$!" >> $GITHUB_ENV
+          sleep 5
+
+      - name: Verify Health
+        run: curl -f http://localhost:3001/work
+
+      - name: Inject Failure (Chaos Mode)
+        run: |
+          curl -X POST http://localhost:3001/admin/inject-failure \
+          -H "Content-Type: application/json" \
+          -d '{"mode":"FORCE_ERROR"}'
+
+      - name: Bombard Traffic (Trigger Refusal)
+        continue-on-error: true # 503s are expected errors for curl
+        run: |
+          for i in {1..35}; do
+            curl -s -o /dev/null -w "%{http_code}\n" http://localhost:3001/work >> responses.log
+            sleep 0.1
+          done
+
+      - name: Verify Refusal (503s)
+        run: |
+          SC503=$(grep -c "503" responses.log)
+          echo "Refusals: $SC503"
+          if [ $SC503 -lt 5 ]; then
+             echo "Failure: Expected at least 5 refusals, got $SC503"
+             exit 1
+          fi
+
+      - name: Verify Incident Log Creation
+        run: |
+          if [ ! -f docs/LIVE_INCIDENTS.md ]; then
+             echo "Failure: Log file not created"
+             exit 1
+          fi
+          cat docs/LIVE_INCIDENTS.md
+          grep "Traffic Refusal" docs/LIVE_INCIDENTS.md || exit 1
