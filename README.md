@@ -1,14 +1,15 @@
 # Interlock 🔒
 
 > **The Circuit Breaker for AI Infrastructure.**
-> 
-> Interlock certifies that your AI system will not collapse under load, hallucinate due to degradation, or serve garbage results. It makes failure visible and survivable.
+
+Interlock is a safety certification and failure-survivability system for AI infrastructure.
+It predicts failures, intervenes before collapse, and produces cryptographically verifiable evidence of system behavior under stress.
+
+✅ **7 Integrations** &nbsp;|&nbsp; ✅ **TS + Python** &nbsp;|&nbsp; ✅ **Stress Chamber Proof** &nbsp;|&nbsp; ✅ **Certification Classes I–V**
 
 [![Test and Certify](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/test-and-certify.yml)
 [![Stress Chamber](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/stress-chamber.yml)
 [![Scale Test](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml)
-[![Real FAISS](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/real-faiss-validation.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/real-faiss-validation.yml)
-[![Real Pinecone](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/real-pinecone-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/real-pinecone-test.yml)
 [![Middleware Express](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/middleware-express.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/middleware-express.yml)
 [![Middleware FastAPI](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/middleware-fastapi.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/middleware-fastapi.yml)
 
@@ -16,28 +17,40 @@
 
 ---
 
-## 🎯 How It Works
-
-Interlock is an **active protection layer** that sits between your users and your AI infrastructure.
+## 🏗️ Architecture
 
 ```mermaid
-graph LR
-    A[User Request] --> B{Interlock}
-    B -- Safe --> C[AI / Vector DB]
-    B -- Unsafe --> D[Refusal 503]
+graph TD
+    A[AI System] --> B[Adapter Layer]
+    B --> C{Interlock Core}
     
-    subgraph Brain [The Brain Loop]
-    direction TB
-    E[Observe Latency] --> F[Forecast Collapse]
-    F --> G[Decide Confidence]
-    G --> B
+    subgraph Core [Logic Loop]
+    D[Confidence Tracking]
+    E[Hazard Forecasting]
+    F[Circuit Breaker]
+    G[Quality Floor]
     end
+    
+    C --> D
+    D --> E --> F --> G
+    
+    G --> H[Forensic Logging]
+    G --> I[Outcome]
+    
+    I -- Safe --> J[Pass Through]
+    I -- Unsafe --> K[Refusal / Degrade]
 ```
 
-1.  **Observe**: Tracks latency, errors, and drift in real-time.
-2.  **Forecast**: Predicts if the *next* request will cause a collapse.
-3.  **Decide**: Calculates a `ConfidenceScore`.
-4.  **Refuse**: If Confidence < `QualityFloor`, it returns `503` immediately.
+## 📊 The Impact
+
+This is why you use Interlock.
+
+| Scenario | Without Interlock | With Interlock |
+|----------|-------------------|----------------|
+| **Recall Collapse** | System crashes, users churn | **Degraded but alive** (lower precision) |
+| **Load Spike** | OOM / 504 Gateway Timeout | **Refusal + Recovery** (Shed load fast) |
+| **Latency Cliff** | Silent corruption, slow UX | **Logged Intervention** (Fast fail) |
+| **Postmortem** | Guesswork & "It works on my machine" | **Certified Report** (Cryptographically signed) |
 
 ---
 
@@ -91,26 +104,6 @@ All integrations are verified via CI/CD pipelines.
 | **LlamaIndex** | ✅ Production | [Matrix Test](./.github/workflows/test-and-certify.yml) |
 | **Weaviate** | ✅ Stable | Adapter Certification |
 | **Milvus** | ✅ Stable | Adapter Certification |
-| **Elasticsearch**| ⚠️ Experimental | Manual Validation |
-
----
-
-## 📚 Documentation Index
-
-- **Getting Started**
-  - [Quickstart Guide](./docs/QUICKSTART.md)
-  - [Middleware Adoption](./docs/MIDDLEWARE.md)
-  - [Production Deployment](./docs/PRODUCTION_DEPLOYMENT.md)
-
-- **Core Concepts**
-  - [Architecture Overview](./docs/ARCHITECTURE.md)
-  - [Interlock Classes (Safety Ratings)](./INTERLOCK_CLASSES.md)
-  - [Governance Model](./docs/GOVERNANCE.md)
-
-- **Reference**
-  - [Integrations & Adapters](./docs/INTEGRATIONS.md)
-  - [Security Policy](./SECURITY.md)
-  - [Test Results](./docs/TEST_RESULTS.md)
 
 ---
 
