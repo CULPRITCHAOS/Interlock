@@ -163,9 +163,25 @@ export const SAFE_BOOT_STATE: PersistedState = createSafeBootState();
  * This is minimal and focuses on memory (the primary "hardware lottery" concern)
  */
 export function collectHardwareFingerprint(): HardwareFingerprint {
+  let memoryGb = 0;
+  let cpuCores = 1;
+
+  try {
+    const memory = os.totalmem();
+    if (memory) {
+      memoryGb = Math.round(memory / (1024 * 1024));
+    }
+    const cpus = os.cpus();
+    if (cpus && cpus.length > 0) {
+      cpuCores = cpus.length;
+    }
+  } catch (e) {
+    // Ignore OS access errors
+  }
+
   const fingerprint: HardwareFingerprint = {
-    totalSystemMemoryMb: Math.round(os.totalmem() / (1024 * 1024)),
-    cpuCores: os.cpus().length
+    totalSystemMemoryMb: memoryGb,
+    cpuCores: cpuCores
   };
 
   // Try to detect container memory limit via cgroup

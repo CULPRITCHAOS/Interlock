@@ -124,14 +124,27 @@ export function getGitCommit(): string | null {
 /**
  * Generate a hardware fingerprint hash
  */
+/**
+ * Generate a hardware fingerprint hash
+ */
 export function generateHardwareFingerprint(): string {
-    const memoryGb = Math.round(os.totalmem() / (1024 * 1024 * 1024));
-    const cpuCores = os.cpus().length;
-    const platform = os.platform();
-    const cpuModel = os.cpus()[0]?.model || 'unknown';
+    try {
+        const memory = os.totalmem();
+        const memoryGb = memory ? Math.round(memory / (1024 * 1024 * 1024)) : 0;
 
-    const fingerprint = `${memoryGb}GB-${cpuCores}cores-${platform}-${cpuModel}`;
-    return crypto.createHash('sha256').update(fingerprint).digest('hex').substring(0, 16);
+        const cpus = os.cpus() || [];
+        const cpuCores = cpus.length;
+
+        const platform = os.platform() || 'unknown';
+        const cpuModel = cpus[0]?.model || 'unknown';
+
+        const fingerprint = `${memoryGb}GB-${cpuCores}cores-${platform}-${cpuModel}`;
+        return crypto.createHash('sha256').update(fingerprint).digest('hex').substring(0, 16);
+    } catch (error) {
+        // Fallback for restricted environments (like some CI containers)
+        console.warn(`[Integrity] Failed to collect hardware fingerprint: ${error}. Using fallback.`);
+        return '0000000000000000'; // Deterministic fallback
+    }
 }
 
 /**

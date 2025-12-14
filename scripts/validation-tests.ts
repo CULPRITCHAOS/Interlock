@@ -2268,7 +2268,19 @@ Test Series:
 // Run if executed directly
 const isMainModule = process.argv[1]?.includes('validation-tests');
 if (isMainModule) {
-  main().catch(console.error);
+  try {
+    main().catch((err) => {
+      console.error('FATAL ERROR in validation-tests main loop:', err);
+      console.error(err.stack);
+      process.exit(1);
+    });
+  } catch (err) {
+    console.error('FATAL SYNCHRONOUS ERROR in validation-tests:', err);
+    if (err instanceof Error) {
+      console.error(err.stack);
+    }
+    process.exit(1);
+  }
 }
 
 export {
