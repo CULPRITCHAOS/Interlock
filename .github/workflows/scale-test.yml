@@ -148,9 +148,9 @@ jobs:
                       console.log('- ' + status + ' Graceful degradation under load');
                     }
                     
-                    if (sc.recoveryUnder30s !== undefined) {
-                      const status = sc.recoveryUnder30s ? '✅' : '❌';
-                      console.log('- ' + status + ' Recovery within 30 seconds');
+                    if (sc.qualityMaintained !== undefined) {
+                      const status = sc.qualityMaintained ? '✅' : '❌';
+                      console.log('- ' + status + ' Quality maintained (recall > 50%)');
                     }
                   }
                 } catch (e) {
