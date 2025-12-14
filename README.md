@@ -109,3 +109,12 @@ All integrations are verified via CI/CD pipelines.
 
 > **Why use Interlock?**
 > Because "Retrying" a hallucinating LLM doesn't fix it. You need to know *when* to stop asking.
+
+---
+
+## 📜 License
+
+Interlock is [MIT licensed](./LICENSE) for open-source and evaluation use.
+
+[Commercial licenses](./COMMERCIAL-LICENSE.md) are available for organizations requiring enterprise support, SLAs, or custom certification.
+
