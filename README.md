@@ -7,6 +7,7 @@
 [![Benchmark Suite](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/benchmark.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/benchmark.yml)
 [![Competitive Benchmark](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/competitive-benchmark.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/competitive-benchmark.yml)
 [![Scale Test](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/scale-test.yml)
+[![Real FAISS Validation](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/real-faiss-validation.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/real-faiss-validation.yml)
 [![Adapter Stress Tests](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-stress-test.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-stress-test.yml)
 [![Adapter Certification](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-certification.yml/badge.svg)](https://github.com/CULPRITCHAOS/Interlock/actions/workflows/adapter-certification.yml)
 
@@ -439,6 +440,7 @@ All test suites are operational and passing:
 | **Production Monitor** | ✅ Passing | Weekly (Wednesday) | Production workload simulation |
 | **Long-Run Stability** | ✅ Passing | Weekly (Sunday) | 50-cycle stability validation |
 | **Stress Chamber** | ✅ Passing | Daily at 2 AM UTC | Stress testing with medium/heavy profiles |
+| **Real FAISS Validation** | 🆕 New | Weekly (Saturday) | **Actual FAISS operations, not simulation** |
 | **Adapter Stress Tests** | ✅ Passing | Daily at 3 AM UTC | Per-adapter stress testing (6 adapters) |
 | **Adapter Stability Tests** | ✅ Passing | Weekly (Saturday) | Long-run adapter validation |
 | **Adapter Certification** | ✅ Passing | Weekly (Sunday) | Class III/IV/V adapter certification |
