@@ -42,12 +42,20 @@ results/stress_chamber/
 # Exclude Game/Dashboard Components
 components/
 backend/
-services/
-
+# Exclude specific Game Services (Keep Middleware Services!)
+services/ai.ts
+services/codeGenerator.ts
+services/websocket.ts
 # Exclude React Game App Entrypoints
 App.tsx
 index.tsx
 index.html
 
 # Exclude All Historical Results (except summary docs if any)
-results/
+# But allow results/validation/ for CI artifact uploads
+results/**
+!results/
+!results/validation/
+!results/validation/**
+!results/badge/
+!results/badge/**

@@ -25,5 +25,14 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "ci_sim",
+    "App.tsx",
+    "src/**",
+    "components/**",
+    "*.d.ts"
+  ]
 }

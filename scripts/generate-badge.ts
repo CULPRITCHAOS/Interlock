@@ -30,8 +30,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import * as crypto from 'crypto';
-import { execSync } from 'child_process';
 import {
   InterlockClass,
   CLASS_METADATA,
@@ -43,9 +41,19 @@ import {
   ValidationEvidence,
   InterlockCapabilities,
   ClassDerivationResult
-} from '../services/interlock_class';
-import { DEFAULT_HYSTERESIS_CONFIG, HysteresisConfig } from '../services/hysteresis';
-import { DEFAULT_CIRCUIT_BREAKER_CONFIG, CircuitBreakerConfig } from '../services/phaseIV.types';
+} from '../services/interlock_class.ts';
+import {
+  InterlockShield,
+  getGitCommit,
+  generateHardwareFingerprint,
+  extractSignedClaims,
+  buildCanonicalString,
+  generateBadgeSignature,
+  verifyBadgeSignature,
+  SignedClaims
+} from '../services/integrity.ts';
+import { DEFAULT_HYSTERESIS_CONFIG, HysteresisConfig } from '../services/hysteresis.ts';
+import { DEFAULT_CIRCUIT_BREAKER_CONFIG, CircuitBreakerConfig } from '../services/phaseIV.types.ts';
 
 // ============= Load Rating Definitions (separate from Interlock Class) =============
 
@@ -94,281 +102,15 @@ export const determineLoadClass = determineLoadRating;
 
 // ============= Badge Types =============
 
-export interface InterlockShield {
-  // Badge metadata
-  version: string;
-  generated: string;
-  interlockVersion: string;
-  
-  // ============= NEW: Interlock Class (Feature-Based) =============
-  /** The Interlock class (I-V) based on enabled features + config */
-  interlockClass: InterlockClass;
-  /** Human-readable class name (Observable, Static, Dynamic, Reflexive, Cognitive) */
-  interlockClassName: string;
-  /** Class codename (Mirror, Fuse, Governor, Airbag, Pilot) */
-  interlockClassCodename: string;
-  /** Class description */
-  interlockClassDescription: string;
-  /** Whether this class was downgraded due to disabled features */
-  isDowngraded: boolean;
-  /** Reasons for the class assignment */
-  classReasons: string[];
-  /** What prevents a higher class */
-  classMissing: string[];
-  
-  // Core badge fields (Load Rating - separate from Interlock Class)
-  loadRating: LoadRating;
-  loadRatingLabel: string;
-  /** @deprecated Use loadRating instead */
-  loadClass: LoadClass;
-  /** @deprecated Use loadRatingLabel instead */
-  loadClassLabel: string;
-  reflexStatus: 'Active' | 'Disabled';
-  reflexLatencyMs: number;
-  driftTolerancePercent: number;
-  qualityFloorEnforced: boolean;
-  qualityFloorThreshold: number;
-  
-  // Certification status
-  certificationTier: 'SAFETY_CERTIFIED' | 'OPERATIONAL_CERTIFIED' | 'NOT_CERTIFIED';
-  certificationF1: number;
-  
-  // ============= NEW: Badge Expiry (Anti-Badge-Rot) =============
-  /** When this badge was issued */
-  issued_at: string;
-  /** When this badge expires (must revalidate) */
-  valid_until: string;
-  /** Validity period in days */
-  validity_days: number;
-  /** Whether the badge is currently stale */
-  is_stale: boolean;
-  
-  // ============= NEW: Fingerprints (Anti-Gaming) =============
-  /** Hash of configuration used for certification */
-  config_fingerprint: string;
-  /** Hash of hardware at certification time */
-  hardware_fingerprint: string;
-  /** Version of the test suite used */
-  test_suite_version: string;
-  /** Git commit hash (if available) */
-  repo_commit: string | null;
-  /** Repository name (from GITHUB_REPOSITORY) */
-  repository: string;
-  
-  // Legacy audit information (for backwards compatibility)
-  lastAuditDate: string;
-  testSuiteHash: string;
-  
-  // Hardware fingerprint (coarse - for badge display)
-  hardwareFingerprint: {
-    memoryGb: number;
-    cpuCores: number;
-    platform: string;
-  };
-  
-  // Test summary
-  testsSummary: {
-    total: number;
-    passed: number;
-    failed: number;
-  };
-  
-  // ============= NEW: Evidence =============
-  /** Tests/artifacts that justify this class */
-  evidence: string[];
-  
-  // ============= NEW: Tamper-Evident Signature =============
-  /** HMAC-SHA256 signature of core certified claims (tamper-evident) */
-  signature?: string;
-}
+
+// InterlockShield interface is now imported from integrity.ts
 
 // ============= Helper Functions =============
 
-/**
- * Get git commit hash if available
- * Uses the full path to git and validates the output format
- */
-function getGitCommit(): string | null {
-  try {
-    // Use which to find git location, or fall back to common paths
-    const result = execSync('git rev-parse HEAD', { 
-      encoding: 'utf-8',
-      timeout: 5000,  // 5 second timeout
-      stdio: ['pipe', 'pipe', 'pipe']  // Capture stderr
-    }).trim();
-    
-    // Validate the output looks like a git hash (40 hex characters)
-    if (/^[a-f0-9]{40}$/i.test(result)) {
-      return result.substring(0, 8);
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Generate a hardware fingerprint hash
- */
-function generateHardwareFingerprint(): string {
-  const memoryGb = Math.round(os.totalmem() / (1024 * 1024 * 1024));
-  const cpuCores = os.cpus().length;
-  const platform = os.platform();
-  const cpuModel = os.cpus()[0]?.model || 'unknown';
-  
-  const fingerprint = `${memoryGb}GB-${cpuCores}cores-${platform}-${cpuModel}`;
-  return crypto.createHash('sha256').update(fingerprint).digest('hex').substring(0, 16);
-}
-
+// Helper functions removed - imported from integrity.ts
 // ============= Tamper-Evident Signature =============
 
-/**
- * Core certified claims that are included in the signature.
- * These fields (and ONLY these fields) are cryptographically signed.
- * 
- * SIGNED FIELDS (EXACT - from problem statement):
- * - interlock_class
- * - load_rating
- * - valid_until
- * - repository
- * - repo_commit
- * - config_fingerprint
- * - hardware_fingerprint
- * - test_suite_version
- */
-export interface SignedClaims {
-  interlock_class: string;
-  load_rating: string;
-  valid_until: string;
-  repository: string;
-  repo_commit: string | null;
-  config_fingerprint: string;
-  hardware_fingerprint: string;
-  test_suite_version: string;
-}
-
-/**
- * Extract signed claims from a shield for signature computation.
- * Uses stable key order for deterministic signing.
- */
-export function extractSignedClaims(shield: InterlockShield): SignedClaims {
-  return {
-    interlock_class: shield.interlockClass,
-    load_rating: shield.loadRating,
-    valid_until: shield.valid_until,
-    repository: shield.repository,
-    repo_commit: shield.repo_commit,
-    config_fingerprint: shield.config_fingerprint,
-    hardware_fingerprint: shield.hardware_fingerprint,
-    test_suite_version: shield.test_suite_version
-  };
-}
-
-/**
- * Build canonical string from signed claims for signature computation.
- * Uses stable order and delimiter separation for deterministic hashing.
- */
-export function buildCanonicalString(claims: SignedClaims): string {
-  // Stable order: alphabetical by key name
-  const parts = [
-    `config_fingerprint=${claims.config_fingerprint}`,
-    `hardware_fingerprint=${claims.hardware_fingerprint}`,
-    `interlock_class=${claims.interlock_class}`,
-    `load_rating=${claims.load_rating}`,
-    `repo_commit=${claims.repo_commit ?? 'null'}`,
-    `repository=${claims.repository}`,
-    `test_suite_version=${claims.test_suite_version}`,
-    `valid_until=${claims.valid_until}`
-  ];
-  return parts.join('|');
-}
-
-/**
- * Default development signing key.
- * ⚠️ WARNING: This is NOT secure for production use.
- */
-const DEV_SIGNING_KEY = 'interlock-dev-signing-key-not-for-production';
-
-/**
- * Check if the signing key is the insecure development key.
- */
-export function isUsingDevSigningKey(): boolean {
-  return !process.env.INTERLOCK_SIGNING_KEY;
-}
-
-/**
- * Get the signing key, with logging for security awareness.
- * In production, INTERLOCK_SIGNING_KEY must be set.
- */
-function getSigningKey(): string {
-  const envKey = process.env.INTERLOCK_SIGNING_KEY;
-  if (!envKey) {
-    // Only warn once per process to avoid log spam
-    if (!getSigningKey.warned) {
-      console.warn('[INTERLOCK] ⚠️ Using development signing key. Set INTERLOCK_SIGNING_KEY for production.');
-      getSigningKey.warned = true;
-    }
-    return DEV_SIGNING_KEY;
-  }
-  return envKey;
-}
-// Track if warning has been emitted
-getSigningKey.warned = false;
-
-/**
- * Generate HMAC-SHA256 signature for the badge.
- * 
- * Key source priority:
- * 1. INTERLOCK_SIGNING_KEY environment variable (production)
- * 2. Default fallback key for development (allows badge generation without secrets)
- * 
- * ⚠️ WARNING: In production, always inject the signing key via environment variable.
- * The fallback key is for development/testing only.
- */
-export function generateBadgeSignature(claims: SignedClaims): string {
-  const signingKey = getSigningKey();
-  const canonicalString = buildCanonicalString(claims);
-  const signature = crypto.createHmac('sha256', signingKey)
-    .update(canonicalString)
-    .digest('hex');
-  return signature;
-}
-
-/**
- * Verify the HMAC-SHA256 signature of a badge.
- * Returns verification result with details.
- * 
- * @returns Object with verification status and details
- */
-export function verifyBadgeSignature(shield: InterlockShield): {
-  valid: boolean;
-  expectedSignature: string;
-  actualSignature: string | undefined;
-  claims: SignedClaims;
-  warningMessage: string | null;
-} {
-  const claims = extractSignedClaims(shield);
-  const expectedSignature = generateBadgeSignature(claims);
-  const actualSignature = shield.signature;
-  
-  const valid = actualSignature === expectedSignature;
-  
-  let warningMessage: string | null = null;
-  if (!actualSignature) {
-    warningMessage = 'SECURITY WARNING: Badge has no signature - cannot verify integrity';
-  } else if (!valid) {
-    warningMessage = 'SECURITY WARNING: Certification Badge Tampered - signature mismatch detected';
-  }
-  
-  return {
-    valid,
-    expectedSignature,
-    actualSignature,
-    claims,
-    warningMessage
-  };
-}
-
+// Signature functions removed - imported from integrity.ts
 /**
  * Parse validation report to extract test evidence
  */
@@ -376,15 +118,15 @@ function parseValidationEvidence(validationData: any): ValidationEvidence | unde
   if (!validationData || !validationData.testSeries) {
     return undefined;
   }
-  
+
   const testSeries = validationData.testSeries;
   const findTest = (name: string) => testSeries.find((t: any) => t.name === name)?.passed ?? false;
-  
+
   return {
     testsTotal: testSeries.length,
     testsPassed: testSeries.filter((t: any) => t.passed).length,
     testSuiteVersion: validationData.generated || 'unknown',
-    
+
     flappingPreventionPassed: findTest('Flapping Prevention'),
     incidentQualityPassed: findTest('Incident Quality'),
     counterfactualSurvivalPassed: findTest('Counterfactual Survival'),
@@ -424,11 +166,11 @@ export function generateShield(options: {
 }): InterlockShield {
   const now = new Date();
   const validityDays = options.validityDays ?? 30;
-  
+
   // Use provided configs or defaults
   const hysteresisConfig = options.hysteresisConfig ?? DEFAULT_HYSTERESIS_CONFIG;
   const circuitBreakerConfig = options.circuitBreakerConfig ?? DEFAULT_CIRCUIT_BREAKER_CONFIG;
-  
+
   // Read validation report if provided
   let validationData: any = null;
   let validationEvidence: ValidationEvidence | undefined;
@@ -440,10 +182,10 @@ export function generateShield(options: {
       // Ignore parse errors
     }
   }
-  
+
   // Generate capabilities from config or use provided
   const capabilities = options.capabilities ?? generateDefaultCapabilities(hysteresisConfig, circuitBreakerConfig);
-  
+
   // ============= DERIVE INTERLOCK CLASS =============
   const classResult = deriveInterlockClass(
     hysteresisConfig,
@@ -451,15 +193,15 @@ export function generateShield(options: {
     capabilities,
     validationEvidence
   );
-  
+
   // Determine values from validation data or options
   const testsTotal = options.testsTotal ?? validationData?.testSeries?.length ?? 11;
   const testsPassed = options.testsPassed ?? validationData?.testSeries?.filter((t: any) => t.passed).length ?? testsTotal;
-  
+
   // Calculate certification tier based on tests
   let certificationTier: InterlockShield['certificationTier'] = options.certificationTier ?? 'NOT_CERTIFIED';
   let certificationF1 = options.certificationF1 ?? 0;
-  
+
   if (!options.certificationTier) {
     const passRate = testsPassed / testsTotal;
     if (passRate >= 0.9) {
@@ -473,37 +215,37 @@ export function generateShield(options: {
       certificationF1 = passRate;
     }
   }
-  
+
   // Determine load rating (based on test metrics, separate from Interlock Class)
   const maxVectors = options.maxVectors ?? 100000;
   const maxQPS = options.maxQPS ?? 100;
   const loadRating = determineLoadRating(maxVectors, maxQPS);
-  
+
   // Get hardware fingerprint
   const memoryGb = Math.round(os.totalmem() / (1024 * 1024 * 1024));
   const cpuCores = os.cpus().length;
   const platform = os.platform();
-  
+
   // Generate fingerprints
   const configFingerprint = generateConfigFingerprint({ hysteresisConfig, circuitBreakerConfig });
   const hardwareFingerprint = generateHardwareFingerprint();
   const repoCommit = getGitCommit();
   const repository = process.env.GITHUB_REPOSITORY || 'unknown/repository';
-  
+
   // Generate test suite hash
-  const testSuiteHash = options.testSuiteHash ?? 
+  const testSuiteHash = options.testSuiteHash ??
     `v5.0.0-${now.toISOString().split('T')[0].replace(/-/g, '')}`;
-  
+
   // Calculate expiry
   const expiryDate = calculateExpiryDate(now, validityDays);
   const staleness = checkCertificationStaleness(expiryDate.toISOString());
-  
+
   // Create shield without signature first
   const shield: InterlockShield = {
     version: '2.0.0',
     generated: now.toISOString(),
     interlockVersion: '5.0.0',
-    
+
     // Interlock Class (Feature-Based)
     interlockClass: classResult.class,
     interlockClassName: classResult.metadata.name,
@@ -512,7 +254,7 @@ export function generateShield(options: {
     isDowngraded: classResult.isDowngraded,
     classReasons: classResult.reasons,
     classMissing: classResult.missing,
-    
+
     // Load Rating (based on test metrics)
     loadRating,
     loadRatingLabel: LOAD_RATING_CRITERIA[loadRating].label,
@@ -523,41 +265,41 @@ export function generateShield(options: {
     driftTolerancePercent: options.driftTolerancePercent ?? 20,
     qualityFloorEnforced: hysteresisConfig.qualityFloorEnabled,
     qualityFloorThreshold: hysteresisConfig.qualityFloor,
-    
+
     certificationTier,
     certificationF1,
-    
+
     // Badge Expiry
     issued_at: now.toISOString(),
     valid_until: expiryDate.toISOString(),
     validity_days: validityDays,
     is_stale: staleness.isStale,
-    
+
     // Fingerprints
     config_fingerprint: configFingerprint,
     hardware_fingerprint: hardwareFingerprint,
     test_suite_version: testSuiteHash,
     repo_commit: repoCommit,
     repository,
-    
+
     lastAuditDate: now.toISOString().split('T')[0],
     testSuiteHash,
-    
+
     hardwareFingerprint: {
       memoryGb,
       cpuCores,
       platform
     },
-    
+
     testsSummary: {
       total: testsTotal,
       passed: testsPassed,
       failed: testsTotal - testsPassed
     },
-    
+
     evidence: classResult.evidence
   };
-  
+
   // ============= VALIDATION: Fail hard if required fields are undefined =============
   const requiredFields: Array<{ field: keyof InterlockShield; name: string; allowNull?: boolean }> = [
     { field: 'interlockClass', name: 'Interlock Class' },
@@ -568,7 +310,7 @@ export function generateShield(options: {
     { field: 'config_fingerprint', name: 'Config Fingerprint' },
     { field: 'hardware_fingerprint', name: 'Hardware Fingerprint' }
   ];
-  
+
   const missingFields: string[] = [];
   for (const { field, name, allowNull } of requiredFields) {
     const value = shield[field];
@@ -578,18 +320,18 @@ export function generateShield(options: {
       missingFields.push(name);
     }
   }
-  
+
   if (missingFields.length > 0) {
     throw new Error(
       `CERTIFICATION FAILURE: Required field(s) missing or undefined: ${missingFields.join(', ')}. ` +
       `Cannot generate badge. This indicates a critical error in the certification pipeline.`
     );
   }
-  
+
   // Generate cryptographic signature for tamper-evidence
   const claims = extractSignedClaims(shield);
   shield.signature = generateBadgeSignature(claims);
-  
+
   // Validate signature was generated
   if (!shield.signature || shield.signature === '') {
     throw new Error(
@@ -597,7 +339,7 @@ export function generateShield(options: {
       `Cannot generate badge without signature.`
     );
   }
-  
+
   return shield;
 }
 
@@ -615,7 +357,7 @@ export function shieldToJSON(shield: InterlockShield): string {
  */
 export function shieldToMarkdown(shield: InterlockShield): string {
   const lines: string[] = [];
-  
+
   // Determine badge emoji and color based on certification
   let tierIcon: string;
   let tierLabel: string;
@@ -632,12 +374,12 @@ export function shieldToMarkdown(shield: InterlockShield): string {
       tierIcon = '❌';
       tierLabel = 'Not Certified';
   }
-  
+
   // Stale warning
-  const staleWarning = shield.is_stale 
+  const staleWarning = shield.is_stale
     ? '\n> ⚠️ **Warning**: This certification has expired. Rerun validation tests to refresh.\n'
     : '';
-  
+
   lines.push('<!-- Interlock Shield Badge - Copy this block to your README -->');
   lines.push('');
   lines.push(`## 🛡️ Interlock: Class ${shield.interlockClass} (${shield.interlockClassName})`);
@@ -658,14 +400,14 @@ export function shieldToMarkdown(shield: InterlockShield): string {
   lines.push(`| **Tests** | ${shield.testsSummary.passed}/${shield.testsSummary.total} passed |`);
   lines.push(`| **F1 Score** | ${(shield.certificationF1 * 100).toFixed(1)}% |`);
   lines.push('');
-  
+
   // Add disclaimer
   lines.push('> **Disclaimer**: This certification certifies that this configuration survived stress tests under controlled conditions. It does not guarantee future safety or behavior under different conditions.');
   lines.push('');
   lines.push('> *Generated by [Interlock](https://github.com/CULPRITCHAOS/Interlock) v' + shield.interlockVersion + '*');
   lines.push('');
   lines.push('<!-- End Interlock Shield Badge -->');
-  
+
   return lines.join('\n');
 }
 
@@ -684,7 +426,7 @@ export function shieldToCompactBadge(shield: InterlockShield): string {
     default:
       icon = '🛡️❌';
   }
-  
+
   const stale = shield.is_stale ? ' [STALE]' : '';
   return `${icon} Interlock Class ${shield.interlockClass} (${shield.interlockClassName}) | Load ${shield.loadRating} | ${shield.testsSummary.passed}/${shield.testsSummary.total} tests | Valid until ${shield.valid_until.split('T')[0]}${stale}`;
 }
@@ -706,11 +448,11 @@ export function shieldToSVG(shield: InterlockShield): string {
     default:
       bgColor = '#e05d44';  // Red
   }
-  
+
   const classText = `Class ${shield.interlockClass}`;
   const statusText = shield.interlockClassName;
   const validText = shield.is_stale ? 'STALE' : `Valid: ${shield.valid_until.split('T')[0]}`;
-  
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="280" height="60" role="img" aria-label="Interlock: Class ${shield.interlockClass}">
   <title>Interlock: Class ${shield.interlockClass} (${shield.interlockClassName})</title>
   <linearGradient id="s" x2="0" y2="100%">
@@ -741,22 +483,22 @@ export function shieldToSVG(shield: InterlockShield): string {
  * Write shield to files
  */
 export function writeShieldFiles(
-  shield: InterlockShield, 
+  shield: InterlockShield,
   outputDir: string = 'results/certification'
 ): { jsonPath: string; mdPath: string; svgPath: string } {
   // Ensure output directory exists
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
   }
-  
+
   const jsonPath = path.join(outputDir, 'interlock_shield.json');
   const mdPath = path.join(outputDir, 'interlock_shield.md');
   const svgPath = path.join(outputDir, 'interlock_shield.svg');
-  
+
   fs.writeFileSync(jsonPath, shieldToJSON(shield));
   fs.writeFileSync(mdPath, shieldToMarkdown(shield));
   fs.writeFileSync(svgPath, shieldToSVG(shield));
-  
+
   return { jsonPath, mdPath, svgPath };
 }
 
@@ -783,10 +525,10 @@ export function checkRuntimeStaleness(shieldPath: string = 'results/certificatio
         metricsPayload: { certification_stale: 1, days_until_expiry: -1 }
       };
     }
-    
+
     const shield: InterlockShield = JSON.parse(fs.readFileSync(shieldPath, 'utf-8'));
     const staleness = checkCertificationStaleness(shield.valid_until);
-    
+
     return {
       isStale: staleness.isStale,
       daysUntilExpiry: staleness.daysUntilExpiry,
@@ -814,31 +556,31 @@ export function checkRuntimeStaleness(shieldPath: string = 'results/certificatio
 export interface BadgeValidityResult {
   /** Is the badge valid? */
   isValid: boolean;
-  
+
   /** Is the badge signature valid (tamper-evident check)? */
   signatureValid: boolean;
-  
+
   /** Is the badge not expired? */
   notExpired: boolean;
-  
+
   /** Does the repo commit match current? */
   repoCommitMatches: boolean;
-  
+
   /** Does the config fingerprint match? (if provided) */
   configFingerprintMatches: boolean;
-  
+
   /** Does the hardware fingerprint match? */
   hardwareFingerprintMatches: boolean;
-  
+
   /** List of all warning messages */
   warnings: string[];
-  
+
   /** List of all error messages (invalidating conditions) */
   errors: string[];
-  
+
   /** Days until badge expiry */
   daysUntilExpiry: number;
-  
+
   /** The shield data */
   shield: InterlockShield | null;
 }
@@ -874,14 +616,14 @@ export function verifyBadgeValidity(
     daysUntilExpiry: -1,
     shield: null
   };
-  
+
   // Check if file exists
   if (!fs.existsSync(shieldPath)) {
     result.isValid = false;
     result.errors.push('No certification badge found. Run npm run validate && npx tsx scripts/generate-badge.ts');
     return result;
   }
-  
+
   // Try to parse the shield
   let shield: InterlockShield;
   try {
@@ -892,7 +634,7 @@ export function verifyBadgeValidity(
     result.errors.push(`Failed to parse certification badge: ${error}`);
     return result;
   }
-  
+
   // 1. Check signature (tamper-evident)
   const signatureResult = verifyBadgeSignature(shield);
   result.signatureValid = signatureResult.valid;
@@ -902,7 +644,7 @@ export function verifyBadgeValidity(
       result.errors.push(signatureResult.warningMessage);
     }
   }
-  
+
   // 2. Check expiry (valid_until)
   const staleness = checkCertificationStaleness(shield.valid_until);
   result.daysUntilExpiry = staleness.daysUntilExpiry;
@@ -913,7 +655,7 @@ export function verifyBadgeValidity(
   } else if (staleness.warningMessage) {
     result.warnings.push(staleness.warningMessage);
   }
-  
+
   // 3. Check repo_commit
   const currentCommit = getGitCommit();
   if (currentCommit && shield.repo_commit && currentCommit !== shield.repo_commit) {
@@ -921,14 +663,14 @@ export function verifyBadgeValidity(
     result.isValid = false;
     result.errors.push(`Repository commit changed: badge=${shield.repo_commit}, current=${currentCommit}. Re-run validation.`);
   }
-  
+
   // 4. Check config_fingerprint (if provided)
   if (currentConfigFingerprint && shield.config_fingerprint !== currentConfigFingerprint) {
     result.configFingerprintMatches = false;
     result.isValid = false;
     result.errors.push(`Configuration changed: badge=${shield.config_fingerprint}, current=${currentConfigFingerprint}. Re-run validation.`);
   }
-  
+
   // 5. Check hardware_fingerprint
   const currentHardwareFingerprint = generateHardwareFingerprint();
   if (shield.hardware_fingerprint === currentHardwareFingerprint) {
@@ -938,7 +680,7 @@ export function verifyBadgeValidity(
     result.isValid = false;
     result.errors.push(`Hardware changed: badge=${shield.hardware_fingerprint}, current=${currentHardwareFingerprint}. Re-run validation.`);
   }
-  
+
   return result;
 }
 
@@ -952,17 +694,17 @@ export function emitBadgeVerificationWarnings(
   currentConfigFingerprint?: string
 ): void {
   const result = verifyBadgeValidity(shieldPath, currentConfigFingerprint);
-  
+
   // Emit errors (invalidating conditions)
   for (const error of result.errors) {
     console.error(`[INTERLOCK] ${error}`);
   }
-  
+
   // Emit warnings (non-invalidating but concerning)
   for (const warning of result.warnings) {
     console.warn(`[INTERLOCK] ${warning}`);
   }
-  
+
   // Summary
   if (!result.isValid) {
     console.error('[INTERLOCK] ⚠️ Certification badge is INVALID. System continues but certification claims are void.');
@@ -978,7 +720,7 @@ async function main(): Promise<void> {
   let validationReportPath: string | undefined;
   let outputDir = 'results/certification';
   let validityDays = 30;
-  
+
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--validation' && args[i + 1]) {
       validationReportPath = args[i + 1];
@@ -1021,7 +763,7 @@ Example:
       process.exit(0);
     }
   }
-  
+
   // Find latest validation report if not specified
   if (!validationReportPath) {
     const validationDir = 'results/validation';
@@ -1036,16 +778,16 @@ Example:
       }
     }
   }
-  
+
   // Generate shield
   const shield = generateShield({
     validationReportPath,
     validityDays
   });
-  
+
   // Write files
   const { jsonPath, mdPath, svgPath } = writeShieldFiles(shield, outputDir);
-  
+
   // Also write to legacy location for backwards compatibility
   const legacyDir = 'results/badge';
   if (!fs.existsSync(legacyDir)) {
@@ -1053,12 +795,12 @@ Example:
   }
   fs.writeFileSync(path.join(legacyDir, 'interlock_shield.json'), shieldToJSON(shield));
   fs.writeFileSync(path.join(legacyDir, 'interlock_shield.md'), shieldToMarkdown(shield));
-  
+
   console.log('\n🛡️ Interlock Shield Generated (v2.0 - Class Standard)\n');
   console.log('═══════════════════════════════════════════════════════════════════');
   console.log(shieldToCompactBadge(shield));
   console.log('═══════════════════════════════════════════════════════════════════\n');
-  
+
   // Show class details
   console.log('Interlock Class Details:');
   console.log(`  Class: ${shield.interlockClass} (${shield.interlockClassName}/${shield.interlockClassCodename})`);
@@ -1067,7 +809,7 @@ Example:
     console.log(`  ⚠️  Downgraded from higher class due to disabled features`);
   }
   console.log('');
-  
+
   // Show expiry info
   console.log('Certification Validity:');
   console.log(`  Issued: ${shield.issued_at.split('T')[0]}`);
@@ -1076,7 +818,7 @@ Example:
     console.log(`  ⚠️  WARNING: Certification is STALE - rerun validation`);
   }
   console.log('');
-  
+
   console.log('Files created:');
   console.log(`  - ${jsonPath}`);
   console.log(`  - ${mdPath}`);

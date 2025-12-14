@@ -1,7 +1,10 @@
 name: Generate Certification Badge
 
-# Manual workflow to generate and publish Interlock certification badge
+# Auto-generate badge on release tags, or manual dispatch
 on:
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
     inputs:
       create_release:
@@ -101,6 +104,33 @@ jobs:
           echo "✅ Repository: $REPOSITORY"
           echo "✅ Commit: $COMMIT"
 
+      - name: Generate shields.io endpoint
+        run: |
+          if [ -f results/badge/interlock_shield.json ]; then
+            node -e "
+              const fs = require('fs');
+              const badge = JSON.parse(fs.readFileSync('results/badge/interlock_shield.json', 'utf8'));
+              const shields = {
+                schemaVersion: 1,
+                label: 'Interlock',
+                message: 'Class ' + badge.interlockClass,
+                color: badge.interlockClass === 'V' ? 'brightgreen' : badge.interlockClass === 'IV' ? 'green' : 'yellow'
+              };
+              fs.writeFileSync('results/badge/shields.json', JSON.stringify(shields, null, 2));
+              console.log('Generated shields.io endpoint: Class ' + badge.interlockClass);
+            "
+          fi
+
+      - name: Archive badge to version history
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          mkdir -p results/badge/history
+          TAG_NAME="${{ github.ref_name }}"
+          if [ -f results/badge/interlock_shield.json ]; then
+            cp results/badge/interlock_shield.json "results/badge/history/shield_${TAG_NAME}.json"
+            echo "Archived badge to history: shield_${TAG_NAME}.json"
+          fi
+
       - name: Commit badge files
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
@@ -113,9 +143,16 @@ jobs:
           if [ -f results/badge/interlock_shield.md ]; then
             git add results/badge/interlock_shield.md
           fi
+          if [ -f results/badge/shields.json ]; then
+            git add results/badge/shields.json
+          fi
           # Add any SVG files if they exist
           if ls results/badge/*.svg 1> /dev/null 2>&1; then
             git add results/badge/*.svg
+          fi
+          # Add history if it exists
+          if [ -d results/badge/history ]; then
+            git add results/badge/history/
           fi
 
           # Check if there are changes
