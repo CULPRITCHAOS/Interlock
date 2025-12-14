@@ -49,6 +49,9 @@ jobs:
       - name: Run validation tests
         run: npm run validate
         continue-on-error: false
+        env:
+          INTERLOCK_SIGNING_KEY: ${{ secrets.INTERLOCK_SIGNING_KEY }}
+          PINECONE_API_KEY: ${{ secrets.PINECONE_API_KEY }}
 
       - name: Upload validation results
         if: always()
