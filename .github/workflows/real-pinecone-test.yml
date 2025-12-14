@@ -39,8 +39,10 @@ jobs:
 
       - name: Check for API key
         id: check_key
+        env:
+          PINECONE_KEY: ${{ secrets.PINECONE_API_KEY }}
         run: |
-          if [ -z "${{ secrets.PINECONE_API_KEY }}" ]; then
+          if [ -z "$PINECONE_KEY" ]; then
             echo "has_key=false" >> $GITHUB_OUTPUT
             echo "⚠️ PINECONE_API_KEY not configured - will skip real API test"
           else

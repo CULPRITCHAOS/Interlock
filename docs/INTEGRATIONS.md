@@ -4,6 +4,19 @@ This document provides detailed integration guides for Interlock adapters.
 
 ---
 
+## 🚀 Drop-in Middleware (Recommended)
+
+For HTTP services (Express, FastAPI), use Interlock Middleware for "One-Line" protection. This is simpler than writing custom adapter code.
+
+**[📚 Read the Middleware Guide →](./MIDDLEWARE.md)**
+
+| Framework | Language | Package | Pattern |
+|-----------|----------|---------|---------|
+| **Express** | Node.js | `@interlock/express` | Local |
+| **FastAPI** | Python | `interlock_fastapi` | Remote Client |
+
+---
+
 ## LangChain
 
 ### Purpose

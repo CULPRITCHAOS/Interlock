@@ -218,6 +218,49 @@ interface PersistedState {
 
 ---
 
+## 3. Remote Client Architecture (Polyglot Support)
+
+To support non-Node.js languages (Python, Go, Rust) without duplicating critical hazard logic, Interlock uses a **"Brain + Client"** architecture.
+
+```
+┌─────────────────┐             ┌─────────────────────┐
+│                 │ Decision?   │                     │
+│  Remote Client  │────────────►│   Interlock Core    │
+│  (FastAPI/Py)   │             │   ("The Brain")     │
+│                 │◄────────────│   (Node.js)         │
+└────────┬────────┘ Refusal     └──────────┬──────────┘
+         │                                 │
+         │ Async Log                       │ Monitoring
+         ▼                                 ▼
+┌─────────────────┐             ┌─────────────────────┐
+│  Incident Sink  │             │   Vector DB / AI    │
+│  (Shared File)  │             └─────────────────────┘
+└─────────────────┘
+```
+
+### Components
+
+#### 1. The Brain (Reference Service)
+- **Role**: Single Source of Truth for system health.
+- **Responsibility**: Monitors Pinecone/AI latency, calculates Confidence, enforces Global Policy.
+- **Endpoint**: `POST /interlock/decision`
+
+#### 2. The Client (Middleware)
+- **Role**: Enforcement Agent.
+- **Responsibility**:
+    1. Sanitize request.
+    2. Ask Brain: "Is it safe?"
+    3. Enforce decision (Allow or Refuse).
+    4. Log locally to `IncidentSink`.
+- **Why**: Prevents **Semantic Drift**. There is only one implementation of the "Safety Forecast" logic (in Node), ensuring all services behave identically.
+
+#### 3. Incident Sink
+- **Role**: Forensic Evidence.
+- **Format**: Unified `LIVE_INCIDENTS.md` format.
+- **Guarantees**: If *any* service refuses traffic, it is logged here in a standard format for SREs.
+
+---
+
 ### 2. Adapters
 
 **Location:** `adapters/`

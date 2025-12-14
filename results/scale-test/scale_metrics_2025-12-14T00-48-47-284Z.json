@@ -1,0 +1,26 @@
+{
+  "totalVectors": 1000000,
+  "targetQPS": 1000,
+  "testDurationSeconds": 36,
+  "actualQPS": 869.558433600263,
+  "p50LatencyMs": 26.267552913989665,
+  "p95LatencyMs": 66.49322083415149,
+  "p99LatencyMs": 73.67539585417077,
+  "maxLatencyMs": 77.87626104391006,
+  "peakMemoryMB": 6.168878067558695,
+  "avgMemoryMB": 1.05017912553329,
+  "memoryGrowthMB": -5.259625164086376,
+  "avgRecall": 0.8924933114110116,
+  "minRecall": 0.8297021865750207,
+  "interventions": 1,
+  "totalStateChanges": 1,
+  "timeInOpenState": 35.8,
+  "timeInHalfOpenState": 0,
+  "crashed": false,
+  "successCriteria": {
+    "handled1MPlus": true,
+    "p95Under100ms": true,
+    "gracefulDegradation": true,
+    "recoverySuccessful": false
+  }
+}
