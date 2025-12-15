@@ -1,0 +1,56 @@
+name: Interlock SDE Integration
+
+on:
+  push:
+    branches: [main, feature/sde-integration]
+    paths:
+      - 'services/events.types.ts'
+      - 'services/law*.ts'
+      - 'packages/interlock-express/src/**'
+      - 'schemas/**'
+      - 'laws/**'
+  pull_request:
+    branches: [main]
+
+jobs:
+  sde-integration-tests:
+    name: SDE Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run validation tests
+        run: npm run validate
+
+      - name: Run SDE integration tests
+        run: npx tsx scripts/sde-integration-test.ts
+
+      - name: Validate JSONL schema compliance
+        run: npx tsx scripts/validate-jsonl-schema.ts
+
+      - name: Validate law loader
+        run: npx tsx scripts/validate-law-loader.ts
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sde-integration-artifacts
+          path: |
+            logs/
+            results/
+          retention-days: 7
