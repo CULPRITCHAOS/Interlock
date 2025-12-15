@@ -1,0 +1,19 @@
+{
+    "law_id": "law-ollama-baseline-20251214",
+    "schema_version": "1.0.0",
+    "domain": "ollama",
+    "hardware_fingerprint": null,
+    "parameters": {
+        "latency_threshold_ms": 500,
+        "error_threshold_pct": 0.05,
+        "recovery_timeout_ms": 60000,
+        "probe_interval_ms": 5000,
+        "confidence_floor": 0.5,
+        "decay_rate": 0.1
+    },
+    "source": {
+        "type": "baseline",
+        "proposal_id": null,
+        "created_at": "2025-12-14T00:00:00Z"
+    }
+}

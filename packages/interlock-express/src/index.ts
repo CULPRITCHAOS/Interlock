@@ -5,6 +5,10 @@ import { ConfidenceMonitor } from '../../../adapters/pinecone/confidence_monitor
 import { LatencyProbe } from '../../../adapters/pinecone/latency_probe';
 import { FailureInjector } from '../../../adapters/pinecone/failure_injector';
 import { FileIncidentSink, IncidentSink, InterlockEvent } from './sink';
+import { startHealthWindowEmitter, recordRequest, MetricsCollector } from './health-window';
+import { emitInterventionEvent } from './intervention-emitter';
+import { loadLaw, mapLawToHysteresisConfig } from '../../../services/law-loader';
+import { Domain } from '../../../services/events.types';
 import * as path from 'path';
 
 export interface InterlockOptions {
@@ -12,6 +16,10 @@ export interface InterlockOptions {
     quality_floor?: number;
     failure_class?: string;
     incident_file?: string;
+    /** SDE integration: domain for telemetry */
+    domain?: Domain;
+    /** SDE integration: enable JSONL telemetry */
+    enable_sde_telemetry?: boolean;
 }
 
 // Extend Express Request
@@ -33,8 +41,25 @@ let activeIncident: { start: number, events: any[] } | null = null;
 let recoveryWindowStart: number | null = null;
 const RECOVERY_HYSTERESIS_MS = 5000;
 
+// SDE telemetry state
+let metricsCollector: MetricsCollector | null = null;
+let healthWindowStopper: (() => void) | null = null;
+
 export function interlockExpress(options: InterlockOptions = {}) {
-    const qualityFloor = options.quality_floor || 0.5;
+    const domain: Domain = options.domain || 'ollama';
+    const enableSdeTelemetry = options.enable_sde_telemetry ?? true;
+
+    // Load law from disk (SDE integration)
+    const lawResult = loadLaw(domain);
+    if (lawResult.warnings.length > 0) {
+        console.log(`[Interlock] Law warnings: ${lawResult.warnings.join(', ')}`);
+    }
+
+    // Use law parameters or options
+    const qualityFloor = lawResult.parameters.confidence_floor || options.quality_floor || 0.5;
+    const latencyThresholdMs = lawResult.parameters.latency_threshold_ms || 500;
+    const errorThresholdPct = lawResult.parameters.error_threshold_pct || 0.05;
+
     const failureClass = options.failure_class || 'Forced application error (non-user, non-network)';
     const logFile = options.incident_file || path.resolve(process.cwd(), 'docs/LIVE_INCIDENTS.md');
     const dryRun = options.dry_run || false;
@@ -45,7 +70,21 @@ export function interlockExpress(options: InterlockOptions = {}) {
     const monitor = new ConfidenceMonitor(latencyProbe, failureInjector, qualityFloor);
     const sink: IncidentSink = new FileIncidentSink(logFile);
 
-    console.log(`[Interlock] Middleware initialized. Quality Floor: ${qualityFloor}, Dry Run: ${dryRun}`);
+    // Start SDE telemetry (health window emitter)
+    if (enableSdeTelemetry) {
+        const emitter = startHealthWindowEmitter({
+            domain,
+            thresholds: {
+                latency_threshold_ms: latencyThresholdMs,
+                error_threshold_pct: errorThresholdPct
+            }
+        });
+        metricsCollector = emitter.collector;
+        healthWindowStopper = emitter.stop;
+    }
+
+    console.log(`[Interlock] Middleware initialized. Domain: ${domain}, Quality Floor: ${qualityFloor}, Dry Run: ${dryRun}`);
+    console.log(`[Interlock] Law: ${lawResult.law?.law_id || 'defaults'} (hash: ${lawResult.lawHash})`);
 
     return (req: Request, res: Response, next: NextFunction) => {
         const startTime = Date.now();
@@ -58,6 +97,12 @@ export function interlockExpress(options: InterlockOptions = {}) {
                 latencyMs: duration,
                 operation: 'query'
             });
+
+            // Record to SDE metrics collector
+            if (metricsCollector) {
+                const isError = res.statusCode >= 500 && res.statusCode !== 503;
+                recordRequest(metricsCollector, duration, isError);
+            }
 
             // Record Failure (500s)
             if (res.statusCode >= 500 && res.statusCode !== 503) {
@@ -96,6 +141,32 @@ export function interlockExpress(options: InterlockOptions = {}) {
                     confidence: monitor.getConfidence(),
                     failureClass
                 });
+
+                // Emit SDE intervention event
+                if (enableSdeTelemetry) {
+                    emitInterventionEvent({
+                        domain,
+                        trigger: {
+                            interlockTrigger: 'confidence_floor_breach',
+                            thresholdMs: latencyThresholdMs,
+                            observedMs: latencyProbe.getStats().meanMs || 0,
+                            confidence: monitor.getConfidence()
+                        },
+                        action: {
+                            interlockAction: 'refuse',
+                            priorState: 'closed',
+                            newState: 'open'
+                        },
+                        recovery: {
+                            timeMs: 0,
+                            probeAttempts: 0,
+                            finalState: 'open'
+                        },
+                        context: {
+                            qualityFloorHit: true
+                        }
+                    });
+                }
             }
 
             // Reset recovery window if we are still refusing
@@ -123,6 +194,7 @@ export function interlockExpress(options: InterlockOptions = {}) {
                 if (Date.now() - recoveryWindowStart > RECOVERY_HYSTERESIS_MS) {
                     // Confirm Recovery
                     const duration = (Date.now() - activeIncident.start) / 1000;
+                    const recoveryTimeMs = Date.now() - activeIncident.start;
 
                     sink.logEvent({
                         incidentId: `${String(incidentId).padStart(3, '0')}-A`, // Event A (Resolution)
@@ -133,6 +205,29 @@ export function interlockExpress(options: InterlockOptions = {}) {
                         confidence: monitor.getConfidence(),
                         failureClass
                     });
+
+                    // Emit SDE intervention event for recovery
+                    if (enableSdeTelemetry) {
+                        emitInterventionEvent({
+                            domain,
+                            trigger: {
+                                interlockTrigger: 'recovery',
+                                thresholdMs: latencyThresholdMs,
+                                observedMs: latencyProbe.getStats().meanMs || 0,
+                                confidence: monitor.getConfidence()
+                            },
+                            action: {
+                                interlockAction: 'circuit_close',
+                                priorState: 'open',
+                                newState: 'closed'
+                            },
+                            recovery: {
+                                timeMs: recoveryTimeMs,
+                                probeAttempts: 1,
+                                finalState: 'closed'
+                            }
+                        });
+                    }
 
                     console.log(`[Interlock] ✅ Incident #${incidentId} Resolved`);
                     activeIncident = null;
@@ -151,3 +246,15 @@ export function interlockExpress(options: InterlockOptions = {}) {
         next();
     };
 }
+
+/**
+ * Stop SDE telemetry (cleanup for tests/shutdown)
+ */
+export function stopSdeTelemetry(): void {
+    if (healthWindowStopper) {
+        healthWindowStopper();
+        healthWindowStopper = null;
+    }
+    metricsCollector = null;
+}
+
