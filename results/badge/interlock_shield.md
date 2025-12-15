@@ -12,9 +12,9 @@
 | **Reflex** | Active (<30ms) |
 | **Drift Tolerance** | 20% |
 | **Quality Floor** | Enforced (min 50% recall) |
-| **Last Audit** | 2025-12-14 |
-| **Valid Until** | 2026-01-13 |
-| **Tested On** | 31GB RAM, 16 cores, win32 |
+| **Last Audit** | 2025-12-15 |
+| **Valid Until** | 2026-01-14 |
+| **Tested On** | 16GB RAM, 4 cores, linux |
 | **Tests** | 12/12 passed |
 | **F1 Score** | 100.0% |
 
