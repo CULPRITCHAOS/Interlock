@@ -1,0 +1,273 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://github.com/CULPRITCHAOS/Simulated-Desire-Engine/schemas/interlock_event.schema.json",
+    "title": "Interlock Event",
+    "description": "Schema for Interlock telemetry events consumed by SDE",
+    "oneOf": [
+        {
+            "$ref": "#/definitions/intervention_event"
+        },
+        {
+            "$ref": "#/definitions/health_window_event"
+        }
+    ],
+    "definitions": {
+        "intervention_event": {
+            "type": "object",
+            "required": [
+                "event_type",
+                "schema_version",
+                "timestamp",
+                "domain",
+                "hardware_fingerprint",
+                "trigger",
+                "action",
+                "recovery"
+            ],
+            "properties": {
+                "event_type": {
+                    "type": "string",
+                    "const": "intervention"
+                },
+                "schema_version": {
+                    "type": "string",
+                    "const": "1.0.0"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "domain": {
+                    "type": "string",
+                    "enum": [
+                        "ollama",
+                        "pinecone",
+                        "faiss",
+                        "chromadb",
+                        "weaviate",
+                        "qdrant",
+                        "milvus"
+                    ]
+                },
+                "hardware_fingerprint": {
+                    "type": "string"
+                },
+                "trigger": {
+                    "type": "object",
+                    "required": [
+                        "type",
+                        "threshold_ms",
+                        "observed_ms",
+                        "confidence"
+                    ],
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "latency_threshold_exceeded",
+                                "error_rate_exceeded",
+                                "confidence_floor_breach",
+                                "trust_decay_critical"
+                            ]
+                        },
+                        "threshold_ms": {
+                            "type": "number"
+                        },
+                        "observed_ms": {
+                            "type": "number"
+                        },
+                        "confidence": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1
+                        }
+                    }
+                },
+                "action": {
+                    "type": "object",
+                    "required": [
+                        "type",
+                        "prior_state",
+                        "new_state"
+                    ],
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": [
+                                "circuit_open",
+                                "degrade",
+                                "refuse"
+                            ]
+                        },
+                        "prior_state": {
+                            "type": "string",
+                            "enum": [
+                                "CLOSED",
+                                "HALF_OPEN",
+                                "OPEN"
+                            ]
+                        },
+                        "new_state": {
+                            "type": "string",
+                            "enum": [
+                                "CLOSED",
+                                "HALF_OPEN",
+                                "OPEN"
+                            ]
+                        }
+                    }
+                },
+                "recovery": {
+                    "type": "object",
+                    "required": [
+                        "time_ms",
+                        "probe_attempts",
+                        "final_state"
+                    ],
+                    "properties": {
+                        "time_ms": {
+                            "type": "number"
+                        },
+                        "probe_attempts": {
+                            "type": "integer"
+                        },
+                        "final_state": {
+                            "type": "string",
+                            "enum": [
+                                "CLOSED",
+                                "HALF_OPEN",
+                                "OPEN"
+                            ]
+                        }
+                    }
+                },
+                "context": {
+                    "type": "object",
+                    "properties": {
+                        "quality_floor_hit": {
+                            "type": "boolean"
+                        },
+                        "trust_decay_rate": {
+                            "type": "number"
+                        },
+                        "window_duration_ms": {
+                            "type": "number"
+                        }
+                    }
+                }
+            }
+        },
+        "health_window_event": {
+            "type": "object",
+            "required": [
+                "event_type",
+                "schema_version",
+                "timestamp",
+                "domain",
+                "hardware_fingerprint",
+                "window",
+                "metrics",
+                "thresholds"
+            ],
+            "properties": {
+                "event_type": {
+                    "type": "string",
+                    "const": "health_window"
+                },
+                "schema_version": {
+                    "type": "string",
+                    "const": "1.0.0"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "domain": {
+                    "type": "string",
+                    "enum": [
+                        "ollama",
+                        "pinecone",
+                        "faiss",
+                        "chromadb",
+                        "weaviate",
+                        "qdrant",
+                        "milvus"
+                    ]
+                },
+                "hardware_fingerprint": {
+                    "type": "string"
+                },
+                "window": {
+                    "type": "object",
+                    "required": [
+                        "start",
+                        "end",
+                        "duration_ms"
+                    ],
+                    "properties": {
+                        "start": {
+                            "type": "string",
+                            "format": "date-time"
+                        },
+                        "end": {
+                            "type": "string",
+                            "format": "date-time"
+                        },
+                        "duration_ms": {
+                            "type": "number"
+                        }
+                    }
+                },
+                "metrics": {
+                    "type": "object",
+                    "required": [
+                        "latency_p95_ms",
+                        "latency_max_ms",
+                        "error_rate",
+                        "request_count"
+                    ],
+                    "properties": {
+                        "latency_p95_ms": {
+                            "type": "number"
+                        },
+                        "latency_max_ms": {
+                            "type": "number"
+                        },
+                        "error_rate": {
+                            "type": "number"
+                        },
+                        "request_count": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "thresholds": {
+                    "type": "object",
+                    "required": [
+                        "latency_threshold_ms",
+                        "error_threshold_pct"
+                    ],
+                    "properties": {
+                        "latency_threshold_ms": {
+                            "type": "number"
+                        },
+                        "error_threshold_pct": {
+                            "type": "number"
+                        }
+                    }
+                },
+                "margin": {
+                    "type": "object",
+                    "properties": {
+                        "latency_headroom_ms": {
+                            "type": "number"
+                        },
+                        "description": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
