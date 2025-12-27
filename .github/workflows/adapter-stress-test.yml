@@ -2,9 +2,12 @@ name: Adapter Stress Tests
 
 # Run stress tests against each adapter to validate survival and protection
 on:
-  schedule:
-    # Run daily at 3 AM UTC
-    - cron: '0 3 * * *'
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       adapter:
