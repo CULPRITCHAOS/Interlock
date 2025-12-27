@@ -2,6 +2,12 @@ name: Production Evidence Collection
 
 # Simulate production workload and collect evidence of Interlock protection
 on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       workload_scenario:
@@ -18,9 +24,6 @@ on:
         description: 'Duration of simulation (minutes)'
         required: false
         default: '30'
-  schedule:
-    # Run weekly on Wednesdays at 3 AM UTC
-    - cron: '0 3 * * 3'
 
 # Only run one production simulation at a time
 concurrency:

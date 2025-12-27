@@ -2,9 +2,12 @@ name: Benchmark Suite
 
 # Run weekly benchmarks to track performance and regression
 on:
-  schedule:
-    # Run every Sunday at midnight UTC
-    - cron: '0 0 * * 0'
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       benchmark_seed:

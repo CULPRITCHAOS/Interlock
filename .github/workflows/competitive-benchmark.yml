@@ -2,9 +2,12 @@ name: Competitive Benchmark
 
 # Run competitive benchmarks: Interlock vs alternatives
 on:
-  schedule:
-    # Run weekly on Sundays at 3 AM UTC
-    - cron: '0 3 * * 0'
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       stress_multiplier:

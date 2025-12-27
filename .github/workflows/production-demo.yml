@@ -2,9 +2,12 @@ name: Production Demo
 
 # Comprehensive production simulation comparing Interlock vs unprotected
 on:
-  schedule:
-    # Run weekly on Sunday at 4 AM UTC
-    - cron: '0 4 * * 0'
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
