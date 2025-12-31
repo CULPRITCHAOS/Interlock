@@ -341,7 +341,7 @@ jobs:
           EOF
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.release_metadata.outputs.release_tag }}
           name: "Certification: Class ${{ steps.release_metadata.outputs.interlock_class }} - ${{ steps.release_metadata.outputs.valid_until }}"
