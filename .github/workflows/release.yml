@@ -1,0 +1,89 @@
+name: Create Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., v1.2.3)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Is this a pre-release?'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate version format
+        run: |
+          if [[ ! "${{ inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "Error: Version must match format vX.Y.Z or vX.Y.Z-suffix"
+            exit 1
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get previous tag
+        id: prev_tag
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "tag=$PREV_TAG" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "## What's Changed" > CHANGELOG_BODY.md
+          echo "" >> CHANGELOG_BODY.md
+          
+          if [ -n "${{ steps.prev_tag.outputs.tag }}" ]; then
+            # Get merged PR titles since last tag
+            git log ${{ steps.prev_tag.outputs.tag }}..HEAD --oneline --merges --pretty=format:"- %s" | head -50 >> CHANGELOG_BODY.md
+            
+            # If no merges, get regular commits
+            if [ ! -s CHANGELOG_BODY.md ] || [ $(wc -l < CHANGELOG_BODY.md) -le 2 ]; then
+              echo "" >> CHANGELOG_BODY.md
+              git log ${{ steps.prev_tag.outputs.tag }}..HEAD --oneline --pretty=format:"- %s" | head -50 >> CHANGELOG_BODY.md
+            fi
+          else
+            echo "- Initial release" >> CHANGELOG_BODY.md
+          fi
+          
+          echo "" >> CHANGELOG_BODY.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${{ steps.prev_tag.outputs.tag }}...${{ inputs.version }}" >> CHANGELOG_BODY.md
+
+      - name: Create Git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ inputs.version }}" -m "Release ${{ inputs.version }}"
+          git push origin "${{ inputs.version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ inputs.version }}
+          name: Release ${{ inputs.version }}
+          body_path: CHANGELOG_BODY.md
+          prerelease: ${{ inputs.prerelease }}
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        run: |
+          echo "## Release Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Pre-release**: ${{ inputs.prerelease }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "[View Release](https://github.com/${{ github.repository }}/releases/tag/${{ inputs.version }})" >> $GITHUB_STEP_SUMMARY

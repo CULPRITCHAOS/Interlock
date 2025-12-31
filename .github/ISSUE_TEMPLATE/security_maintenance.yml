@@ -1,0 +1,58 @@
+name: Security Maintenance
+description: Weekly batch of security-related updates and fixes
+title: "[Security] Weekly Maintenance - Week of YYYY-MM-DD"
+labels: ["security-maintenance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Security Maintenance Batch
+        
+        Use this template to collect security-related changes for the weekly batch.
+        See [SECURITY_BASELINE.md](../docs/SECURITY_BASELINE.md) for rules.
+
+  - type: textarea
+    id: changes
+    attributes:
+      label: Changes to Include
+      description: List all security-related changes for this batch
+      placeholder: |
+        - [ ] Update gitleaks allowlist for new test file
+        - [ ] Bump dependabot dependencies
+        - [ ] Update CODEOWNERS
+    validations:
+      required: true
+
+  - type: textarea
+    id: justification
+    attributes:
+      label: Justification
+      description: Why are these changes needed?
+      placeholder: Describe the security improvement or maintenance need
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-Merge Checklist
+      options:
+        - label: All changes are security/baseline only (no features mixed in)
+          required: true
+        - label: Secret scan is green
+          required: true
+        - label: CODEOWNER review requested
+          required: true
+        - label: Changes are documented in PR description
+          required: true
+
+  - type: dropdown
+    id: urgency
+    attributes:
+      label: Urgency
+      options:
+        - Routine (weekly batch)
+        - Elevated (should merge this week)
+        - Urgent (security vulnerability - merge ASAP)
+    validations:
+      required: true

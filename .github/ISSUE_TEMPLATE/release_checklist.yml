@@ -1,0 +1,75 @@
+name: Release Checklist
+description: Checklist for cutting a new release
+title: "[Release] vX.Y.Z"
+labels: ["release"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Release Checklist
+        
+        Use this template when preparing a new release.
+        See [RELEASE_PROCESS.md](../docs/RELEASE_PROCESS.md) for full instructions.
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The version number for this release
+      placeholder: "v1.2.3"
+    validations:
+      required: true
+
+  - type: textarea
+    id: highlights
+    attributes:
+      label: Release Highlights
+      description: Key changes in this release
+      placeholder: |
+        - Added Milvus adapter
+        - Fixed hysteresis edge case
+        - Improved benchmark performance by 20%
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: pre-release
+    attributes:
+      label: Pre-Release Checklist
+      options:
+        - label: All PRs for this release are merged to main
+          required: true
+        - label: Secret scan is green on main
+          required: true
+        - label: All required CI checks pass on main
+          required: true
+        - label: No open `security-maintenance` PRs blocking release
+          required: true
+        - label: CHANGELOG has been updated (or will be auto-generated)
+          required: false
+
+  - type: checkboxes
+    id: release-steps
+    attributes:
+      label: Release Steps
+      options:
+        - label: Run "Create Release" workflow with version number
+          required: true
+        - label: Verify Git tag was created
+          required: true
+        - label: Verify GitHub Release was published
+          required: true
+        - label: Announce release (if applicable)
+          required: false
+
+  - type: checkboxes
+    id: post-release
+    attributes:
+      label: Post-Release Verification
+      options:
+        - label: Release artifacts are attached (if any)
+          required: false
+        - label: npm publish completed (if applicable)
+          required: false
+        - label: Documentation updated (if needed)
+          required: false
