@@ -44,14 +44,21 @@
 - **Contains**: GitHub Actions schedule update — already merged
 - **Recommendation**: Safe to delete (codex-generated, no unique content)
 
-## Cleanup Commands
+## Cleanup Status (Updated 2025-12-30)
 
-After merging `feature/hardware-fingerprint`:
+| Branch | Action Taken | Status |
+|--------|--------------|--------|
+| `feature/sde-integration` | Deleted | ✅ Complete |
+| `feature/standard-validation` | Deleted | ✅ Complete |
+| `codex/update-github-actions-test-schedule` | Deleted | ✅ Complete |
+| `feature/hardware-fingerprint` | Cherry-picked to PR #34 | ✅ Merged |
+| `feature/hardware-fingerprint-v2` | Created for PR #34, merged, deleted | ✅ Complete |
 
-```bash
-# Delete merged remote branches (requires push access)
-git push origin --delete feature/sde-integration
-git push origin --delete feature/standard-validation
-git push origin --delete codex/update-github-actions-test-schedule
-git push origin --delete feature/hardware-fingerprint
-```
+### Remaining Branches
+
+| Branch | Type | Action |
+|--------|------|--------|
+| `origin/main` | Default | Keep |
+| `origin/dependabot/*` | Automated PRs | Review individually |
+
+All stale feature and codex branches have been cleaned up.
