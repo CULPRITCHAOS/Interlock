@@ -139,7 +139,7 @@ jobs:
 
       - name: Upload production evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: production-evidence-${{ github.run_number }}
           path: |
@@ -239,7 +239,7 @@ jobs:
 
       - name: Upload failure injection results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: failure-injection-${{ github.run_number }}
           path: |
@@ -326,7 +326,7 @@ jobs:
           EOF
 
       - name: Upload economic impact report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: economic-impact-${{ github.run_number }}
           path: results/production-evidence/economic_impact_*.md

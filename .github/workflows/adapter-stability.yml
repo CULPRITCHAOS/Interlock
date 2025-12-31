@@ -144,7 +144,7 @@ jobs:
 
       - name: Upload stability artifacts
         if: steps.check.outputs.should_run == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: adapter-stability-${{ matrix.adapter }}-${{ github.run_number }}
           path: results/adapter-stability/${{ matrix.adapter }}/**
@@ -211,7 +211,7 @@ jobs:
           echo "*Workflow: adapter-stability.yml*" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload combined summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: adapter-stability-summary-${{ github.run_number }}
           path: results/adapter-stability/**

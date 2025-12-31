@@ -230,7 +230,7 @@ jobs:
           echo "*Badge generated at $(date -u +"%Y-%m-%d %H:%M:%S UTC")*" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload badge artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: certification-badge-${{ steps.badge_metadata.outputs.interlock_class }}
           path: |

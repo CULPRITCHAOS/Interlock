@@ -105,7 +105,7 @@ jobs:
 
       - name: Upload Pinecone results
         if: steps.check_key.outputs.has_key == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: real-pinecone-results-${{ github.run_number }}
           path: results/pinecone-integration/

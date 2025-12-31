@@ -120,7 +120,7 @@ jobs:
 
       - name: Upload benchmark artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: benchmark-results-${{ github.run_number }}
           path: |
@@ -186,7 +186,7 @@ jobs:
 
       - name: Upload benchmark suite artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: benchmark-suite-${{ github.run_number }}
           path: |
@@ -256,7 +256,7 @@ jobs:
           EOF
 
       - name: Upload trend report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: performance-trends-${{ github.run_number }}
           path: results/performance-trends/*.md

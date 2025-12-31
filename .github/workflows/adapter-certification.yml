@@ -188,7 +188,7 @@ jobs:
 
       - name: Upload certification artifacts
         if: steps.check.outputs.should_run == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: adapter-certification-${{ matrix.adapter }}-${{ github.run_number }}
           path: results/certification/${{ matrix.adapter }}/**
@@ -260,7 +260,7 @@ jobs:
           echo "*Workflow: adapter-certification.yml*" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload combined summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: adapter-certification-summary-${{ github.run_number }}
           path: results/certification/**

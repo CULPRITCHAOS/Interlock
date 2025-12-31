@@ -51,7 +51,7 @@ jobs:
 
       - name: Upload demo results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: production-demo-results-${{ github.run_number }}
           path: results/production-demo/
