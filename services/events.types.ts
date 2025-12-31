@@ -107,31 +107,37 @@ export interface HealthWindowEvent extends EventBase {
 export type InterlockEvent = InterventionEvent | HealthWindowEvent;
 
 // ============= Hardware Fingerprint Utility =============
+// CANONICAL SOURCE: services/kernel/hardwareFingerprint.ts
+// All fingerprinting logic is centralized there. This re-exports for backward compatibility.
+//
+// MIGRATION NOTE (2025-12-30):
+// Old fingerprints used only RAM+cores and produced 16-char hashes.
+// New fingerprints use CPU model + threads + RAM + OS and produce 64-char hashes.
+// Any stored old-format fingerprint will cause a mismatch and require recalibration.
+// This is intentional: changed identity = fresh baseline required.
 
-let cachedFingerprint: string | null = null;
+import {
+    getHardwareFingerprint as getCanonicalFingerprint,
+    getHardwareDetails
+} from './kernel/hardwareFingerprint';
 
 /**
- * Generate a stable hardware fingerprint from system info
+ * Generate a stable hardware fingerprint from system info.
+ * Re-exports from kernel/hardwareFingerprint.ts for single source of truth.
  */
 export function getHardwareFingerprint(): string {
-    if (cachedFingerprint) return cachedFingerprint;
-
-    const totalMemMb = Math.round(os.totalmem() / (1024 * 1024));
-    const cpuCores = os.cpus().length;
-
-    const raw = `${totalMemMb}|${cpuCores}`;
-    cachedFingerprint = crypto.createHash('sha256').update(raw).digest('hex').slice(0, 16);
-
-    return cachedFingerprint;
+    return getCanonicalFingerprint();
 }
 
 /**
- * Get raw hardware info for debugging/display
+ * Get raw hardware info for debugging/display.
+ * Re-exports from kernel/hardwareFingerprint.ts.
  */
 export function getHardwareInfo(): { total_mem_mb: number; cpu_cores: number } {
+    const details = getHardwareDetails();
     return {
-        total_mem_mb: Math.round(os.totalmem() / (1024 * 1024)),
-        cpu_cores: os.cpus().length
+        total_mem_mb: details.ram_gb * 1024,  // Convert GB back to MB for compatibility
+        cpu_cores: details.cpu_threads
     };
 }
 
