@@ -39,6 +39,7 @@ I started by researching whether AI systems could learn their own optimal operat
 | **Formal Primitives** | Standardized vocabulary: Hazard, Reflex, Guard, State, Confidence, Trust Decay |
 | **Restart Continuity** | Protection survives process restarts (anti-amnesia) |
 | **Variance Reports** | Recovery time distribution, calibration tables, shock type analysis |
+| **Workload Provenance** | Cryptographic identity stamping for models (e.g. `gemma3:12b`) on every event |
 
 > 📖 **Full details**: [Primitives](./docs/primitives.md) · [Variance](./docs/validation/variance.md) · [Continuity](./docs/validation/continuity.md)
 

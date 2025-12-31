@@ -1,0 +1,25 @@
+{
+    "_comment": "Ollama Burst/Queue Collapse Policy",
+    "_pack_version": "1.0.0",
+    "_domain": "ollama",
+    "_policy_type": "burst_protection",
+    "_frozen_at": "2025-12-14",
+    "latency_threshold_ms": 400,
+    "error_threshold_pct": 3.0,
+    "recovery_timeout_ms": 45000,
+    "probe_interval_ms": 10000,
+    "confidence_floor": 0.6,
+    "burst_protection": {
+        "queue_depth_threshold": 5,
+        "burst_arrival_threshold": 3.0,
+        "collapse_latency_threshold_ms": 5000
+    },
+    "_invariants": {
+        "fn_must_be_zero": true,
+        "human_gated_promotion": true
+    },
+    "_tradeoffs": {
+        "fp_rate_expected_increase": 0.01,
+        "rationale": "More aggressive intervention under burst conditions"
+    }
+}

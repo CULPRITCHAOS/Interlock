@@ -6,19 +6,55 @@ const interlockExpress = (InterlockPkg as any).default?.interlockExpress || (Int
 const app = express();
 const PORT = 3001; // Diff port than reference service
 
-// Enable Interlock
+// Enable Interlock - E2E testing with LLM-appropriate thresholds
 app.use(interlockExpress({
-    quality_floor: 0.8,
-    dry_run: false
+    quality_floor: 0.3,        // Low floor for LLM testing (0.3)
+    dry_run: false,            // REAL Ollama calls
+    latency_threshold_ms: 10000,  // 10s threshold for LLM workloads
+    hazard_threshold: 0.97
 }));
 
 app.use(express.json());
 
-// Main workload
-app.get('/work', async (req, res) => {
-    // Simulate some work
-    await new Promise(r => setTimeout(r, 50));
-    res.json({ status: 'done', data: 'some result' });
+// Real workload - calls Ollama
+app.post('/work', async (req, res) => {
+    const { model = 'gemma3:1b', prompt = 'Hello', max_tokens = 256 } = req.body;
+    const startTime = Date.now();
+
+    try {
+        const ollamaRes = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model,
+                prompt,
+                stream: false,
+                options: { num_predict: max_tokens }
+            })
+        });
+
+        const data = await ollamaRes.json();
+        const latencyMs = Date.now() - startTime;
+
+        res.json({
+            status: 'done',
+            latency_ms: latencyMs,
+            model,
+            tokens: (data as any).eval_count || 0
+        });
+    } catch (err) {
+        res.status(500).json({ error: String(err), latency_ms: Date.now() - startTime });
+    }
+});
+
+// Simulated workload (for stress testing)
+let activeRequests = 0;
+app.post('/chat', async (req, res) => {
+    activeRequests++;
+    const delay = 50 + (activeRequests * 100);
+    await new Promise(r => setTimeout(r, delay));
+    activeRequests--;
+    res.json({ status: 'done', delayMs: delay });
 });
 
 // Admin: Inject Failure
@@ -26,7 +62,7 @@ app.post('/admin/inject-failure', (req, res) => {
     const { mode } = req.body;
     if (req.interlock) {
         if (mode === 'FORCE_ERROR') {
-            req.interlock.failureInjector.enableInjection(1.0); // 100% failure
+            req.interlock.failureInjector.enableInjection(1.0);
             res.json({ status: 'injected', mode: 'FORCE_ERROR' });
         } else if (mode === 'RESET') {
             req.interlock.failureInjector.disableInjection();
@@ -42,6 +78,8 @@ app.post('/admin/inject-failure', (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`Express Demo running on http://localhost:${PORT}`);
+    console.log(`  /work  - Real Ollama inference (E2E test)`);
+    console.log(`  /chat  - Simulated delay (stress test)`);
 });
 
 // Force Keep-Alive

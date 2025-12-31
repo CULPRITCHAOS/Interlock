@@ -29,8 +29,8 @@ export interface LatencyStats {
  */
 export class LatencyProbe {
   private observations: LatencyObservation[] = [];
-  private readonly maxObservations: number = 1000;
-  private readonly windowMs: number = 300000; // 5 minutes
+  private readonly maxObservations: number = 50; // Reduced from 1000 for high sensitivity
+  private readonly windowMs: number = 30000; // Reduced from 5m to 30s
 
   /**
    * Records a latency observation.
@@ -76,13 +76,13 @@ export class LatencyProbe {
 
     // Calculate recent trend (last 10% vs previous 10%)
     const recentCount = Math.max(1, Math.floor(latencies.length * 0.1));
-    
+
     // Only calculate trend if we have enough data (at least 20 data points)
     let trend = 0;
     if (latencies.length >= 20) {
       const recent = latencies.slice(-recentCount);
       const previous = latencies.slice(-recentCount * 2, -recentCount);
-      
+
       const recentMean = recent.reduce((a, b) => a + b, 0) / recent.length;
       const previousMean = previous.reduce((a, b) => a + b, 0) / previous.length;
       trend = recentMean - previousMean;
@@ -104,7 +104,7 @@ export class LatencyProbe {
    */
   detectDegradation(thresholdMs: number): boolean {
     const stats = this.getStats();
-    
+
     // Degraded if p95 exceeds threshold or recent trend is significantly positive
     return stats.p95Ms > thresholdMs || stats.recentTrendMs > thresholdMs * 0.5;
   }
@@ -130,7 +130,7 @@ export function wrapWithLatencyProbe<T>(
     try {
       const result = await queryFn(...args);
       const latencyMs = Date.now() - startTime;
-      
+
       probe.record({
         timestamp: Date.now(),
         latencyMs,

@@ -4,11 +4,11 @@
     "domain": "ollama",
     "hardware_fingerprint": null,
     "parameters": {
-        "latency_threshold_ms": 500,
+        "latency_threshold_ms": 60000,
         "error_threshold_pct": 0.05,
         "recovery_timeout_ms": 60000,
         "probe_interval_ms": 5000,
-        "confidence_floor": 0.5,
+        "confidence_floor": 0.3,
         "decay_rate": 0.1
     },
     "source": {

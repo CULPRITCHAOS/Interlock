@@ -35,17 +35,20 @@ export class ConfidenceMonitor {
   private latencyProbe: LatencyProbe;
   private failureInjector: FailureInjector;
   private degradationHooks: DegradationHook[] = [];
-  private qualityFloor: number = 0.5; // Minimum acceptable confidence
+  private qualityFloor: number = 0.5;
   private lastUpdateAt: number = Date.now();
+  private latencyThresholdMs: number = 500;
 
   constructor(
     latencyProbe?: LatencyProbe,
     failureInjector?: FailureInjector,
-    qualityFloor: number = 0.5
+    qualityFloor: number = 0.5,
+    latencyThresholdMs: number = 500
   ) {
     this.latencyProbe = latencyProbe || new LatencyProbe();
     this.failureInjector = failureInjector || new FailureInjector();
     this.qualityFloor = qualityFloor;
+    this.latencyThresholdMs = latencyThresholdMs;
   }
 
   /**
@@ -61,8 +64,9 @@ export class ConfidenceMonitor {
     // Calculate reliability-based confidence (inverse of failure rate)
     const reliabilityConfidence = this.calculateReliabilityConfidence(failureStats);
 
-    // Combined confidence (weighted average)
-    this.confidenceScore = (latencyConfidence * 0.4 + reliabilityConfidence * 0.6);
+    // Combined confidence (strict weakest link)
+    // If EITHER latency or reliability fails, confidence drops.
+    this.confidenceScore = Math.min(latencyConfidence, reliabilityConfidence);
 
     // Time-based confidence decay (trust degrades over time without updates)
     const timeSinceLastUpdate = Date.now() - this.lastUpdateAt;
@@ -70,6 +74,11 @@ export class ConfidenceMonitor {
     this.confidenceScore *= decayFactor;
 
     this.lastUpdateAt = Date.now();
+
+    // DEBUG: Log final decision
+    if (this.confidenceScore < this.qualityFloor && Math.random() < 0.1) {
+      console.log(`[Confidence] BREACH! Score: ${this.confidenceScore.toFixed(2)} (Lat: ${latencyConfidence.toFixed(2)}, Rel: ${reliabilityConfidence.toFixed(2)}) < Floor: ${this.qualityFloor}`);
+    }
 
     // Trigger degradation hooks
     this.triggerHooks();
@@ -83,24 +92,30 @@ export class ConfidenceMonitor {
       return 1.0; // No data, assume good
     }
 
-    // Degrade confidence based on p95 latency
-    // Assume good latency is < 50ms, unacceptable is > 500ms
+    // Degrade confidence based on p95 latency relative to threshold
     const p95 = stats.p95Ms;
+    const threshold = this.latencyThresholdMs;
+
     let confidence = 1.0;
 
-    if (p95 > 500) {
-      confidence = 0.3;
-    } else if (p95 > 200) {
-      confidence = 0.6;
-    } else if (p95 > 100) {
+    if (p95 > threshold) {
+      confidence = 0.3; // Breached!
+    } else if (p95 > threshold * 0.8) {
+      confidence = 0.6; // Warning zone
+    } else if (p95 > threshold * 0.5) {
       confidence = 0.8;
-    } else if (p95 > 50) {
+    } else if (p95 > threshold * 0.2) {
       confidence = 0.9;
     }
 
     // Further degrade if trend is negative (getting slower)
     if (stats.recentTrendMs > 50) {
       confidence *= 0.8;
+    }
+
+    // DEBUG: Log why we are/aren't tripping
+    if (Math.random() < 0.05) { // Sample logs to avoid spam
+      console.log(`[Confidence] P95: ${Math.round(p95)}ms, Threshold: ${threshold}ms, Conf: ${confidence.toFixed(2)}`);
     }
 
     return confidence;
@@ -116,7 +131,7 @@ export class ConfidenceMonitor {
 
     // Degrade confidence based on recent failure rate
     const failureRate = stats.recentFailureRate;
-    
+
     if (failureRate > 10) {
       return 0.2; // Very high failure rate
     } else if (failureRate > 5) {

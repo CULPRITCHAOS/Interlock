@@ -1,0 +1,15 @@
+# CODEOWNERS
+# Require review for all changes
+
+# Default: require review for all files
+* @CULPRITCHAOS
+
+# Critical paths: require explicit owner review
+.github/ @CULPRITCHAOS
+laws/ @CULPRITCHAOS
+scripts/ @CULPRITCHAOS
+services/kernel/ @CULPRITCHAOS
+services/hysteresis.ts @CULPRITCHAOS
+services/phaseIV.ts @CULPRITCHAOS
+services/law-loader.ts @CULPRITCHAOS
+packages/ @CULPRITCHAOS
