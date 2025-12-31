@@ -1,0 +1,39 @@
+# Gitleaks Configuration
+# ======================
+# Allowlist for intentional test credentials in test files.
+# These are NOT real secrets - they are hardcoded test values.
+
+title = "Interlock Gitleaks Config"
+
+[allowlist]
+description = "Allowlist for test credentials and false positives"
+
+# Test API key patterns used in validation scripts
+regexes = [
+    # Test API keys with obvious test prefix
+    '''test_api_key_[\w]+''',
+    '''test-api-key-[\w]+''',
+    # Test signing keys with obvious test prefix
+    '''test-signing-key-[\d]+''',
+    '''test_signing_key_[\w]+''',
+    # Placeholder patterns
+    '''REDACTED''',
+    '''YOUR_.*_HERE''',
+]
+
+# Allow test values in test/validation scripts
+paths = [
+    '''.*validation-tests\.ts$''',
+    '''.*anti-gaming-test\.ts$''',
+    '''ci_sim/.*''',
+    '''tests?/.*''',
+    '''.*\.test\.ts$''',
+    '''.*\.spec\.ts$''',
+]
+
+# Specific commits known to contain only test values
+commits = [
+    # These commits only contain test credentials, not real ones
+    # "30826e214d4ca527b022604e8ff0a8c05a49fd24",
+    # "0d203e9e751d0f13ee0ff9e0b233c8c494197a7b",
+]
