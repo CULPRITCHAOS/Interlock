@@ -67,7 +67,7 @@ export function interlockExpress(options: InterlockOptions = {}) {
     // Initialize Core Logic
     const latencyProbe = new LatencyProbe();
     const failureInjector = new FailureInjector();
-    const monitor = new ConfidenceMonitor(latencyProbe, failureInjector, qualityFloor);
+    const monitor = new ConfidenceMonitor(latencyProbe, failureInjector, qualityFloor, latencyThresholdMs);
     const sink: IncidentSink = new FileIncidentSink(logFile);
 
     // Start SDE telemetry (health window emitter)
@@ -87,7 +87,46 @@ export function interlockExpress(options: InterlockOptions = {}) {
     console.log(`[Interlock] Law: ${lawResult.law?.law_id || 'defaults'} (hash: ${lawResult.lawHash})`);
 
     return (req: Request, res: Response, next: NextFunction) => {
+        // --- Dashboard Routes ---
+        if (req.path === '/dashboard') {
+            const dashboardPath = path.resolve(__dirname, 'dashboard.html');
+            if (fs.existsSync(dashboardPath)) {
+                res.setHeader('Content-Type', 'text/html');
+                return res.sendFile(dashboardPath);
+            } else {
+                return res.status(404).send('Dashboard not found (build issue?)');
+            }
+        }
+
+        if (req.path === '/interlock/events') {
+            const startLine = parseInt(req.query.start as string) || 0;
+            const eventsPath = process.env.INTERLOCK_EVENTS_PATH || path.resolve(process.cwd(), 'logs/interlock_events.jsonl');
+
+            if (!fs.existsSync(eventsPath)) {
+                return res.json({ status: 'ok', events: [], nextIndex: 0 });
+            }
+
+            try {
+                // Read file slightly inefficiently but safe for demo
+                // Ideally this would use a proper log tailer or keep file handle open
+                const content = fs.readFileSync(eventsPath, 'utf-8');
+                const lines = content.trim().split('\n');
+                const newEvents = lines.slice(startLine).map(line => {
+                    try { return JSON.parse(line); } catch (e) { return null; }
+                }).filter(Boolean);
+
+                return res.json({
+                    status: 'ok',
+                    events: newEvents,
+                    nextIndex: lines.length
+                });
+            } catch (e) {
+                return res.status(500).json({ error: String(e) });
+            }
+        }
+
         const startTime = Date.now();
+        // ... rest of middleware ...
 
         // 3. Response Interception (Metrics) - Attached early to capture all outcomes
         res.on('finish', () => {

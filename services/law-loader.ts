@@ -13,7 +13,8 @@ import * as crypto from 'crypto';
 import { LawFile, LawParameters, DEFAULT_LAW_PARAMETERS } from './law.types.ts';
 import { getHardwareFingerprint, getHardwareInfo } from './events.types.ts';
 
-const DEFAULT_LAWS_DIR = './laws/active';
+const DEFAULT_LAWS_DIR = './laws/examples';  // Demo only - do not use in production
+const DEMO_PATH_WARNING = '[Interlock] WARNING: Using demo law path. Production should use INTERLOCK_LAW_PATH or defaults.';
 
 export interface LoadLawResult {
     success: boolean;
@@ -50,9 +51,21 @@ export function loadLaw(domain: string): LoadLawResult {
         path.join(DEFAULT_LAWS_DIR, `${domain}.json`);
 
     // Check if law file exists
+    // If using default demo path, warn loudly
+    const isUsingDemoPath = !process.env.INTERLOCK_LAW_PATH;
+    if (isUsingDemoPath && fs.existsSync(lawPath)) {
+        console.warn(DEMO_PATH_WARNING);
+        console.warn(`[Interlock] Demo law file found at: ${lawPath}`);
+        console.warn(`[Interlock] Set INTERLOCK_LAW_PATH explicitly or remove demo files for strict defaults.`);
+    }
+
     if (!fs.existsSync(lawPath)) {
-        warnings.push(`Law file not found: ${lawPath}. Using defaults.`);
-        console.warn(`[Interlock] ${warnings[0]}`);
+        // No law file - use strict production defaults (this is the expected production path)
+        if (!isUsingDemoPath) {
+            warnings.push(`Law file not found: ${lawPath}. Using production defaults.`);
+            console.warn(`[Interlock] ${warnings[0]}`);
+        }
+        // If using demo path and file doesn't exist, silently use defaults (expected)
 
         return {
             success: false,
@@ -105,15 +118,27 @@ export function loadLaw(domain: string): LoadLawResult {
             };
         }
 
-        // Validate and use parameters
-        const params: LawParameters = {
-            latency_threshold_ms: law.parameters.latency_threshold_ms ?? DEFAULT_LAW_PARAMETERS.latency_threshold_ms,
-            error_threshold_pct: law.parameters.error_threshold_pct ?? DEFAULT_LAW_PARAMETERS.error_threshold_pct,
-            recovery_timeout_ms: law.parameters.recovery_timeout_ms ?? DEFAULT_LAW_PARAMETERS.recovery_timeout_ms,
-            probe_interval_ms: law.parameters.probe_interval_ms ?? DEFAULT_LAW_PARAMETERS.probe_interval_ms,
-            confidence_floor: law.parameters.confidence_floor ?? DEFAULT_LAW_PARAMETERS.confidence_floor,
-            decay_rate: law.parameters.decay_rate ?? DEFAULT_LAW_PARAMETERS.decay_rate
-        };
+        // Initialize params with defaults
+        const params: LawParameters = { ...DEFAULT_LAW_PARAMETERS };
+
+        // Check if this is an SDE Proposal (single parameter update) or a Full Law
+        if ('parameter' in law && (law as any).parameter && (law as any).parameter.name) {
+            const prop = (law as any).parameter;
+            const paramName = prop.name as keyof LawParameters;
+            if (paramName in params) {
+                params[paramName] = prop.new_value; // Apply the single proposed change
+                console.log(`[Interlock] Applied SDE Proposal: ${paramName} -> ${prop.new_value}`);
+            }
+        }
+        // Otherwise treat as Full Law if 'parameters' exists
+        else if (law.parameters) {
+            params.latency_threshold_ms = law.parameters.latency_threshold_ms ?? DEFAULT_LAW_PARAMETERS.latency_threshold_ms;
+            params.error_threshold_pct = law.parameters.error_threshold_pct ?? DEFAULT_LAW_PARAMETERS.error_threshold_pct;
+            params.recovery_timeout_ms = law.parameters.recovery_timeout_ms ?? DEFAULT_LAW_PARAMETERS.recovery_timeout_ms;
+            params.probe_interval_ms = law.parameters.probe_interval_ms ?? DEFAULT_LAW_PARAMETERS.probe_interval_ms;
+            params.confidence_floor = law.parameters.confidence_floor ?? DEFAULT_LAW_PARAMETERS.confidence_floor;
+            params.decay_rate = law.parameters.decay_rate ?? DEFAULT_LAW_PARAMETERS.decay_rate;
+        }
 
         // Bounds checking
         if (params.latency_threshold_ms < 10 || params.latency_threshold_ms > 60000) {

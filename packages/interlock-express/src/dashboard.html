@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interlock Live Telemetry</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --surface: #1a1a1a;
+            --primary: #00ff9d;
+            --danger: #ff4d4d;
+            --text: #e0e0e0;
+            --text-dim: #888;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        .card {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #333;
+        }
+        h2 { margin-top: 0; color: var(--text-dim); font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; }
+        
+        #charts { display: flex; flex-direction: column; gap: 20px; }
+        .chart-container { flex: 1; position: relative; }
+        
+        #sidebar { display: flex; flex-direction: column; gap: 20px; }
+        
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat { background: #222; padding: 10px; border-radius: 4px; }
+        .stat-label { font-size: 0.8em; color: var(--text-dim); }
+        .stat-value { font-size: 1.2em; font-weight: bold; color: var(--primary); }
+        .stat-value.danger { color: var(--danger); }
+        
+        #event-log { 
+            flex: 1; 
+            overflow-y: auto; 
+            font-family: monospace; 
+            font-size: 0.85em; 
+            background: #000;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .log-entry { margin-bottom: 4px; border-bottom: 1px solid #222; padding-bottom: 2px; }
+        .log-time { color: var(--text-dim); margin-right: 8px; }
+        .log-type { font-weight: bold; margin-right: 8px; }
+        .type-intervention { color: var(--danger); }
+        .type-health { color: #4dffff; }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary);
+            margin-right: 8px;
+            box-shadow: 0 0 10px var(--primary);
+        }
+        .status-indicator.offline { background: var(--danger); box-shadow: none; }
+
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <div id="charts">
+        <div class="card chart-container">
+            <h2>Latency vs Threshold</h2>
+            <canvas id="latencyChart"></canvas>
+        </div>
+        <div class="card chart-container" style="height: 30%">
+            <h2>Confidence & Reliability</h2>
+            <canvas id="confidenceChart"></canvas>
+        </div>
+    </div>
+
+    <div id="sidebar">
+        <div class="card">
+            <h2><span id="status" class="status-indicator"></span>System Status (Ollama)</h2>
+            <div class="stat-grid">
+                <div class="stat">
+                    <div class="stat-label">Latency Limit</div>
+                    <div class="stat-value" id="limit-val">500ms</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Current P95</div>
+                    <div class="stat-value" id="p95-val">--</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Confidence</div>
+                    <div class="stat-value" id="confidence-val">100%</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Error Rate</div>
+                    <div class="stat-value" id="error-val">0%</div>
+                </div>
+            </div>
+            <div style="margin-top: 15px;">
+                <div class="stat-label">Active Law</div>
+                <code id="law-id" style="display:block; margin-top:5px; color: var(--text);">Loading...</code>
+            </div>
+        </div>
+
+        <div class="card" style="display: flex; flex-direction: column; flex: 1;">
+            <h2>Event Log</h2>
+            <div id="event-log"></div>
+        </div>
+    </div>
+
+    <script>
+        // Setup Charts
+        const latencyCtx = document.getElementById('latencyChart').getContext('2d');
+        const confidenceCtx = document.getElementById('confidenceChart').getContext('2d');
+        
+        const latencyChart = new Chart(latencyCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'P95 Latency',
+                        borderColor: '#4dffff',
+                        backgroundColor: 'rgba(77, 255, 255, 0.1)',
+                        data: [],
+                        fill: true,
+                        tension: 0.4
+                    },
+                    {
+                        label: 'Threshold',
+                        borderColor: '#ff4d4d',
+                        borderDash: [5, 5],
+                        data: [],
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#333' } },
+                    x: { display: false }
+                },
+                plugins: { legend: { display: true, labels: { color: '#ccc' } } }
+            }
+        });
+
+        const confidenceChart = new Chart(confidenceCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Confidence',
+                        borderColor: '#00ff9d',
+                        data: [],
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Floor',
+                        borderColor: '#FFA500',
+                        borderDash: [2, 2],
+                        data: [],
+                        pointRadius: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                scales: {
+                    y: { min: 0, max: 1.1, grid: { color: '#333' } },
+                    x: { display: false }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // Polling logic
+        let lastLogLine = 0;
+        const MAX_POINTS = 50;
+
+        async function updateDashboard() {
+            try {
+                const res = await fetch('/interlock/events?start=' + lastLogLine);
+                const data = await res.json();
+                
+                if (data.status === 'ok') {
+                    const events = data.events;
+                    lastLogLine = data.nextIndex;
+                    
+                    document.getElementById('status').classList.remove('offline');
+
+                    events.forEach(event => {
+                        const time = new Date(event.timestamp).toLocaleTimeString();
+                        
+                        // Update Log
+                        const div = document.createElement('div');
+                        div.className = 'log-entry';
+                        const typeClass = event.event_type === 'intervention' ? 'type-intervention' : 'type-health';
+                        div.innerHTML = `<span class="log-time">[${time}]</span><span class="log-type ${typeClass}">${event.event_type.toUpperCase()}</span>`;
+                        
+                        if (event.event_type === 'intervention') {
+                            div.innerHTML += ` ${event.trigger.type} (${event.trigger.observed_ms}ms > ${event.trigger.threshold_ms}ms)`;
+                        }
+                        
+                        const log = document.getElementById('event-log');
+                        log.prepend(div);
+                        if (log.children.length > 100) log.lastChild.remove();
+
+                        // Update Charts & Stats
+                        if (event.event_type === 'health_window' || event.event_type === 'intervention') {
+                            // Extract metrics
+                            let p95, threshold, confidence, errorRate;
+                            
+                            if (event.event_type === 'health_window') {
+                                p95 = event.metrics.latency_p95_ms;
+                                threshold = event.thresholds.latency_threshold_ms;
+                                confidence = 1.0; // Health windows imply survival, but we don't strictly have confidence field here
+                                errorRate = event.metrics.error_rate;
+                                
+                                // Update Stats
+                                document.getElementById('limit-val').innerText = threshold + 'ms';
+                                document.getElementById('p95-val').innerText = Math.round(p95) + 'ms';
+                                document.getElementById('error-val').innerText = (errorRate * 100).toFixed(1) + '%';
+                            } else {
+                                p95 = event.trigger.observed_ms;
+                                threshold = event.trigger.threshold_ms; // corrected field name from thresholdMs to threshold_ms per contract
+                                confidence = event.trigger.confidence;
+                                errorRate = 0; // Not strictly available in intervention event summary
+                                
+                                document.getElementById('confidence-val').innerText = (confidence * 100).toFixed(0) + '%';
+                                document.getElementById('p95-val').className = 'stat-value danger';
+                            }
+
+                            // Chart push
+                            const label = time;
+                            
+                            latencyChart.data.labels.push(label);
+                            latencyChart.data.datasets[0].data.push(p95);
+                            latencyChart.data.datasets[1].data.push(threshold);
+                            
+                            confidenceChart.data.labels.push(label);
+                            confidenceChart.data.datasets[0].data.push(confidence || 1.0);
+                            confidenceChart.data.datasets[1].data.push(0.5); // Hardcoded floor for vis
+
+                            // Trim
+                            if (latencyChart.data.labels.length > MAX_POINTS) {
+                                latencyChart.data.labels.shift();
+                                latencyChart.data.datasets[0].data.shift();
+                                latencyChart.data.datasets[1].data.shift();
+                                confidenceChart.data.labels.shift();
+                                confidenceChart.data.datasets[0].data.shift();
+                                confidenceChart.data.datasets[1].data.shift();
+                            }
+                            
+                            latencyChart.update();
+                            confidenceChart.update();
+                        }
+                    });
+
+                    // Update Law ID if available (hacky check from last event)
+                    if (events.length > 0) {
+                         // We could expose this via API properly, but for now just showing system is alive
+                    }
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('status').classList.add('offline');
+            }
+        }
+
+        setInterval(updateDashboard, 1000);
+        updateDashboard();
+    </script>
+</body>
+</html>
