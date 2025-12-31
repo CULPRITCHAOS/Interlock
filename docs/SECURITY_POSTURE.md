@@ -93,10 +93,12 @@ The hardware fingerprint is a SHA256 hash of:
 
 | Check | Location | Trigger |
 |-------|----------|---------|
-| Secret Scanning | `.github/workflows/secret-scan.yml` | Nightly + manual |
+| Secret Scanning | `.github/workflows/secret-scan.yml` | Nightly + PRs + manual |
 | CodeQL Analysis | `.github/workflows/codeql.yml` | Weekly + PRs |
 | Dependabot | `.github/dependabot.yml` | Weekly |
 | PR Checks | `.github/workflows/pr-checks.yml` | All PRs |
+
+> **Note on Gitleaks**: The secret scan may flag test credentials in validation scripts (e.g., `test_api_key_...`). These are intentionally allowlisted in `.gitleaks.toml` with minimal, path-scoped rules. See `docs/SECRET_INCIDENT_REPORT.md` for details.
 
 ## CODEOWNERS
 
