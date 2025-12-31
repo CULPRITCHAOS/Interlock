@@ -118,8 +118,7 @@ export type InterlockEvent = InterventionEvent | HealthWindowEvent;
 
 import {
     getHardwareFingerprint as getCanonicalFingerprint,
-    getHardwareDetails,
-    type HardwareDetails
+    getHardwareDetails
 } from './kernel/hardwareFingerprint';
 
 /**
