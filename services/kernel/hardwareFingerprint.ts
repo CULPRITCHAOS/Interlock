@@ -59,7 +59,9 @@ function computeFingerprint(obj: Record<string, unknown>): string {
  */
 export function getHardwareDetails(): HardwareDetails {
     const cpus = os.cpus();
-    const cpuModel = cpus.length > 0 ? cpus[0].model : 'unknown';
+    // Canonicalize CPU model: trim, collapse whitespace, lowercase for stability
+    const rawCpuModel = cpus.length > 0 ? cpus[0].model : 'unknown';
+    const cpuModel = rawCpuModel.trim().replace(/\s+/g, ' ').toLowerCase();
     const cpuThreads = cpus.length;
     const ramBytes = os.totalmem();
     const ramGb = Math.round(ramBytes / (1024 ** 3));
