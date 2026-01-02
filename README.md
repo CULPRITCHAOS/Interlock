@@ -1,5 +1,5 @@
-![Interlock_logo](https://raw.githubusercontent.com/CULPRITCHAOS/Interlock/main/Interlock%20logo.jpg)
-# Interlock
+![Interlock logo](./intelock_logo.jpg)
+#INTERLOCK 
 
 Interlock is a circuit-breaker + evidence layer for AI infrastructure. It monitors runtime signals (confidence/latency/failure), refuses or degrades when the system is outside safe bounds, and writes verifiable forensic logs.
 
