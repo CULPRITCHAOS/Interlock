@@ -45,11 +45,32 @@ CI workflows produce repeatable artifacts (stress, scale, adapter certification)
 
 **See**: [Test Results](./docs/TEST_RESULTS.md) · [Live Incidents](./docs/LIVE_INCIDENTS.md)
 
-## Security Posture
+## OperatorPack Receipt Verification
 
-Demo configurations live under `laws/examples/` and are not production defaults.
+Interlock includes tools to verify and index OperatorPack receipts (JSON).
 
-Threat model and hardening details: [Security Posture](./docs/SECURITY_POSTURE.md)
+### Usage
+
+1. **Verify a receipt**:
+   ```powershell
+   python tools/verify_operatorpack.py "C:\path\to\operatorpack.json"
+   ```
+   Outputs a JSON verdict (PASS/WARN/FAIL) based on performance and quality thresholds.
+
+2. **Index a receipt**:
+   ```powershell
+   python tools/append_receipt_index.py "C:\path\to\operatorpack.json" "C:\path\to\RECEIPTS_INDEX.md"
+   ```
+   Appends metrics to a TSV-formatted index file for long-term tracking.
+
+### Recommended Workflow
+Place new receipts in `receipts/inbox/` for verification before promotion.
+
+Example using current Helix receipt:
+```powershell
+python tools/verify_operatorpack.py "C:\Users\13cul\Desktop\cross project files\operatorpack_helix_mqs_nb4_d0p1_r20_f1e6_N10k_2026-01-04.json"
+```
+
 
 ## License
 
