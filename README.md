@@ -60,17 +60,18 @@ Interlock includes tools to verify and index OperatorPack receipts (JSON).
 
 2. **Index a receipt**:
    ```powershell
-   python tools/append_receipt_index.py "C:\path\to\operatorpack.json" "C:\path\to\RECEIPTS_INDEX.md"
+   python tools/append_receipt_index.py "C:\path\to\operatorpack.json" "receipts/RECEIPTS_INDEX.md"
    ```
-   Appends metrics to a **Markdown table** index file for long-term tracking (Memory_MB is stored as a numeric value for machine readability).
+   Appends metrics to a **Markdown table** index file for long-term tracking.
 
 ### Recommended Workflow
 Place new receipts in `receipts/inbox/` for verification before promotion.
 
-Example using current Helix receipt:
+Example using a sample receipt:
 ```powershell
-python tools/verify_operatorpack.py "C:\Users\13cul\Desktop\cross project files\operatorpack_helix_mqs_nb4_d0p1_r20_f1e6_N10k_2026-01-04.json"
+python tools/verify_operatorpack.py "receipts/examples/operatorpack_example_pass.json"
 ```
+
 ### Receipt Workflow
 
 Interlock supports a standard promotion workflow for OperatorPacks with **2-Tier Governance**:
@@ -91,12 +92,8 @@ Interlock supports a standard promotion workflow for OperatorPacks with **2-Tier
      - Secondary index: `RECEIPTS_INDEX_EXPERIMENTAL.md`.
 
 3. **Audit**: Review the `receipts/approved/` folder and `RECEIPTS_INDEX.md` (or the experimental equivalents) for historical data.
-
-Options:
-- `-Mode {production|exploration}`: Selects target tier (default: production).
-- `-AllowWarn:$false`: Treats warnings as rejections.
-- `-Receipt "path/to/file.json"`: Promotes a specific file (defaults to newest in inbox).
-- `-IndexPath "path/to/index.md"`: Overrides the default index location.
+> [!NOTE]
+> Approved receipts and summaries are generated locally and are **not** committed to the repository to maintain data privacy.
 
 
 ## License

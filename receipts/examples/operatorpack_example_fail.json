@@ -1,0 +1,50 @@
+{
+    "operatorpack_version": "1.0",
+    "pack_id": "sanitized_example_fail_hash_002",
+    "created_at": "2026-01-01T00:00:00Z",
+    "project": {
+        "name": "Interlock-Public",
+        "version": "1.0.0",
+        "git": {
+            "commit": "0000000000000000000000000000000000000000",
+            "branch": "main",
+            "tag": "v1.0.0"
+        }
+    },
+    "environment": {
+        "os": "System-Neutral",
+        "cpu": "Generic-Processor",
+        "python_version": "3.13.3",
+        "mem_gb": 64
+    },
+    "geometry": {
+        "type": "Helix",
+        "nodes": 2000
+    },
+    "operator": {
+        "type": "MQS",
+        "kernel": "SelfImpedance"
+    },
+    "benchmarks": {
+        "verify_scaling": {
+            "summary": {
+                "max_N": 2000,
+                "build_s_at_maxN": 5.0,
+                "mem_mb_at_maxN": 20.0,
+                "reciprocity_range": [
+                    2e-17,
+                    2e-17
+                ]
+            },
+            "cases": [
+                {
+                    "N": 2000,
+                    "build_s": 5.0,
+                    "mem_mb": 20.0,
+                    "reciprocity": 2e-17
+                }
+            ]
+        }
+    },
+    "notes": "Public sanitized example - FAILING (Low N)"
+}

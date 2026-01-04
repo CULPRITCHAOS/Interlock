@@ -1,0 +1,50 @@
+{
+    "operatorpack_version": "1.0",
+    "pack_id": "sanitized_example_pass_hash_001",
+    "created_at": "2026-01-01T00:00:00Z",
+    "project": {
+        "name": "Interlock-Public",
+        "version": "1.0.0",
+        "git": {
+            "commit": "0000000000000000000000000000000000000000",
+            "branch": "main",
+            "tag": "v1.0.0"
+        }
+    },
+    "environment": {
+        "os": "System-Neutral",
+        "cpu": "Generic-Processor",
+        "python_version": "3.13.3",
+        "mem_gb": 64
+    },
+    "geometry": {
+        "type": "Helix",
+        "nodes": 10000
+    },
+    "operator": {
+        "type": "MQS",
+        "kernel": "SelfImpedance"
+    },
+    "benchmarks": {
+        "verify_scaling": {
+            "summary": {
+                "max_N": 10000,
+                "build_s_at_maxN": 110.0,
+                "mem_mb_at_maxN": 400.0,
+                "reciprocity_range": [
+                    2e-17,
+                    2e-17
+                ]
+            },
+            "cases": [
+                {
+                    "N": 10000,
+                    "build_s": 110.0,
+                    "mem_mb": 400.0,
+                    "reciprocity": 2e-17
+                }
+            ]
+        }
+    },
+    "notes": "Public sanitized example - PASSING"
+}

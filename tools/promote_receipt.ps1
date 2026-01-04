@@ -47,7 +47,7 @@ foreach ($dir in @($inboxDir, $approvedDir, $rejectedDir)) {
 # 3. Default Pathing
 if (-not $IndexPath) {
     if ($Mode -eq "production") {
-        $robIndexPath = "C:\Users\13cul\Desktop\cross project files\RECEIPTS_INDEX.md"
+        $robIndexPath = Join-Path $HOME "Desktop\cross project files\RECEIPTS_INDEX.md"
         if (Test-Path $robIndexPath) { $IndexPath = $robIndexPath }
         else { $IndexPath = Join-Path $repoRoot "receipts/RECEIPTS_INDEX.md" }
     }

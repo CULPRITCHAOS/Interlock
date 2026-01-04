@@ -59,3 +59,19 @@ results/**
 !results/validation/**
 !results/badge/
 !results/badge/**
+
+# OperatorPack Artifacts
+# Ignore all benchmark receipts and verdicts
+receipts/**/*.json
+receipts/**/*.json.verdict.json
+receipts/summary/*
+
+# Keep structural files and examples
+!receipts/**/.gitkeep
+!receipts/examples/**
+
+# Ignore generated indexes (keep them as templates if needed)
+receipts/RECEIPTS_INDEX.md
+receipts/RECEIPTS_INDEX_EXPERIMENTAL.md
+!receipts/RECEIPTS_INDEX.md
+!receipts/RECEIPTS_INDEX_EXPERIMENTAL.md
