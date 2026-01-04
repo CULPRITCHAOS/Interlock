@@ -1,0 +1,10 @@
+﻿{
+  "verdict": "PASS",
+  "file": "operatorpack_helix_mqs_nb4_d0p1_r20_f1e6_N10k_2026-01-04.json",
+  "max_N": 10000,
+  "build_time_s_at_maxN": 112.4226503999671,
+  "mem_mb_at_maxN": 399.7802734375,
+  "reciprocity": 3.807799333618998e-16,
+  "reasons": []
+}
+
