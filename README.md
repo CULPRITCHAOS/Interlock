@@ -70,6 +70,23 @@ Example using current Helix receipt:
 ```powershell
 python tools/verify_operatorpack.py "C:\Users\13cul\Desktop\cross project files\operatorpack_helix_mqs_nb4_d0p1_r20_f1e6_N10k_2026-01-04.json"
 ```
+### Receipt Workflow
+
+Interlock supports a standard promotion workflow for OperatorPacks:
+
+1. **Inbox**: Copy new receipt JSON files into `receipts/inbox/`.
+2. **Promote**: Run the promotion script to verify and move files based on results:
+   ```powershell
+   pwsh -File tools/promote_receipt.ps1
+   ```
+   - Receipts that **PASS** or **WARN** are moved to `receipts/approved/` and indexed.
+   - Receipts that **FAIL** are moved to `receipts/rejected/`.
+3. **Audit**: Review the `receipts/approved/` folder and `RECEIPTS_INDEX.md` for historical data.
+
+Options:
+- `-AllowWarn:$false`: Treats warnings as rejections.
+- `-Receipt "path/to/file.json"`: Promotes a specific file (defaults to newest in inbox).
+- `-IndexPath "path/to/index.md"`: Overrides the default index location.
 
 
 ## License
