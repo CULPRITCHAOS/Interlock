@@ -134,3 +134,4 @@ if ($res.reasons.Count -gt 0) {
 }
 
 Write-Host "`nWorkflow complete." -ForegroundColor Green
+Write-Host "NOTE: receipts/* outputs are local artifacts and are gitignored in this public repo. Do not commit approved/rejected receipts." -ForegroundColor Gray

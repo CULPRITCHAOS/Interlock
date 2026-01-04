@@ -95,6 +95,30 @@ Interlock supports a standard promotion workflow for OperatorPacks with **2-Tier
 > [!NOTE]
 > Approved receipts and summaries are generated locally and are **not** committed to the repository to maintain data privacy.
 
+### Practical: What to do next
+
+1. **Generate Evidence**: Obtain a receipt JSON (OperatorPack) from a lab (e.g., TESLA) — keep it outside Interlock as the source of truth.
+2. **Stage**: Copy it into `receipts/inbox/`.
+3. **Promote (Production)**:
+   ```powershell
+   pwsh -File tools/promote_receipt.ps1
+   ```
+   *Or specify a file*: `pwsh -File tools/promote_receipt.ps1 -Receipt "C:\path\to\receipt.json"`
+4. **Promote (Exploration)**:
+   ```powershell
+   pwsh -File tools/promote_receipt.ps1 -Mode exploration
+   ```
+5. **Summarize**:
+   ```powershell
+   python tools/summarize_receipts.py
+   ```
+6. **Artifact Locations**:
+   - `receipts/approved/` or `receipts/approved_experimental/` (Local only)
+   - `receipts/rejected/` or `receipts/rejected_experimental/` (Local only)
+   - `receipts/summary/` (Local only)
+
+These outputs are local artifacts and are gitignored by design in this public repo.
+
 
 ## License
 
