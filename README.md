@@ -61,7 +61,7 @@ Interlock includes tools to verify and index OperatorPack receipts (JSON).
    ```powershell
    python tools/append_receipt_index.py "C:\path\to\operatorpack.json" "C:\path\to\RECEIPTS_INDEX.md"
    ```
-   Appends metrics to a TSV-formatted index file for long-term tracking.
+   Appends metrics to a **Markdown table** index file for long-term tracking (Memory_MB is stored as a numeric value for machine readability).
 
 ### Recommended Workflow
 Place new receipts in `receipts/inbox/` for verification before promotion.

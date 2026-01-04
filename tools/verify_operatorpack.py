@@ -39,9 +39,11 @@ def verify_receipt(receipt_path):
     summary = verify_scaling.get('summary', {})
     
     max_n = summary.get('max_N')
-    build_time = summary.get('build_s_at_maxN')
-    memory = summary.get('mem_mb_at_maxN')
-    reciprocity = summary.get('reciprocity_range') # Description says reciprocity_range or reciprocity at maxN
+    
+    # Alias support for summary keys
+    build_time = summary.get('build_s_at_maxN') or summary.get('build_time_s_at_maxN')
+    memory = summary.get('mem_mb_at_maxN') or summary.get('memory_mb_at_maxN')
+    reciprocity = summary.get('reciprocity_range')
 
     # Fallback to cases if summary is missing
     if max_n is None or build_time is None or memory is None:
@@ -56,8 +58,11 @@ def verify_receipt(receipt_path):
         sorted_cases = sorted(cases, key=lambda x: x.get('N', 0), reverse=True)
         max_case = sorted_cases[0]
         max_n = max_case.get('N')
-        build_time = max_case.get('build_time_s')
-        memory = max_case.get('memory_mb')
+        
+        # Alias support for case keys
+        build_time = max_case.get('build_s') or max_case.get('build_time_s') or max_case.get('build_time_seconds')
+        memory = max_case.get('mem_mb') or max_case.get('memory_mb') or max_case.get('mem_mb_at_maxN')
+        
         if reciprocity is None:
             reciprocity = max_case.get('reciprocity')
 
