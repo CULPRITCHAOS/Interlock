@@ -73,18 +73,27 @@ python tools/verify_operatorpack.py "C:\Users\13cul\Desktop\cross project files\
 ```
 ### Receipt Workflow
 
-Interlock supports a standard promotion workflow for OperatorPacks:
+Interlock supports a standard promotion workflow for OperatorPacks with **2-Tier Governance**:
 
 1. **Inbox**: Copy new receipt JSON files into `receipts/inbox/`.
-2. **Promote**: Run the promotion script to verify and move files based on results:
-   ```powershell
-   pwsh -File tools/promote_receipt.ps1
-   ```
-   - Receipts that **PASS** or **WARN** are moved to `receipts/approved/` and indexed.
-   - Receipts that **FAIL** are moved to `receipts/rejected/`.
-3. **Audit**: Review the `receipts/approved/` folder and `RECEIPTS_INDEX.md` for historical data.
+2. **Promote**: Run the promotion script with the desired tier:
+   - **Production (Default)**: Strict gates ($N \ge 10,000$).
+     ```powershell
+     pwsh -File tools/promote_receipt.ps1
+     ```
+     - Results land in `receipts/approved/` or `receipts/rejected/`.
+     - Primary index: `RECEIPTS_INDEX.md`.
+   - **Exploration**: Faster iteration gates ($N \ge 2,000$).
+     ```powershell
+     pwsh -File tools/promote_receipt.ps1 -Mode exploration
+     ```
+     - Results land in `receipts/approved_experimental/` or `receipts/rejected_experimental/`.
+     - Secondary index: `RECEIPTS_INDEX_EXPERIMENTAL.md`.
+
+3. **Audit**: Review the `receipts/approved/` folder and `RECEIPTS_INDEX.md` (or the experimental equivalents) for historical data.
 
 Options:
+- `-Mode {production|exploration}`: Selects target tier (default: production).
 - `-AllowWarn:$false`: Treats warnings as rejections.
 - `-Receipt "path/to/file.json"`: Promotes a specific file (defaults to newest in inbox).
 - `-IndexPath "path/to/index.md"`: Overrides the default index location.

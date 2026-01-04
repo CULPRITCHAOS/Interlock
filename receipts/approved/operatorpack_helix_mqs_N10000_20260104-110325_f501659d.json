@@ -1,0 +1,124 @@
+{
+  "operatorpack_version": "1.0",
+  "pack_id": "2262fe62f2c8f0a6833115b4ec41e819d18c1ad39c502638b3735aa4bef5ffaa",
+  "created_at": "2026-01-04T17:03:25.382808+00:00",
+  "project": {
+    "name": "TESLA",
+    "repo": "CULPRITCHAOS/TESLA",
+    "visibility": "private",
+    "git": {
+      "commit": "4fffe35bf84168479b37090154a6aed693a8d1a8",
+      "tag": "v1.0.1-internal"
+    }
+  },
+  "environment": {
+    "os": "Windows-11-10.0.26200-SP0",
+    "python": "3.13.3",
+    "cpu": "AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD",
+    "numpy": "2.4.0",
+    "scipy": "1.16.3",
+    "deps": {
+      "numpy": "2.4.0",
+      "scipy": "1.16.3",
+      "pytest": "8.3.3"
+    }
+  },
+  "domain": "mqs_mom_operator_benchmark",
+  "geometry": {
+    "type": "HelixGeometry",
+    "params": {
+      "height": 0.6,
+      "radius": 0.075,
+      "wire_radius": 0.001,
+      "num_turns": 50
+    }
+  },
+  "operator": {
+    "type": "BLR",
+    "config": {
+      "nb": 4,
+      "d0": 0.1,
+      "rank": 20,
+      "frequency_hz": 1000000.0
+    },
+    "kernel": {
+      "model": "MQS",
+      "terms": [
+        "A",
+        "Phi"
+      ],
+      "loss": [
+        "skin_effect"
+      ]
+    }
+  },
+  "benchmarks": {
+    "verify_scaling": {
+      "source_file": "benchmarks\\verify_scaling.json",
+      "cases": [
+        {
+          "N": 1000,
+          "build_s": 1.2941856000106782,
+          "mem_mb": 5.645751953125,
+          "zin_ohm": {
+            "re": 45.290946521361995,
+            "im": 61907843.64327126
+          },
+          "reciprocity": 2.2312380594270304e-17
+        },
+        {
+          "N": 2000,
+          "build_s": 4.9213981999782845,
+          "mem_mb": 18.9208984375,
+          "zin_ohm": {
+            "re": 2093.429458042644,
+            "im": -5094687622.21348
+          },
+          "reciprocity": 1.8157732803264562e-17
+        },
+        {
+          "N": 5000,
+          "build_s": 29.46709789999295,
+          "mem_mb": 104.522705078125,
+          "zin_ohm": {
+            "re": 186725.87829710112,
+            "im": 1148869477374.7612
+          },
+          "reciprocity": 2.0082521383186727e-17
+        },
+        {
+          "N": 10000,
+          "build_s": 110.2464983999962,
+          "mem_mb": 399.7802734375,
+          "zin_ohm": {
+            "re": 3668469.7452935483,
+            "im": 57816890959621.53
+          },
+          "reciprocity": 1.4109240276968858e-17
+        }
+      ],
+      "summary": {
+        "max_N": 10000,
+        "build_s_at_maxN": 110.2464983999962,
+        "mem_mb_at_maxN": 399.7802734375,
+        "reciprocity_range": [
+          1.4109240276968858e-17,
+          2.2312380594270304e-17
+        ]
+      }
+    }
+  },
+  "artifacts": {
+    "files": [
+      {
+        "path": "benchmarks\\verify_scaling.json",
+        "sha256": "81d564b3e08c1258dc8d14d4e424de7c7e3a3f6ea989acee75399de54ad889f8"
+      },
+      {
+        "path": "requirements.txt",
+        "sha256": "a27bf6cc462237ce9443539734ef4c6e18529d120aed6b8d25e240fdccfa7523"
+      }
+    ]
+  },
+  "notes": "Standalone lab receipt. No SDE/Interlock coupling."
+}

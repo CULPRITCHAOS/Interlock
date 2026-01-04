@@ -1,28 +1,46 @@
 import json
 import sys
 import os
+import argparse
 
 # Thresholds
-MIN_MAX_N = 10000
+MIN_MAX_N_PROD = 10000
+MIN_MAX_N_EXPLORE = 2000
 MAX_BUILD_TIME_S = 150.0
 MAX_MEMORY_MB = 500.0
 MAX_RECIPROCITY = 1e-15
 
-def verify_receipt(receipt_path):
+def get_val(data, path_str):
+    """Helper to get nested value from dict using dot notation."""
+    keys = path_str.split('.')
+    val = data
+    for k in keys:
+        if isinstance(val, dict) and k in val:
+            val = val[k]
+        else:
+            return None
+    return val
+
+def verify_receipt(receipt_path, mode="production"):
     if not os.path.exists(receipt_path):
         return {
             "verdict": "FAIL",
-            "reasons": [f"File not found: {receipt_path}"]
+            "reasons": [f"File not found: {receipt_path}"],
+            "mode": mode
         }
 
     try:
-        with open(receipt_path, 'r') as f:
+        with open(receipt_path, 'r', encoding="utf-8-sig") as f:
             data = json.load(f)
     except Exception as e:
         return {
             "verdict": "FAIL",
-            "reasons": [f"Failed to parse JSON: {str(e)}"]
+            "reasons": [f"Failed to parse JSON: {str(e)}"],
+            "mode": mode
         }
+
+    # Set threshold based on mode
+    min_n = MIN_MAX_N_PROD if mode == "production" else MIN_MAX_N_EXPLORE
 
     # Validate required keys
     required_keys = ['operatorpack_version', 'created_at', 'project', 'environment', 'geometry', 'operator', 'benchmarks']
@@ -30,7 +48,8 @@ def verify_receipt(receipt_path):
     if missing_keys:
         return {
             "verdict": "FAIL",
-            "reasons": [f"Missing required keys: {', '.join(missing_keys)}"]
+            "reasons": [f"Missing required keys: {', '.join(missing_keys)}"],
+            "mode": mode
         }
 
     # Extract benchmarks
@@ -51,7 +70,8 @@ def verify_receipt(receipt_path):
         if not cases:
             return {
                 "verdict": "FAIL",
-                "reasons": ["Missing benchmark summary and cases"]
+                "reasons": ["Missing benchmark summary and cases"],
+                "mode": mode
             }
         
         # Sort by N descending
@@ -72,18 +92,18 @@ def verify_receipt(receipt_path):
 
     if reciprocity is None or None in (max_n, build_time, memory):
         return {
-
             "verdict": "FAIL",
-            "reasons": ["Could not extract all required metrics (N, build_time, memory, reciprocity)"]
+            "reasons": ["Could not extract all required metrics (N, build_time, memory, reciprocity)"],
+            "mode": mode
         }
 
     reasons = []
     verdict = "PASS"
 
     # Check FAIL conditions
-    if max_n < MIN_MAX_N:
+    if max_n < min_n:
         verdict = "FAIL"
-        reasons.append(f"max_N ({max_n}) < {MIN_MAX_N}")
+        reasons.append(f"max_N ({max_n}) < {min_n} (mode: {mode})")
     if build_time > MAX_BUILD_TIME_S:
         verdict = "FAIL"
         reasons.append(f"build_time_s ({build_time}) > {MAX_BUILD_TIME_S}")
@@ -96,14 +116,10 @@ def verify_receipt(receipt_path):
 
     # Check WARN conditions (if not already FAIL)
     if verdict == "PASS":
-        # Within 10% of limit
-        # For MIN_MAX_N: 10000 to 11000. But if exactly 10000, let's PASS if it's the target.
-        # Actually, let's only WARN if it's within 10% margin of the FAIL zone.
-        # For a MIN: WARN if MIN < value < MIN * 1.05 (narrower margin for pass)
-        if MIN_MAX_N < max_n < MIN_MAX_N * 1.05:
+        # WARN if near limits (within 5% for N, 5% for others)
+        if min_n < max_n < min_n * 1.05:
             verdict = "WARN"
-            reasons.append(f"max_N ({max_n}) is near minimum limit ({MIN_MAX_N})")
-        # For a MAX: WARN if 0.95 * MAX < value < MAX
+            reasons.append(f"max_N ({max_n}) is near minimum limit ({min_n})")
         if 0.95 * MAX_BUILD_TIME_S < build_time < MAX_BUILD_TIME_S:
             verdict = "WARN"
             reasons.append(f"build_time_s ({build_time}) is near maximum limit ({MAX_BUILD_TIME_S})")
@@ -114,9 +130,9 @@ def verify_receipt(receipt_path):
             verdict = "WARN"
             reasons.append(f"reciprocity ({reciprocity}) is near maximum limit ({MAX_RECIPROCITY})")
 
-
     result = {
         "verdict": verdict,
+        "mode": mode,
         "file": os.path.basename(receipt_path),
         "max_N": max_n,
         "build_time_s_at_maxN": build_time,
@@ -127,12 +143,13 @@ def verify_receipt(receipt_path):
     return result
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python tools/verify_operatorpack.py <path_to_operatorpack.json>")
-        sys.exit(2)
-
-    path = sys.argv[1]
-    res = verify_receipt(path)
+    parser = argparse.ArgumentParser(description="Verify an OperatorPack receipt against policy gates.")
+    parser.add_argument("receipt", help="Path to the operatorpack.json file")
+    parser.add_argument("--mode", choices=["production", "exploration"], default="production", help="Verification mode (default: production)")
+    
+    args = parser.parse_args()
+    
+    res = verify_receipt(args.receipt, mode=args.mode)
     
     print(json.dumps(res, indent=2))
     

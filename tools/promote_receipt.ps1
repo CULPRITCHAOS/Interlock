@@ -1,7 +1,8 @@
 param (
     [string]$Receipt,
     $AllowWarn = $true,
-    [string]$IndexPath
+    [string]$IndexPath,
+    [string]$Mode = "production"
 )
 
 # Convert AllowWarn to boolean robustly
@@ -30,10 +31,12 @@ catch {
 $repoRoot = $repoRoot.Trim()
 Set-Location $repoRoot
 
-# 2. Folder structure
+# 2. Folder structure based on mode
+$suffix = if ($Mode -eq "exploration") { "_experimental" } else { "" }
+
 $inboxDir = Join-Path $repoRoot "receipts/inbox"
-$approvedDir = Join-Path $repoRoot "receipts/approved"
-$rejectedDir = Join-Path $repoRoot "receipts/rejected"
+$approvedDir = Join-Path $repoRoot "receipts/approved$($suffix)"
+$rejectedDir = Join-Path $repoRoot "receipts/rejected$($suffix)"
 
 foreach ($dir in @($inboxDir, $approvedDir, $rejectedDir)) {
     if (-not (Test-Path $dir)) {
@@ -43,12 +46,13 @@ foreach ($dir in @($inboxDir, $approvedDir, $rejectedDir)) {
 
 # 3. Default Pathing
 if (-not $IndexPath) {
-    $robIndexPath = "C:\Users\13cul\Desktop\cross project files\RECEIPTS_INDEX.md"
-    if (Test-Path $robIndexPath) {
-        $IndexPath = $robIndexPath
+    if ($Mode -eq "production") {
+        $robIndexPath = "C:\Users\13cul\Desktop\cross project files\RECEIPTS_INDEX.md"
+        if (Test-Path $robIndexPath) { $IndexPath = $robIndexPath }
+        else { $IndexPath = Join-Path $repoRoot "receipts/RECEIPTS_INDEX.md" }
     }
     else {
-        $IndexPath = Join-Path $repoRoot "receipts/RECEIPTS_INDEX.md"
+        $IndexPath = Join-Path $repoRoot "receipts/RECEIPTS_INDEX_EXPERIMENTAL.md"
     }
 }
 
@@ -67,7 +71,7 @@ if (-not (Test-Path $Receipt)) {
     exit 1
 }
 
-Write-Host "Promoting receipt: $(Split-Path $Receipt -Leaf)" -ForegroundColor Cyan
+Write-Host "Promoting receipt ($(Mode) mode): $(Split-Path $Receipt -Leaf)" -ForegroundColor Cyan
 
 # 5. Determine Python command
 $pythonCmd = "py"
@@ -80,7 +84,7 @@ catch {
 
 # 6. Run Verifier
 $verifyScript = Join-Path $repoRoot "tools/verify_operatorpack.py"
-$verifyOutput = & $pythonCmd $verifyScript "$Receipt" | Out-String
+$verifyOutput = & $pythonCmd $verifyScript "$Receipt" --mode $Mode | Out-String
 
 # Write verdict JSON next to receipt
 $verdictPath = "$Receipt.verdict.json"
@@ -115,6 +119,7 @@ if ($verdict -eq "PASS") { Write-Host $verdict -ForegroundColor Green }
 elseif ($verdict -eq "WARN") { Write-Host $verdict -ForegroundColor Yellow }
 else { Write-Host $verdict -ForegroundColor Red }
 
+Write-Host "  Mode:          $Mode"
 Write-Host "  Max N:         $($res.max_N)"
 Write-Host "  Build Time:    $($res.build_time_s_at_maxN)s"
 Write-Host "  Memory:        $($res.mem_mb_at_maxN) MB"

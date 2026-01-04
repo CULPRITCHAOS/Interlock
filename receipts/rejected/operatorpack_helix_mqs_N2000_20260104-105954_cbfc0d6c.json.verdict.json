@@ -1,0 +1,12 @@
+﻿{
+  "verdict": "FAIL",
+  "file": "operatorpack_helix_mqs_N2000_20260104-105954_cbfc0d6c.json",
+  "max_N": 2000,
+  "build_time_s_at_maxN": 3.652688300004229,
+  "mem_mb_at_maxN": 24.1851806640625,
+  "reciprocity": 2.2262236892353326e-17,
+  "reasons": [
+    "max_N (2000) < 10000"
+  ]
+}
+
