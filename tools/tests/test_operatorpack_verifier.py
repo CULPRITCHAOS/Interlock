@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -17,7 +18,7 @@ class TestOperatorPackVerifier(unittest.TestCase):
         return tmp.name
 
     def run_verify(self, receipt_path):
-        result = subprocess.run(['py', self.verify_script, receipt_path], capture_output=True, text=True)
+        result = subprocess.run([sys.executable, self.verify_script, receipt_path], capture_output=True, text=True)
         return result.returncode, json.loads(result.stdout)
 
     def test_alias_keys_summary(self):
@@ -126,7 +127,7 @@ class TestOperatorPackVerifier(unittest.TestCase):
         with tempfile.NamedTemporaryFile(delete=False, suffix='.md', mode='w') as tmp:
             index_path = tmp.name
         
-        subprocess.run(['py', self.append_script, receipt_path, index_path], capture_output=True, text=True)
+        subprocess.run([sys.executable, self.append_script, receipt_path, index_path], capture_output=True, text=True)
         
         with open(index_path, 'r') as f:
             content = f.read()
