@@ -47,12 +47,22 @@ foreach ($dir in @($inboxDir, $approvedDir, $rejectedDir)) {
 # 3. Default Pathing
 if (-not $IndexPath) {
     if ($Mode -eq "production") {
+        # Optional: check internal project directory for special Rob flow
         $robIndexPath = Join-Path $HOME "Desktop\cross project files\RECEIPTS_INDEX.md"
         if (Test-Path $robIndexPath) { $IndexPath = $robIndexPath }
         else { $IndexPath = Join-Path $repoRoot "receipts/RECEIPTS_INDEX.md" }
     }
     else {
         $IndexPath = Join-Path $repoRoot "receipts/RECEIPTS_INDEX_EXPERIMENTAL.md"
+    }
+}
+
+# 3.1 Initialize Index from Template if missing
+if (-not (Test-Path $IndexPath)) {
+    $templatePath = "$IndexPath.template"
+    if (Test-Path $templatePath) {
+        Write-Host "Initializing index from template: $templatePath" -ForegroundColor Gray
+        Copy-Item -Path $templatePath -Destination $IndexPath -Force
     }
 }
 
@@ -136,5 +146,5 @@ else {
     }
 }
 
-Write-Host "`nWorkflow complete." -ForegroundColor Green
-Write-Host "NOTE: receipts/* outputs are local artifacts and are gitignored in this public repo. Do not commit approved/rejected receipts." -ForegroundColor Gray
+Write-Host "`nWorkflow complete." -ForegroundColor Gray
+Write-Host "NOTE: receipts/* outputs are local artifacts and are gitignored in this public repo. Do not commit approved/rejected receipts." -ForegroundColor Yellow

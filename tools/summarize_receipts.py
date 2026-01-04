@@ -37,13 +37,21 @@ def process_directory(dir_path):
                     verdict = v_data.get("verdict", "UNKNOWN")
 
             summary = get_val(data, "benchmarks.verify_scaling.summary")
+            mv_ms = summary.get("matvec_ms_at_maxN") if summary else None
             
+            # Fallback to cases if missing in summary
+            if mv_ms is None and get_val(data, "benchmarks.verify_scaling.cases"):
+                 cases = data["benchmarks"]["verify_scaling"]["cases"]
+                 ordered = sorted(cases, key=lambda x: x.get("N", 0), reverse=True)
+                 mv_ms = ordered[0].get("matvec_ms")
+
             receipt_info = {
                 "filename": f.name,
                 "created_at": data.get("created_at"),
                 "max_N": summary.get("max_N") if summary else None,
                 "build_s": summary.get("build_s_at_maxN") if summary else None,
                 "mem_mb": summary.get("mem_mb_at_maxN") if summary else None,
+                "matvec_ms": mv_ms,
                 "reciprocity": max(summary.get("reciprocity_range") or [0]) if summary else None,
                 "verdict": verdict,
                 "timestamp": datetime.fromisoformat(data["created_at"].replace("Z", "+00:00")),
@@ -59,8 +67,8 @@ def process_directory(dir_path):
     for i in range(1, len(receipts)):
         curr, prev = receipts[i], receipts[i-1]
         if curr["max_N"] == prev["max_N"]:
-            for key in ["build_s", "mem_mb"]:
-                if prev[key] and curr[key] and prev[key] > 0:
+            for key in ["build_s", "mem_mb", "matvec_ms"]:
+                if prev.get(key) and curr.get(key) and prev[key] > 0:
                     curr["regressions"][key] = (curr[key] - prev[key]) / prev[key]
             if prev["reciprocity"] and curr["reciprocity"] and prev["reciprocity"] > 0:
                 curr["regressions"]["reciprocity"] = curr["reciprocity"] / prev["reciprocity"]
@@ -69,8 +77,8 @@ def process_directory(dir_path):
 
 def generate_table(receipts):
     if not receipts: return ["*No receipts in this tier.*"]
-    lines = ["| Filename | Created At | Max N | Build (s) | Mem (MB) | Reciprocity | Verdict |",
-             "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |"]
+    lines = ["| Filename | Created At | Max N | Build (s) | Mem (MB) | Matvec (ms) | Reciprocity | Verdict |",
+             "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"]
     for r in receipts:
         build_str = f"{r['build_s']:.2f}"
         if "build_s" in r["regressions"]:
@@ -81,8 +89,13 @@ def generate_table(receipts):
         if "mem_mb" in r["regressions"]:
             c = r["regressions"]["mem_mb"]
             mem_str += f" ({'+' if c > 0 else ''}{c:.1%})"
+            
+        mv_str = f"{r['matvec_ms']:.2f}" if r.get('matvec_ms') else "-"
+        if "matvec_ms" in r["regressions"]:
+            c = r["regressions"]["matvec_ms"]
+            mv_str += f" ({'+' if c > 0 else ''}{c:.1%})"
 
-        lines.append(f"| `{r['filename']}` | {r['created_at']} | {r['max_N']} | {build_str} | {mem_str} | {r['reciprocity']:.2e} | {r['verdict']} |")
+        lines.append(f"| `{r['filename']}` | {r['created_at']} | {r['max_N']} | {build_str} | {mem_str} | {mv_str} | {r['reciprocity']:.2e} | {r['verdict']} |")
     return lines
 
 def summarize(prod_dir, explore_dir, out_dir):
@@ -100,9 +113,13 @@ def summarize(prod_dir, explore_dir, out_dir):
         b_build = min(prod_receipts, key=lambda x: x["build_s"] or 1e9)
         b_mem = min(prod_receipts, key=lambda x: x["mem_mb"] or 1e9)
         b_recip = min(prod_receipts, key=lambda x: x["reciprocity"] or 1e9)
+        b_mv = min([r for r in prod_receipts if r.get("matvec_ms")], key=lambda x: x["matvec_ms"], default=None)
+
         md.append(f"\n- **Fastest Build**: {b_build['build_s']:.2f}s (`{b_build['filename']}`)")
         md.append(f"- **Leanest Memory**: {b_mem['mem_mb']:.1f}MB (`{b_mem['filename']}`)")
         md.append(f"- **Best Reciprocity**: {b_recip['reciprocity']:.2e} (`{b_recip['filename']}`)")
+        if b_mv:
+            md.append(f"- **Fastest Matvec**: {b_mv['matvec_ms']:.2f}ms (`{b_mv['filename']}`)")
 
     md.append("\n## 🔬 Exploration Tier (Experimental)")
     md.extend(generate_table(explore_receipts))
@@ -110,9 +127,13 @@ def summarize(prod_dir, explore_dir, out_dir):
         b_build = min(explore_receipts, key=lambda x: x["build_s"] or 1e9)
         b_mem = min(explore_receipts, key=lambda x: x["mem_mb"] or 1e9)
         b_recip = min(explore_receipts, key=lambda x: x["reciprocity"] or 1e9)
+        b_mv = min([r for r in explore_receipts if r.get("matvec_ms")], key=lambda x: x["matvec_ms"], default=None)
+
         md.append(f"\n- **Fastest Build**: {b_build['build_s']:.2f}s (`{b_build['filename']}`)")
         md.append(f"- **Leanest Memory**: {b_mem['mem_mb']:.1f}MB (`{b_mem['filename']}`)")
         md.append(f"- **Best Reciprocity**: {b_recip['reciprocity']:.2e} (`{b_recip['filename']}`)")
+        if b_mv:
+            md.append(f"- **Fastest Matvec**: {b_mv['matvec_ms']:.2f}ms (`{b_mv['filename']}`)")
 
     with open(out_path / "RECEIPTS_SUMMARY.md", "w", encoding="utf-8") as f:
         f.write("\n".join(md))

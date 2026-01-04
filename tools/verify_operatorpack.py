@@ -63,6 +63,7 @@ def verify_receipt(receipt_path, mode="production"):
     build_time = summary.get('build_s_at_maxN') or summary.get('build_time_s_at_maxN')
     memory = summary.get('mem_mb_at_maxN') or summary.get('memory_mb_at_maxN')
     reciprocity = summary.get('reciprocity_range')
+    matvec_ms = summary.get('matvec_ms_at_maxN')
 
     # Fallback to cases if summary is missing
     if max_n is None or build_time is None or memory is None:
@@ -82,6 +83,7 @@ def verify_receipt(receipt_path, mode="production"):
         # Alias support for case keys
         build_time = max_case.get('build_s') or max_case.get('build_time_s') or max_case.get('build_time_seconds')
         memory = max_case.get('mem_mb') or max_case.get('memory_mb') or max_case.get('mem_mb_at_maxN')
+        matvec_ms = max_case.get('matvec_ms')
         
         if reciprocity is None:
             reciprocity = max_case.get('reciprocity')
@@ -129,6 +131,17 @@ def verify_receipt(receipt_path, mode="production"):
         if 0.95 * MAX_RECIPROCITY < reciprocity < MAX_RECIPROCITY:
             verdict = "WARN"
             reasons.append(f"reciprocity ({reciprocity}) is near maximum limit ({MAX_RECIPROCITY})")
+        
+        # Optional: Matvec Sanity check
+        if matvec_ms is not None:
+             if matvec_ms > 10000:
+                 verdict = "WARN"
+                 reasons.append(f"matvec_ms ({matvec_ms:.2f}) is suspiciously high (>10s)")
+             
+             # Production regression check: current gold ~9.18ms, 1.25x threshold ~11.5ms
+             if mode == "production" and max_n >= 10000 and matvec_ms > 11.5:
+                 if verdict == "PASS": verdict = "WARN"
+                 reasons.append(f"Matvec regression detected: {matvec_ms:.2f}ms > 11.5ms threshold (+25% vs gold)")
 
     result = {
         "verdict": verdict,
@@ -137,6 +150,7 @@ def verify_receipt(receipt_path, mode="production"):
         "max_N": max_n,
         "build_time_s_at_maxN": build_time,
         "mem_mb_at_maxN": memory,
+        "matvec_ms": matvec_ms,
         "reciprocity": reciprocity,
         "reasons": reasons
     }

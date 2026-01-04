@@ -70,8 +70,13 @@ receipts/summary/*
 !receipts/**/.gitkeep
 !receipts/examples/**
 
-# Ignore generated indexes (keep them as templates if needed)
+# Ignore generated indexes and summaries (local only)
 receipts/RECEIPTS_INDEX.md
 receipts/RECEIPTS_INDEX_EXPERIMENTAL.md
-!receipts/RECEIPTS_INDEX.md
-!receipts/RECEIPTS_INDEX_EXPERIMENTAL.md
+receipts/summary/RECEIPTS_SUMMARY.md
+receipts/summary/*.md
+!receipts/RECEIPTS_INDEX.md.template
+!receipts/RECEIPTS_INDEX_EXPERIMENTAL.md.template
+
+# Safe templates (if any exist with .template suffix)
+!receipts/**/*.template
