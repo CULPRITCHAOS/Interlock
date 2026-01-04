@@ -1,8 +1,22 @@
 param (
     [string]$Receipt,
-    [bool]$AllowWarn = $true,
+    $AllowWarn = $true,
     [string]$IndexPath
 )
+
+# Convert AllowWarn to boolean robustly
+if ($AllowWarn -is [string]) {
+    if ($AllowWarn -eq "false" -or $AllowWarn -eq "0" -or $AllowWarn -eq "$false") {
+        $AllowWarn = $false
+    }
+    else {
+        $AllowWarn = $true
+    }
+}
+else {
+    $AllowWarn = [bool]$AllowWarn
+}
+
 
 # 1. Determine repo root
 try {
