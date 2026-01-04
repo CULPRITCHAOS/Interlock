@@ -56,80 +56,83 @@ if (-not $IndexPath) {
     }
 }
 
-# 4. Auto-pick newest if no receipt provided
-if (-not $Receipt) {
-    $newest = Get-ChildItem -Path $inboxDir -Filter "*.json" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    if (-not $newest) {
-        Write-Host "No receipt provided and no JSON files found in $inboxDir" -ForegroundColor Yellow
+# 4. Promotion Function
+function Start-Promotion {
+    param ([string]$ReceiptPath)
+
+    if (-not (Test-Path $ReceiptPath)) {
+        Write-Error "Receipt file not found: $ReceiptPath"
+        return
+    }
+
+    Write-Host "`n>>> Promoting receipt ($($Mode) mode): $(Split-Path $ReceiptPath -Leaf)" -ForegroundColor Cyan
+
+    # Determine Python command
+    $pythonCmd = "py"
+    try { & py --version | Out-Null } catch { $pythonCmd = "python" }
+
+    # Run Verifier
+    $verifyScript = Join-Path $repoRoot "tools/verify_operatorpack.py"
+    $verifyOutput = & $pythonCmd $verifyScript "$ReceiptPath" --mode $Mode | Out-String
+
+    # Write verdict JSON next to receipt
+    $verdictPath = "$ReceiptPath.verdict.json"
+    $verifyOutput | Out-File -FilePath $verdictPath -Encoding utf8
+
+    # Parse Verdict
+    $res = $verifyOutput | ConvertFrom-Json
+    $verdict = $res.verdict
+
+    # Workflow Decision
+    $shouldApprove = ($verdict -eq "PASS") -or ($verdict -eq "WARN" -and $AllowWarn)
+    $destDir = if ($shouldApprove) { $approvedDir } else { $rejectedDir }
+
+    # Move files
+    $filename = Split-Path $ReceiptPath -Leaf
+    $finalReceiptPath = Join-Path $destDir $filename
+    $finalVerdictPath = Join-Path $destDir "$filename.verdict.json"
+
+    Move-Item -Path $ReceiptPath -Destination $finalReceiptPath -Force
+    Move-Item -Path $verdictPath -Destination $finalVerdictPath -Force
+
+    # Update Index Table
+    if ($shouldApprove) {
+        $appendScript = Join-Path $repoRoot "tools/append_receipt_index.py"
+        & $pythonCmd $appendScript "$finalReceiptPath" "$IndexPath" | Out-Null
+    }
+
+    # Summary Print
+    Write-Host "Promotion Result:" -ForegroundColor White -Style Bold
+    Write-Host "  Verdict:       " -NoNewline
+    if ($verdict -eq "PASS") { Write-Host $verdict -ForegroundColor Green }
+    elseif ($verdict -eq "WARN") { Write-Host $verdict -ForegroundColor Yellow }
+    else { Write-Host $verdict -ForegroundColor Red }
+
+    Write-Host "  Mode:          $Mode"
+    Write-Host "  Max N:         $($res.max_N)"
+    Write-Host "  Build Time:    $($res.build_time_s_at_maxN)s"
+    Write-Host "  Memory:        $($res.mem_mb_at_maxN) MB"
+    Write-Host "  Reciprocity:   $($res.reciprocity)"
+    Write-Host "  Destination:   $destDir"
+
+    if ($res.reasons.Count -gt 0) {
+        Write-Host "  Reasons:" -ForegroundColor Gray
+        foreach ($r in $res.reasons) { Write-Host "    - $r" -ForegroundColor Gray }
+    }
+}
+
+# 5. Main Loop
+if ($Receipt) {
+    Start-Promotion -ReceiptPath $Receipt
+}
+else {
+    $files = Get-ChildItem -Path $inboxDir -Filter "*.json" | Sort-Object LastWriteTime
+    if ($files.Count -eq 0) {
+        Write-Host "No JSON files found in $inboxDir" -ForegroundColor Yellow
         exit 0
     }
-    $Receipt = $newest.FullName
-}
-
-if (-not (Test-Path $Receipt)) {
-    Write-Error "Receipt file not found: $Receipt"
-    exit 1
-}
-
-Write-Host "Promoting receipt ($(Mode) mode): $(Split-Path $Receipt -Leaf)" -ForegroundColor Cyan
-
-# 5. Determine Python command
-$pythonCmd = "py"
-try {
-    & py --version | Out-Null
-}
-catch {
-    $pythonCmd = "python"
-}
-
-# 6. Run Verifier
-$verifyScript = Join-Path $repoRoot "tools/verify_operatorpack.py"
-$verifyOutput = & $pythonCmd $verifyScript "$Receipt" --mode $Mode | Out-String
-
-# Write verdict JSON next to receipt
-$verdictPath = "$Receipt.verdict.json"
-$verifyOutput | Out-File -FilePath $verdictPath -Encoding utf8
-
-# Parse Verdict
-$res = $verifyOutput | ConvertFrom-Json
-$verdict = $res.verdict
-
-# 7. Workflow Decision
-$shouldApprove = ($verdict -eq "PASS") -or ($verdict -eq "WARN" -and $AllowWarn)
-$destDir = if ($shouldApprove) { $approvedDir } else { $rejectedDir }
-
-# Move files
-$filename = Split-Path $Receipt -Leaf
-$finalReceiptPath = Join-Path $destDir $filename
-$finalVerdictPath = Join-Path $destDir "$filename.verdict.json"
-
-Move-Item -Path $Receipt -Destination $finalReceiptPath -Force
-Move-Item -Path $verdictPath -Destination $finalVerdictPath -Force
-
-# 8. Update Index Table
-if ($shouldApprove) {
-    $appendScript = Join-Path $repoRoot "tools/append_receipt_index.py"
-    & $pythonCmd $appendScript "$finalReceiptPath" "$IndexPath" | Out-Null
-}
-
-# 9. Summary Print
-Write-Host "`nPromotion Result:" -ForegroundColor White -Style Bold
-Write-Host "  Verdict:       " -NoNewline
-if ($verdict -eq "PASS") { Write-Host $verdict -ForegroundColor Green }
-elseif ($verdict -eq "WARN") { Write-Host $verdict -ForegroundColor Yellow }
-else { Write-Host $verdict -ForegroundColor Red }
-
-Write-Host "  Mode:          $Mode"
-Write-Host "  Max N:         $($res.max_N)"
-Write-Host "  Build Time:    $($res.build_time_s_at_maxN)s"
-Write-Host "  Memory:        $($res.mem_mb_at_maxN) MB"
-Write-Host "  Reciprocity:   $($res.reciprocity)"
-Write-Host "  Destination:   $destDir"
-
-if ($res.reasons.Count -gt 0) {
-    Write-Host "  Reasons:" -ForegroundColor Gray
-    foreach ($r in $res.reasons) {
-        Write-Host "    - $r" -ForegroundColor Gray
+    foreach ($file in $files) {
+        Start-Promotion -ReceiptPath $file.FullName
     }
 }
 
