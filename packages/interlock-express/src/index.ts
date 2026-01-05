@@ -9,7 +9,8 @@ import { startHealthWindowEmitter, recordRequest, MetricsCollector } from './hea
 import { emitInterventionEvent } from './intervention-emitter';
 import { loadLaw, mapLawToHysteresisConfig } from '../../../services/law-loader';
 import { Domain } from '../../../services/events.types';
-import * as path from 'path';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 
 export interface InterlockOptions {
     dry_run?: boolean;
