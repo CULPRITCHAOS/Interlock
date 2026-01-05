@@ -4,7 +4,7 @@
  * Exports all adapter-related types and utilities.
  */
 
-export {
+export type {
     InterlockAdapter,
     UniversalMetrics,
     KernelPhysics,

@@ -9,7 +9,8 @@ from datetime import datetime
 from collections import Counter, defaultdict
 import statistics
 
-JSONL_PATH = r"C:\Users\13cul\Desktop\Interlock\logs\interlock_events.jsonl"
+import os
+JSONL_PATH = os.path.join("logs", "interlock_events.jsonl")
 
 print(f"\n=== Analyzing Telemetry from {JSONL_PATH} ===\n")
 

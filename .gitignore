@@ -51,14 +51,12 @@ App.tsx
 index.tsx
 index.html
 
-# Exclude All Historical Results (except summary docs if any)
-# But allow results/validation/ for CI artifact uploads
+# Results (ignore all artifacts)
 results/**
 !results/
-!results/validation/
-!results/validation/**
-!results/badge/
-!results/badge/**
+!results/.gitkeep
+!results/**/.gitkeep
+!results/**/*.template
 
 # OperatorPack Artifacts
 # Ignore all benchmark receipts and verdicts
