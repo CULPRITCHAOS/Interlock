@@ -7,7 +7,7 @@ import json
 import os
 from datetime import datetime
 
-LOG_PATH = r"C:\Users\13cul\Desktop\Interlock\logs\interlock_events.jsonl"
+LOG_PATH = os.path.join("logs", "interlock_events.jsonl")
 SERVER_URL = "http://localhost:3001/chat"
 MODEL_ID = "gemma3:1b"
 

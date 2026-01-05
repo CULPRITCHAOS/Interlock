@@ -2,7 +2,7 @@
 # Analyzes the interlock_events.jsonl from the autonomous run
 
 param(
-    [string]$LogPath = "C:\Users\13cul\Desktop\Interlock\logs\interlock_events.jsonl",
+    [string]$LogPath = "logs/interlock_events.jsonl",
     [string]$OutputPath = ""
 )
 
@@ -108,17 +108,17 @@ if ($healthWindows.Count -gt 0) {
     # Output JSON if requested
     if ($OutputPath) {
         $summary = @{
-            analyzed_at = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
-            log_path = $LogPath
-            file_size_mb = $fileSizeMB
-            duration_hours = $durationHours
-            total_events = $totalLines
-            health_windows = $healthWindows.Count
-            interventions = $interventions.Count
+            analyzed_at     = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            log_path        = $LogPath
+            file_size_mb    = $fileSizeMB
+            duration_hours  = $durationHours
+            total_events    = $totalLines
+            health_windows  = $healthWindows.Count
+            interventions   = $interventions.Count
             latency_p95_avg = [Math]::Round($avgLatency, 1)
             latency_p95_max = [Math]::Round($maxLatency, 1)
-            breach_count = $breaches.Count
-            breach_rate = [Math]::Round($breachRate, 1)
+            breach_count    = $breaches.Count
+            breach_rate     = [Math]::Round($breachRate, 1)
         }
         New-Item -ItemType Directory -Force -Path (Split-Path $OutputPath) -ErrorAction SilentlyContinue | Out-Null
         $summary | ConvertTo-Json | Out-File $OutputPath -Encoding UTF8

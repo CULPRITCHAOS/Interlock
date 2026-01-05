@@ -19,7 +19,10 @@ export {
     bootInterlock,
     initStamping,
     stampEvent,
-    computePhysicsHash,
+    computePhysicsHash
+} from './boot';
+
+export type {
     KernelLoadResult,
     EffectiveConfig,
     KernelBootEvent,

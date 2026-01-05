@@ -14,9 +14,8 @@
          - Restart components
 #>
 
-$InterlockPath = "C:\Users\13cul\Desktop\Interlock"
-Set-Location $InterlockPath
-$SDEPath = "C:\Users\13cul\Simulated-Desire-Engine"
+$InterlockPath = "."
+$SDEPath = $env:SDE_PATH -or "../Simulated-Desire-Engine"
 $SDEPython = "$SDEPath\.venv\Scripts\python.exe"
 $LogPath = "$InterlockPath\logs\interlock_events.jsonl"
 $BaselineLaw = "$InterlockPath\laws\baselines\ollama.json"

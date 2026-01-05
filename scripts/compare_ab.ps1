@@ -1,8 +1,8 @@
 # A/B Comparison Script
 # Compares baseline vs burst protection law results
 
-$baselinePath = "C:\Users\13cul\Desktop\Interlock\results\ab_baseline.json"
-$burstPath = "C:\Users\13cul\Desktop\Interlock\results\ab_burst.json"
+$baselinePath = "results/ab_baseline.json"
+$burstPath = "results/ab_burst.json"
 
 if (-not (Test-Path $baselinePath) -or -not (Test-Path $burstPath)) {
     Write-Host "Error: Missing A/B test results. Run run_ab_test.ps1 first." -ForegroundColor Red
@@ -122,7 +122,7 @@ $(if ($fpBudgetExceeded) {
 - **Burst Results**: ``results/ab_burst.json``
 "@
 
-$outputPath = "C:\Users\13cul\Desktop\Interlock\results\AB_OLLAMA_BASELINE_vs_BURST.md"
+$outputPath = "results/AB_OLLAMA_BASELINE_vs_BURST.md"
 New-Item -ItemType Directory -Force -Path (Split-Path $outputPath) | Out-Null
 $report | Out-File $outputPath -Encoding UTF8
 

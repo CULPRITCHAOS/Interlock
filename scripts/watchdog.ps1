@@ -2,7 +2,7 @@
 # Monitors log file freshness to detect stalled runs
 
 param(
-    [string]$LogPath = "C:\Users\13cul\Desktop\Interlock\logs\interlock_events.jsonl",
+    [string]$LogPath = "logs/interlock_events.jsonl",
     [int]$MaxAgeSeconds = 60
 )
 

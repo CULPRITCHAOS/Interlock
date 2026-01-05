@@ -47,10 +47,7 @@ foreach ($dir in @($inboxDir, $approvedDir, $rejectedDir)) {
 # 3. Default Pathing
 if (-not $IndexPath) {
     if ($Mode -eq "production") {
-        # Optional: check internal project directory for special Rob flow
-        $robIndexPath = Join-Path $HOME "Desktop\cross project files\RECEIPTS_INDEX.md"
-        if (Test-Path $robIndexPath) { $IndexPath = $robIndexPath }
-        else { $IndexPath = Join-Path $repoRoot "receipts/RECEIPTS_INDEX.md" }
+        $IndexPath = Join-Path $repoRoot "receipts/RECEIPTS_INDEX.md"
     }
     else {
         $IndexPath = Join-Path $repoRoot "receipts/RECEIPTS_INDEX_EXPERIMENTAL.md"

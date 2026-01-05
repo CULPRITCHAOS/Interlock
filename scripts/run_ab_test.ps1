@@ -3,7 +3,7 @@
 
 param(
     [int]$DurationMinutes = 120, # 2 hours per test
-    [string]$InterlockPath = "C:\Users\13cul\Desktop\Interlock"
+    [string]$InterlockPath = "."
 )
 
 $tests = @(
