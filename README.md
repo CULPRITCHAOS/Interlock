@@ -13,7 +13,7 @@ Interlock is a circuit-breaker + evidence layer for AI infrastructure. It monito
 
 ## Quickstart
 
-**Docs**: [Quickstart](./docs/QUICKSTART.md) · [Local AI](./docs/quickstart/local-ai.md) · [Middleware](./docs/MIDDLEWARE.md)
+**Docs**: [Quickstart](./docs/QUICKSTART.md) · [Local AI](./docs/quickstart/local-ai.md) · [Middleware](./docs/MIDDLEWARE.md) · [AI Safety](./docs/AI_COLLAB_SAFETY.md)
 
 ### Express (Node)
 
