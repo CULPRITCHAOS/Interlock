@@ -20,6 +20,9 @@ __pycache__
 venv
 .env
 
+# Multi-agent coordination (local-only to prevent leaking sensitive task context)
+docs/MULTI_AGENT_COORD.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
