@@ -112,6 +112,7 @@ Write-Host "[3/4] Scanning for exposed secrets..." -NoNewline
 $skipFiles = @(
     "tools/precommit_safety_scan.ps1",
     "tools/scanner_diagnostic.ps1",
+    "tools/tests/test_scanner.ps1",
     "docs/AI_COLLAB_SAFETY.md"
 )
 
