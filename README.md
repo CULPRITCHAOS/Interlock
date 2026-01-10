@@ -121,6 +121,16 @@ Interlock supports a standard promotion workflow for OperatorPacks with **2-Tier
 These outputs are local artifacts and are gitignored by design in this public repo.
 
 
+## AI Collaboration
+
+This repo uses a multi-agent workflow with safety guardrails.
+
+- **Project Memory**: [CLAUDE.md](./CLAUDE.md) - Build commands, safety rules, agent assignment
+- **Safety Policy**: [docs/AI_COLLAB_SAFETY.md](./docs/AI_COLLAB_SAFETY.md) - PII protection, merge gates
+- **Coordination**: [multi_agent_coord.template.md](./multi_agent_coord.template.md) - Handoff protocol template
+
+AI agents must run `tools/precommit_safety_scan.ps1` before commits.
+
 ## License
 
 MIT. See [LICENSE](./LICENSE).

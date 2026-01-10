@@ -22,6 +22,8 @@ venv
 
 # Multi-agent coordination (local-only to prevent leaking sensitive task context)
 docs/MULTI_AGENT_COORD.md
+**/multi_agent_coord.md
+!multi_agent_coord.template.md
 
 # Editor directories and files
 .vscode/*
