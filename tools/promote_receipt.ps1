@@ -72,6 +72,16 @@ function Start-Promotion {
         return
     }
 
+    # FIX: If receipt is from examples/, stage a copy to inbox first to protect tracked files
+    $normalizedPath = $ReceiptPath -replace '\\', '/'
+    if ($normalizedPath -match 'receipts/examples/') {
+        $filename = Split-Path $ReceiptPath -Leaf
+        $stagedPath = Join-Path $inboxDir $filename
+        Write-Host "  [Guard] Example file detected - staging copy to inbox: $stagedPath" -ForegroundColor Gray
+        Copy-Item -Path $ReceiptPath -Destination $stagedPath -Force
+        $ReceiptPath = $stagedPath
+    }
+
     Write-Host "`n>>> Promoting receipt ($($Mode) mode): $(Split-Path $ReceiptPath -Leaf)" -ForegroundColor Cyan
 
     # Determine Python command
