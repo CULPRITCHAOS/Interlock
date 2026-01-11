@@ -20,199 +20,115 @@ ARTIFACT_DIR=$(create_artifact_dir "public_safety_check")
 START_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # Initialize log files
-touch "${ARTIFACT_DIR}/stdout.log" "${ARTIFACT_DIR}/stderr.log"
+rm -f "${ARTIFACT_DIR}/findings.txt"
 touch "${ARTIFACT_DIR}/findings.txt"
+touch "${ARTIFACT_DIR}/stdout.log" "${ARTIFACT_DIR}/stderr.log"
 
-log_msg "$ARTIFACT_DIR" "Starting public safety check"
-log_msg "$ARTIFACT_DIR" "Run ID: ${RUN_ID}"
+log_msg "$ARTIFACT_DIR" "Starting public safety check (Run ID: ${RUN_ID})"
 
 EXIT_CODE=0
 FINDINGS_COUNT=0
 
-# Helper to record findings
-record_finding() {
-    local category="$1"
-    local detail="$2"
-    echo "[${category}] ${detail}" >> "${ARTIFACT_DIR}/findings.txt"
-    log_err "$ARTIFACT_DIR" "[${category}] ${detail}"
-    FINDINGS_COUNT=$((FINDINGS_COUNT + 1))
-}
-
-# ============================================
-# Check 1: PII / Machine Paths
-# ============================================
-log_msg "$ARTIFACT_DIR" "Check 1/4: Scanning for PII/machine paths..."
-
-# Get tracked files, excluding safe directories and scanner scripts
-TRACKED_FILES=$(git ls-files | grep -v -E '^(\.claude/|\.agent/|node_modules/|\.git/|scripts/claude/|tools/precommit_safety_scan\.ps1|tools/tests/)' || true)
-
-if [ -n "$TRACKED_FILES" ]; then
-    # Check for Windows paths
-    PII_MATCHES=$(echo "$TRACKED_FILES" | xargs grep -l -E 'C:\\Users\\|C:/Users/' 2>/dev/null || true)
-    for match in $PII_MATCHES; do
-        record_finding "PII" "Windows user path found in: $match"
-        EXIT_CODE=1
-    done
-
-    # Check for macOS/Linux paths
-    PII_MATCHES=$(echo "$TRACKED_FILES" | xargs grep -l -E '/Users/[a-zA-Z]|/home/[a-zA-Z]' 2>/dev/null || true)
-    for match in $PII_MATCHES; do
-        record_finding "PII" "Unix user path found in: $match"
-        EXIT_CODE=1
-    done
-fi
-
-if [ $EXIT_CODE -eq 0 ]; then
-    log_msg "$ARTIFACT_DIR" "Check 1/4: PASS - No PII paths found"
-else
-    log_err "$ARTIFACT_DIR" "Check 1/4: FAIL - PII paths detected"
-fi
-
-# ============================================
-# Check 2: Secret Patterns
-# ============================================
-log_msg "$ARTIFACT_DIR" "Check 2/4: Scanning for secret patterns..."
-
+# Patterns
 SECRET_PATTERNS=(
-    'AKIA[0-9A-Z]{16}'                    # AWS Access Key
-    'sk-[a-zA-Z0-9]{48}'                  # OpenAI API Key
-    'ghp_[a-zA-Z0-9]{36}'                 # GitHub Personal Access Token
-    'gho_[a-zA-Z0-9]{36}'                 # GitHub OAuth Token
-    'glpat-[a-zA-Z0-9\-]{20}'             # GitLab Personal Access Token
-    'xox[baprs]-[0-9a-zA-Z\-]+'           # Slack Token
-    '-----BEGIN (RSA |DSA |EC )?PRIVATE KEY-----'  # Private Key Block
-    'api[_-]?key["\s]*[:=]["\s]*[a-zA-Z0-9]{20,}'  # Generic API Key
+    'AKIA[0-9A-Z]{16}'
+    'sk-[a-zA-Z0-9]{48}'
+    'ghp_[a-zA-Z0-9]{36}'
+    'gho_[a-zA-Z0-9]{36}'
+    'glpat-[a-zA-Z0-9\-]{20}'
+    'xox[baprs]-[0-9a-zA-Z\-]+'
+    '-----BEGIN (RSA |DSA |EC )?PRIVATE KEY-----'
+    'api[_-]?key[[:space:]]*[:=][[:space:]]*[a-zA-Z0-9]{20,}'
 )
-
-CURRENT_CHECK_FAILED=0
-for pattern in "${SECRET_PATTERNS[@]}"; do
-    if [ -n "$TRACKED_FILES" ]; then
-        MATCHES=$(echo "$TRACKED_FILES" | xargs grep -l -E "$pattern" 2>/dev/null || true)
-        for match in $MATCHES; do
-            # Exclude test fixtures and documentation
-            if [[ ! "$match" =~ (test|example|fixture|\.md$) ]]; then
-                record_finding "SECRET" "Pattern '$pattern' found in: $match"
-                CURRENT_CHECK_FAILED=1
-            fi
-        done
-    fi
-done
-
-if [ $CURRENT_CHECK_FAILED -eq 1 ]; then
-    EXIT_CODE=1
-    log_err "$ARTIFACT_DIR" "Check 2/4: FAIL - Secret patterns detected"
-else
-    log_msg "$ARTIFACT_DIR" "Check 2/4: PASS - No secrets found"
-fi
-
-# ============================================
-# Check 3: Forbidden Content (Internal Details)
-# ============================================
-log_msg "$ARTIFACT_DIR" "Check 3/4: Scanning for forbidden content..."
-
 FORBIDDEN_PATTERNS=(
     'enforcement heuristics'
     'private rules'
     'internal-only'
     'DO NOT PUBLISH'
-    # Note: CONFIDENTIAL removed - commonly used in legitimate security docs
 )
 
-CURRENT_CHECK_FAILED=0
-for pattern in "${FORBIDDEN_PATTERNS[@]}"; do
-    if [ -n "$TRACKED_FILES" ]; then
-        MATCHES=$(echo "$TRACKED_FILES" | xargs grep -l -i "$pattern" 2>/dev/null || true)
-        for match in $MATCHES; do
-            # Exclude this script and documentation about the check
-            if [[ ! "$match" =~ (public_safety_check\.sh|AI_COLLAB_SAFETY\.md) ]]; then
-                record_finding "FORBIDDEN" "Pattern '$pattern' found in: $match"
-                CURRENT_CHECK_FAILED=1
-            fi
-        done
-    fi
-done
+# Helper to record findings
+record_safety_finding() {
+    local category="$1"
+    local message="$2"
+    local target_file="$3"
 
-if [ $CURRENT_CHECK_FAILED -eq 1 ]; then
+    # Normalize path for matching
+    local norm
+    norm=$(echo "$target_file" | tr '\\' '/' | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+    # Narrow Allowlist: Specific files that legitimately contain these patterns as documentation/tools
+    case "$norm" in
+        "docs/AI_COLLAB_SAFETY.md" | ".claude/rules/security-public-repo.md" | ".agent/workflows/security-public-repo.md")
+            log_msg "$ARTIFACT_DIR" "  [SKIP] Allowlisted doc match in $norm: $message"
+            return 0
+            ;;
+        "tools/precommit_safety_scan.ps1" | "scripts/claude/public_safety_check.sh")
+            log_msg "$ARTIFACT_DIR" "  [SKIP] Allowlisted script match in $norm: $message"
+            return 0
+            ;;
+    esac
+
+    local ts
+    ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    echo "[${RUN_ID}] [${ts}] [${category}] ${message} in ${target_file}" >> "${ARTIFACT_DIR}/findings.txt"
+    log_err "$ARTIFACT_DIR" "[${category}] ${message} in ${target_file}"
+}
+
+# Scan ALL tracked files for maximum safety (no global skips)
+# Use process substitution to avoid subshell scope issues
+while IFS= read -r f; do
+    # Skip directories we never scan (node_modules is huge and external)
+    [[ "$f" == node_modules/* ]] && continue
+    [[ "$f" == .git/* ]] && continue
+    
+    # PII Check
+    # Regex: file:/// | c:/Users | C:/Users | c:\Users | C:\Users | /Users/name | /home/name
+    if grep -q -E 'file:///|[cC]:/Users/|[cC]:\\Users\\|/Users/[[:alpha:]]|/home/[[:alpha:]]' "$f" 2>/dev/null; then
+         record_safety_finding "PII" "Absolute path detected" "$f"
+    fi
+
+    # Secrets Check
+    for p in "${SECRET_PATTERNS[@]}"; do
+        if grep -q -E "$p" "$f" 2>/dev/null; then
+            record_safety_finding "SECRET" "Pattern '$p' detected" "$f"
+        fi
+    done
+
+    # Forbidden Check
+    for p in "${FORBIDDEN_PATTERNS[@]}"; do
+        if grep -qi "$p" "$f" 2>/dev/null; then
+            record_safety_finding "FORBIDDEN" "Pattern '$p' detected" "$f"
+        fi
+    done
+
+    # Artifact Leakage Check (Never skipped)
+    if echo "$f" | grep -qiE "(receipts/(approved|rejected|summary)/|results/badge/|\.verdict\.json$)" && [[ "$f" != *".gitkeep" ]]; then
+        record_safety_finding "ARTIFACT" "Tracked artifact" "$f"
+    fi
+done < <(git ls-files)
+
+# Finalize - Fail-closed backstop: recalculate findings count from file
+FINDINGS_COUNT=$(wc -l < "${ARTIFACT_DIR}/findings.txt" | tr -d ' ')
+if [ "$FINDINGS_COUNT" -gt 0 ]; then
     EXIT_CODE=1
-    log_err "$ARTIFACT_DIR" "Check 3/4: FAIL - Forbidden content detected"
-else
-    log_msg "$ARTIFACT_DIR" "Check 3/4: PASS - No forbidden content found"
 fi
 
-# ============================================
-# Check 4: Artifact Leakage
-# ============================================
-log_msg "$ARTIFACT_DIR" "Check 4/4: Checking for tracked artifacts..."
-
-ARTIFACT_PATTERNS=(
-    'receipts/approved/'
-    'receipts/rejected/'
-    'receipts/summary/'
-    'results/badge/'
-    '\.verdict\.json$'
-)
-
-CURRENT_CHECK_FAILED=0
-for pattern in "${ARTIFACT_PATTERNS[@]}"; do
-    MATCHES=$(git ls-files | grep -E "$pattern" 2>/dev/null || true)
-    if [ -n "$MATCHES" ]; then
-        for match in $MATCHES; do
-            # Exclude .gitkeep files (structural placeholders are OK)
-            if [[ ! "$match" =~ \.gitkeep$ ]]; then
-                record_finding "ARTIFACT" "Tracked artifact: $match"
-                CURRENT_CHECK_FAILED=1
-            fi
-        done
-    fi
-done
-
-if [ $CURRENT_CHECK_FAILED -eq 1 ]; then
-    EXIT_CODE=1
-    log_err "$ARTIFACT_DIR" "Check 4/4: FAIL - Tracked artifacts detected"
-else
-    log_msg "$ARTIFACT_DIR" "Check 4/4: PASS - No artifact leakage"
-fi
-
-# ============================================
-# Finalize
-# ============================================
 END_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 STATUS="PASS"
 [ $EXIT_CODE -ne 0 ] && STATUS="FAIL"
 
 write_meta "$ARTIFACT_DIR" "public_safety_check" "$EXIT_CODE" "$STATUS" "$START_TIME" "$END_TIME"
 
-# Write detailed summary
 cat > "${ARTIFACT_DIR}/summary.md" << EOF
 # Public Safety Check Summary
-
 **Status**: ${STATUS}
-**Exit Code**: ${EXIT_CODE}
-**Findings Count**: ${FINDINGS_COUNT}
-**Artifact Directory**: \`${ARTIFACT_DIR}\`
-**Timestamp**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-
-## Checks Performed
-
-1. **PII/Machine Paths** - Scan for hardcoded user paths
-2. **Secret Patterns** - Scan for API keys, tokens, private keys
-3. **Forbidden Content** - Scan for internal-only markers
-4. **Artifact Leakage** - Check for tracked receipts/verdicts
+**Findings**: ${FINDINGS_COUNT}
+**Run ID**: ${RUN_ID}
 
 ## Findings
-
 $(if [ -s "${ARTIFACT_DIR}/findings.txt" ]; then cat "${ARTIFACT_DIR}/findings.txt"; else echo "None"; fi)
-
-## Artifacts
-
-- \`meta.json\` - Run metadata
-- \`findings.txt\` - Detailed findings
-- \`stdout.log\` - Standard output
-- \`stderr.log\` - Standard error
 EOF
 
 log_msg "$ARTIFACT_DIR" "Public safety check complete: ${STATUS}"
-log_msg "$ARTIFACT_DIR" "Findings: ${FINDINGS_COUNT}"
-log_msg "$ARTIFACT_DIR" "Artifacts: ${ARTIFACT_DIR}"
-
 exit $EXIT_CODE

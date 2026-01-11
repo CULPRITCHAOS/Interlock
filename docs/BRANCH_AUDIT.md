@@ -51,8 +51,8 @@
 | `feature/sde-integration` | Deleted | ✅ Complete |
 | `feature/standard-validation` | Deleted | ✅ Complete |
 | `codex/update-github-actions-test-schedule` | Deleted | ✅ Complete |
-| `feature/hardware-fingerprint` | Cherry-picked to PR #34 | ✅ Merged |
-| `feature/hardware-fingerprint-v2` | Created for PR #34, merged, deleted | ✅ Complete |
+| `feature/hardware-fingerprint` | Cherry-picked to main | ✅ Merged |
+| `feature/hardware-fingerprint-v2` | Merged and deleted | ✅ Complete |
 
 ### Remaining Branches
 
