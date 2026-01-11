@@ -56,6 +56,10 @@ App.tsx
 index.tsx
 index.html
 
+# Claude Code artifacts (local only)
+artifacts/claude/**
+!artifacts/claude/.gitkeep
+
 # Results (ignore all artifacts)
 results/**
 !results/

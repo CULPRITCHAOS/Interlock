@@ -1,0 +1,93 @@
+{
+  "$schema": "https://claude.ai/schemas/claude-code-settings.json",
+  "version": "1.0",
+  "description": "Interlock Claude Code lockdown settings - evidence-first, fail-closed",
+
+  "permissions": {
+    "bash": {
+      "allow": [
+        "./scripts/claude/*"
+      ],
+      "deny": [
+        "curl",
+        "wget",
+        "powershell",
+        "pwsh",
+        "Invoke-WebRequest",
+        "rm -rf",
+        "rm -r",
+        "del /s",
+        "Remove-Item",
+        "rmdir",
+        "format",
+        "diskpart",
+        "sudo",
+        "chmod",
+        "chown"
+      ],
+      "description": "Only allow execution of vetted wrapper scripts in ./scripts/claude/"
+    },
+
+    "read": {
+      "allow": [
+        "./**"
+      ],
+      "deny": [
+        ".env",
+        ".env.*",
+        "**/.env",
+        "**/secrets/**",
+        "**/*.key",
+        "**/*.pem",
+        "**/credentials*",
+        "**/token*",
+        "~/**",
+        "$HOME/**",
+        "/etc/**",
+        "C:/Users/*/AppData/**"
+      ],
+      "description": "Read repo files only, never secrets or system paths"
+    },
+
+    "write": {
+      "allow": [
+        "./artifacts/claude/**",
+        "./scripts/claude/**",
+        "./.claude/**"
+      ],
+      "deny": [
+        ".env",
+        "**/secrets/**",
+        "**/*.key",
+        ".github/workflows/**"
+      ],
+      "description": "Write only to Claude artifacts and config, never secrets or CI"
+    },
+
+    "glob": {
+      "allow": ["./**"],
+      "deny": ["**/node_modules/**", "**/.git/**"],
+      "description": "Glob repo files, skip heavy directories"
+    },
+
+    "grep": {
+      "allow": ["./**"],
+      "deny": ["**/node_modules/**", "**/.git/**"],
+      "description": "Search repo files, skip heavy directories"
+    }
+  },
+
+  "behavior": {
+    "fail_closed": true,
+    "require_evidence": true,
+    "artifact_path": "./artifacts/claude/",
+    "description": "Fail-closed: deny beats allow, require evidence for claims"
+  },
+
+  "notes": [
+    "All automation MUST go through ./scripts/claude/ wrappers",
+    "Arbitrary shell execution is NOT permitted",
+    "Every operation should emit artifacts for audit",
+    "Deny rules take precedence over allow rules"
+  ]
+}
