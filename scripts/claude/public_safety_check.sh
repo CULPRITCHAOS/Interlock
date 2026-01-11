@@ -43,8 +43,8 @@ record_finding() {
 # ============================================
 log_msg "$ARTIFACT_DIR" "Check 1/4: Scanning for PII/machine paths..."
 
-# Get tracked files, excluding safe directories
-TRACKED_FILES=$(git ls-files | grep -v -E '^(\.claude/|\.agent/|node_modules/|\.git/)' || true)
+# Get tracked files, excluding safe directories and scanner scripts
+TRACKED_FILES=$(git ls-files | grep -v -E '^(\.claude/|\.agent/|node_modules/|\.git/|scripts/claude/|tools/precommit_safety_scan\.ps1|tools/tests/)' || true)
 
 if [ -n "$TRACKED_FILES" ]; then
     # Check for Windows paths

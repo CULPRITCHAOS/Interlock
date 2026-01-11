@@ -25,6 +25,20 @@ touch "${ARTIFACT_DIR}/stdout.log" "${ARTIFACT_DIR}/stderr.log"
 log_msg "$ARTIFACT_DIR" "Starting receipt audit"
 log_msg "$ARTIFACT_DIR" "Run ID: ${RUN_ID}"
 
+# Detect Python command (Windows uses py, Unix uses python3/python)
+PYTHON_CMD=""
+if command -v py &>/dev/null; then
+    PYTHON_CMD="py"
+elif command -v python3 &>/dev/null; then
+    PYTHON_CMD="python3"
+elif command -v python &>/dev/null; then
+    PYTHON_CMD="python"
+else
+    log_err "$ARTIFACT_DIR" "ERROR: Python not found in PATH"
+    exit 1
+fi
+log_msg "$ARTIFACT_DIR" "Using Python command: $PYTHON_CMD"
+
 EXIT_CODE=0
 TESTS_PASSED=0
 TESTS_FAILED=0
@@ -50,7 +64,7 @@ log_msg "$ARTIFACT_DIR" "Test 2: OperatorPack positive test (should PASS)..."
 
 PASS_FIXTURE="receipts/examples/operatorpack_example_pass.json"
 if [ -f "$PASS_FIXTURE" ]; then
-    if python tools/verify_operatorpack.py "$PASS_FIXTURE" >> "${ARTIFACT_DIR}/stdout.log" 2>> "${ARTIFACT_DIR}/stderr.log"; then
+    if $PYTHON_CMD tools/verify_operatorpack.py "$PASS_FIXTURE" >> "${ARTIFACT_DIR}/stdout.log" 2>> "${ARTIFACT_DIR}/stderr.log"; then
         log_msg "$ARTIFACT_DIR" "Test 2: PASS - Valid receipt accepted"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else
@@ -72,7 +86,7 @@ log_msg "$ARTIFACT_DIR" "Test 3: OperatorPack negative test (should FAIL)..."
 FAIL_FIXTURE="receipts/examples/operatorpack_example_fail.json"
 if [ -f "$FAIL_FIXTURE" ]; then
     # This SHOULD fail, so we invert the logic
-    if python tools/verify_operatorpack.py "$FAIL_FIXTURE" >> "${ARTIFACT_DIR}/stdout.log" 2>> "${ARTIFACT_DIR}/stderr.log"; then
+    if $PYTHON_CMD tools/verify_operatorpack.py "$FAIL_FIXTURE" >> "${ARTIFACT_DIR}/stdout.log" 2>> "${ARTIFACT_DIR}/stderr.log"; then
         log_err "$ARTIFACT_DIR" "Test 3: FAIL - Invalid receipt was accepted (unexpected)"
         TESTS_FAILED=$((TESTS_FAILED + 1))
         EXIT_CODE=1
@@ -96,7 +110,7 @@ MALFORMED_FIXTURE="${ARTIFACT_DIR}/malformed_test.json"
 echo '{"invalid": json, missing_quotes}' > "$MALFORMED_FIXTURE"
 
 # This SHOULD fail
-if python tools/verify_operatorpack.py "$MALFORMED_FIXTURE" >> "${ARTIFACT_DIR}/stdout.log" 2>> "${ARTIFACT_DIR}/stderr.log"; then
+if $PYTHON_CMD tools/verify_operatorpack.py "$MALFORMED_FIXTURE" >> "${ARTIFACT_DIR}/stdout.log" 2>> "${ARTIFACT_DIR}/stderr.log"; then
     log_err "$ARTIFACT_DIR" "Test 4: FAIL - Malformed JSON was accepted (unexpected)"
     TESTS_FAILED=$((TESTS_FAILED + 1))
     EXIT_CODE=1
@@ -119,7 +133,7 @@ cat > "$INCOMPLETE_FIXTURE" << 'EOF'
 EOF
 
 # This SHOULD fail
-if python tools/verify_operatorpack.py "$INCOMPLETE_FIXTURE" >> "${ARTIFACT_DIR}/stdout.log" 2>> "${ARTIFACT_DIR}/stderr.log"; then
+if $PYTHON_CMD tools/verify_operatorpack.py "$INCOMPLETE_FIXTURE" >> "${ARTIFACT_DIR}/stdout.log" 2>> "${ARTIFACT_DIR}/stderr.log"; then
     log_err "$ARTIFACT_DIR" "Test 5: FAIL - Incomplete receipt was accepted (unexpected)"
     TESTS_FAILED=$((TESTS_FAILED + 1))
     EXIT_CODE=1
