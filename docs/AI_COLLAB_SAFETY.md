@@ -91,6 +91,6 @@ AI agents are **NOT authorized to merge to `main`** unless ALL of the following 
     - Risk assessment and rollback plan.
     - Exact commands run and their results.
     - Explicit confirmation: "No real receipts/artifacts committed."
-4.  **Explicit Approval**: Rob (the maintainer) gives a go/no-go in chat using: **`APPROVE MERGE PR #<number>`**
+4.  **Explicit Approval**: Rob (the maintainer) gives a go/no-go in chat using: **`APPROVE MERGE`**
 
 *AI agents can prep everything to the finish line; merging requires that explicit approval phrase.*

@@ -59,7 +59,7 @@ record_safety_finding() {
 
     # Narrow Allowlist: Specific files that legitimately contain these patterns as documentation/tools
     case "$norm" in
-        "docs/AI_COLLAB_SAFETY.md" | ".claude/rules/security-public-repo.md" | ".agent/workflows/security-public-repo.md")
+        "docs/AI_COLLAB_SAFETY.md" | ".claude/rules/security-public-repo.md" | ".agent/workflows/security-public-repo.md" | ".claude/skills/interlock-ops/SKILL.md")
             log_msg "$ARTIFACT_DIR" "  [SKIP] Allowlisted doc match in $norm: $message"
             return 0
             ;;

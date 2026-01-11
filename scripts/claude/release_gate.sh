@@ -89,6 +89,20 @@ fi
 SUB_ARTIFACTS+=("./artifacts/claude/${RUN_ID}/receipt_audit")
 
 # ============================================
+# Step 4: Vulnerability Audit (Informational)
+# ============================================
+log_msg "$ARTIFACT_DIR" "[Step 4/4] Running vulnerability audit (informational)..."
+
+# Save JSON report for auditability
+npm audit --json --omit=dev > "${ARTIFACT_DIR}/vulnerability_report.json" 2>> "${ARTIFACT_DIR}/stderr.log" || true
+
+if npm audit --omit=dev >> "${ARTIFACT_DIR}/stdout.log" 2>> "${ARTIFACT_DIR}/stderr.log"; then
+    log_msg "$ARTIFACT_DIR" "[Step 4/4] npm audit: PASS - No vulnerabilities found"
+else
+    log_msg "$ARTIFACT_DIR" "[Step 4/4] npm audit: WARNING - Dependencies have audit issues (see vulnerability_report.json)"
+fi
+
+# ============================================
 # Finalize
 # ============================================
 END_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -121,6 +135,7 @@ cat > "${ARTIFACT_DIR}/summary.md" << EOF
 | 1 | smoke.sh | $([ $SMOKE_EXIT -eq 0 ] && echo "PASS" || echo "FAIL (exit: ${SMOKE_EXIT})") |
 | 2 | public_safety_check.sh | $([ $SAFETY_EXIT -eq 0 ] && echo "PASS" || echo "FAIL (exit: ${SAFETY_EXIT})") |
 | 3 | receipt_audit.sh | $([ $AUDIT_EXIT -eq 0 ] && echo "PASS" || echo "FAIL (exit: ${AUDIT_EXIT})") |
+| 4 | npm audit | Informational (Check log) |
 
 ## Sub-Artifact Directories
 

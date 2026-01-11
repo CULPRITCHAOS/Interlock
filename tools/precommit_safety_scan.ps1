@@ -30,8 +30,9 @@ foreach ($file in $trackedFiles) {
     if ($file -eq "tools/precommit_safety_scan.ps1") { continue }
     if ($file -eq "docs/AI_COLLAB_SAFETY.md") { continue }
     if ($file -like "*.md" -and $file -like "*SAFETY*") { continue }
-    if ($file -like ".claude/*") { continue }
-    if ($file -like ".agent/*") { continue }
+    # Specific documentation/rules that contain patterns as examples/documentation
+    if ($file -eq ".claude/rules/security-public-repo.md") { continue }
+    if ($file -eq ".agent/workflows/security-public-repo.md") { continue }
     
     if (Test-Path $file) {
         $content = Get-Content $file -Raw -ErrorAction SilentlyContinue

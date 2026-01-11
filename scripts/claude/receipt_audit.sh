@@ -47,10 +47,12 @@ TESTS_FAILED=0
 # Test 1: JSONL Schema Validation
 # ============================================
 log_msg "$ARTIFACT_DIR" "Test 1: JSONL schema validation..."
+T1_STATUS="FAIL"
 
 if npx tsx scripts/validate-jsonl-schema.ts >> "${ARTIFACT_DIR}/stdout.log" 2>> "${ARTIFACT_DIR}/stderr.log"; then
     log_msg "$ARTIFACT_DIR" "Test 1: PASS - JSONL schema valid"
     TESTS_PASSED=$((TESTS_PASSED + 1))
+    T1_STATUS="PASS"
 else
     log_err "$ARTIFACT_DIR" "Test 1: FAIL - JSONL schema validation failed"
     TESTS_FAILED=$((TESTS_FAILED + 1))
@@ -61,12 +63,14 @@ fi
 # Test 2: OperatorPack Positive Test
 # ============================================
 log_msg "$ARTIFACT_DIR" "Test 2: OperatorPack positive test (should PASS)..."
+T2_STATUS="FAIL"
 
 PASS_FIXTURE="receipts/examples/operatorpack_example_pass.json"
 if [ -f "$PASS_FIXTURE" ]; then
     if $PYTHON_CMD tools/verify_operatorpack.py "$PASS_FIXTURE" >> "${ARTIFACT_DIR}/stdout.log" 2>> "${ARTIFACT_DIR}/stderr.log"; then
         log_msg "$ARTIFACT_DIR" "Test 2: PASS - Valid receipt accepted"
         TESTS_PASSED=$((TESTS_PASSED + 1))
+        T2_STATUS="PASS"
     else
         log_err "$ARTIFACT_DIR" "Test 2: FAIL - Valid receipt was rejected (unexpected)"
         TESTS_FAILED=$((TESTS_FAILED + 1))
@@ -76,12 +80,14 @@ else
     log_err "$ARTIFACT_DIR" "Test 2: SKIP - Fixture not found: $PASS_FIXTURE"
     TESTS_FAILED=$((TESTS_FAILED + 1))
     EXIT_CODE=1
+    T2_STATUS="SKIP"
 fi
 
 # ============================================
 # Test 3: OperatorPack Negative Test
 # ============================================
 log_msg "$ARTIFACT_DIR" "Test 3: OperatorPack negative test (should FAIL)..."
+T3_STATUS="FAIL"
 
 FAIL_FIXTURE="receipts/examples/operatorpack_example_fail.json"
 if [ -f "$FAIL_FIXTURE" ]; then
@@ -93,17 +99,20 @@ if [ -f "$FAIL_FIXTURE" ]; then
     else
         log_msg "$ARTIFACT_DIR" "Test 3: PASS - Invalid receipt correctly rejected"
         TESTS_PASSED=$((TESTS_PASSED + 1))
+        T3_STATUS="PASS"
     fi
 else
     log_err "$ARTIFACT_DIR" "Test 3: SKIP - Fixture not found: $FAIL_FIXTURE"
     TESTS_FAILED=$((TESTS_FAILED + 1))
     EXIT_CODE=1
+    T3_STATUS="SKIP"
 fi
 
 # ============================================
 # Test 4: Malformed JSON Negative Test
 # ============================================
 log_msg "$ARTIFACT_DIR" "Test 4: Malformed JSON negative test..."
+T4_STATUS="FAIL"
 
 # Create a temporary malformed fixture
 MALFORMED_FIXTURE="${ARTIFACT_DIR}/malformed_test.json"
@@ -117,12 +126,14 @@ if $PYTHON_CMD tools/verify_operatorpack.py "$MALFORMED_FIXTURE" >> "${ARTIFACT_
 else
     log_msg "$ARTIFACT_DIR" "Test 4: PASS - Malformed JSON correctly rejected"
     TESTS_PASSED=$((TESTS_PASSED + 1))
+    T4_STATUS="PASS"
 fi
 
 # ============================================
 # Test 5: Missing Required Fields Negative Test
 # ============================================
 log_msg "$ARTIFACT_DIR" "Test 5: Missing required fields negative test..."
+T5_STATUS="FAIL"
 
 INCOMPLETE_FIXTURE="${ARTIFACT_DIR}/incomplete_test.json"
 cat > "$INCOMPLETE_FIXTURE" << 'EOF'
@@ -140,6 +151,7 @@ if $PYTHON_CMD tools/verify_operatorpack.py "$INCOMPLETE_FIXTURE" >> "${ARTIFACT
 else
     log_msg "$ARTIFACT_DIR" "Test 5: PASS - Incomplete receipt correctly rejected"
     TESTS_PASSED=$((TESTS_PASSED + 1))
+    T5_STATUS="PASS"
 fi
 
 # ============================================
@@ -166,11 +178,11 @@ cat > "${ARTIFACT_DIR}/summary.md" << EOF
 
 | Test | Description | Result |
 |------|-------------|--------|
-| 1 | JSONL schema validation | $([ $TESTS_PASSED -ge 1 ] && echo "PASS" || echo "FAIL") |
-| 2 | OperatorPack positive test | $([ $TESTS_PASSED -ge 2 ] && echo "PASS" || echo "FAIL") |
-| 3 | OperatorPack negative test | $([ $TESTS_PASSED -ge 3 ] && echo "PASS" || echo "FAIL") |
-| 4 | Malformed JSON rejection | $([ $TESTS_PASSED -ge 4 ] && echo "PASS" || echo "FAIL") |
-| 5 | Missing fields rejection | $([ $TESTS_PASSED -ge 5 ] && echo "PASS" || echo "FAIL") |
+| 1 | JSONL schema validation | ${T1_STATUS} |
+| 2 | OperatorPack positive test | ${T2_STATUS} |
+| 3 | OperatorPack negative test | ${T3_STATUS} |
+| 4 | Malformed JSON rejection | ${T4_STATUS} |
+| 5 | Missing fields rejection | ${T5_STATUS} |
 
 ## Test Fixtures Used
 
