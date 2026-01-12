@@ -36,10 +36,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
@@ -89,7 +89,7 @@ jobs:
 
       - name: Upload stress test artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: stress-chamber-results-${{ steps.profile.outputs.profile }}-${{ github.run_number }}
           path: |
@@ -108,10 +108,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
@@ -184,7 +184,7 @@ jobs:
 
       - name: Upload stability test artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: stability-test-results-${{ github.run_number }}
           path: |
@@ -205,17 +205,17 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download stress chamber results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: stress-chamber-results-${{ github.run_number }}
           path: results/stress_chamber
         continue-on-error: true
 
       - name: Download stability results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: stability-test-results-${{ github.run_number }}
           path: results/stability
@@ -249,7 +249,7 @@ jobs:
           EOF
 
       - name: Upload incident reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: incident-reports-${{ github.run_number }}
           path: results/incidents/*.md
