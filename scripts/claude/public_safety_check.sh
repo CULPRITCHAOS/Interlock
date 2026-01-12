@@ -20,8 +20,8 @@ ARTIFACT_DIR=$(create_artifact_dir "public_safety_check")
 START_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # Initialize log files
-rm -f "${ARTIFACT_DIR}/findings.txt"
-touch "${ARTIFACT_DIR}/findings.txt"
+rm -f "${ARTIFACT_DIR}/findings.txt" "${ARTIFACT_DIR}/allowlist_debug.txt"
+touch "${ARTIFACT_DIR}/findings.txt" "${ARTIFACT_DIR}/allowlist_debug.txt"
 touch "${ARTIFACT_DIR}/stdout.log" "${ARTIFACT_DIR}/stderr.log"
 
 log_msg "$ARTIFACT_DIR" "Starting public safety check (Run ID: ${RUN_ID})"
@@ -47,46 +47,61 @@ FORBIDDEN_PATTERNS=(
     'DO NOT PUBLISH'
 )
 
+# PII Patterns - Each with a distinct identifier for per-match allowlisting
+# Format: "PATTERN_ID|REGEX"
+PII_PATTERNS=(
+    "file:///|file:///"
+    "C:/Users/|[cC]:/Users/"
+    "C:\\Users\\|[cC]:\\\\Users\\\\"
+    "/Users/<name>|/Users/[^[:space:]/]+"
+    "/home/<name>|/home/[^[:space:]/]+"
+)
+
 # =============================================================================
 # Per-Match Granular Allowlist
 # =============================================================================
-# Format: "CATEGORY|FILE_PATH|PATTERN_SUBSTRING|REASON"
+# Format: "CATEGORY|FILE_PATH|PATTERN_ID|REASON"
 # - CATEGORY: PII, SECRET, FORBIDDEN (ARTIFACT findings are NEVER allowlisted)
 # - FILE_PATH: Normalized path (forward slashes)
-# - PATTERN_SUBSTRING: The pattern or substring that triggered the finding
+# - PATTERN_ID: The exact pattern identifier that triggered the finding
 # - REASON: Why this specific match is allowed
 #
-# This eliminates "ignore zones" - a real secret in an allowlisted file will
-# still be caught unless it matches a specific allowlist entry.
+# ALL categories now require full (category + file + pattern) match.
+# This eliminates "ignore zones" - no file-level skipping.
 # =============================================================================
 GRANULAR_ALLOWLIST=(
     # Documentation files that legitimately discuss these patterns
     "FORBIDDEN|docs/AI_COLLAB_SAFETY.md|enforcement heuristics|Documents the rule itself"
     "FORBIDDEN|docs/AI_COLLAB_SAFETY.md|private rules|Documents the rule itself"
     "FORBIDDEN|docs/AI_COLLAB_SAFETY.md|internal-only|Documents the rule itself"
-    "PII|docs/AI_COLLAB_SAFETY.md|/Users/|Example path in docs"
-    "PII|docs/AI_COLLAB_SAFETY.md|/home/|Example path in docs"
+    "PII|docs/AI_COLLAB_SAFETY.md|/Users/<name>|Example path in docs"
+    "PII|docs/AI_COLLAB_SAFETY.md|/home/<name>|Example path in docs"
     "PII|docs/AI_COLLAB_SAFETY.md|C:/Users/|Example path in docs"
+    "PII|docs/AI_COLLAB_SAFETY.md|C:\\Users\\|Example path in docs"
     # CLAUDE.md documents project rules including PII examples
-    "PII|CLAUDE.md|/Users/|Example path in project rules"
-    "PII|CLAUDE.md|/home/|Example path in project rules"
+    "PII|CLAUDE.md|/Users/<name>|Example path in project rules"
+    "PII|CLAUDE.md|/home/<name>|Example path in project rules"
     "PII|CLAUDE.md|C:/Users/|Example path in project rules"
+    "PII|CLAUDE.md|C:\\Users\\|Example path in project rules"
     # Claude skill files
     "FORBIDDEN|.claude/skills/interlock-ops/SKILL.md|enforcement heuristics|Skill defines the constraint"
     "FORBIDDEN|.claude/skills/interlock-ops/SKILL.md|internal-only|Skill defines the constraint"
-    "PII|.claude/skills/maintainer/SKILL.md|/Users/|Example path in skill file"
-    "PII|.claude/skills/maintainer/SKILL.md|/home/|Example path in skill file"
+    "PII|.claude/skills/maintainer/SKILL.md|/Users/<name>|Example path in skill file"
+    "PII|.claude/skills/maintainer/SKILL.md|/home/<name>|Example path in skill file"
     # Security rule files that define patterns
     "FORBIDDEN|.claude/rules/security-public-repo.md|internal-only|Rule definition file"
-    "PII|.claude/rules/security-public-repo.md|/Users/|Pattern example in rule file"
-    "PII|.claude/rules/security-public-repo.md|/home/|Pattern example in rule file"
+    "PII|.claude/rules/security-public-repo.md|/Users/<name>|Pattern example in rule file"
+    "PII|.claude/rules/security-public-repo.md|/home/<name>|Pattern example in rule file"
     "PII|.claude/rules/security-public-repo.md|C:/Users/|Pattern example in rule file"
+    "PII|.claude/rules/security-public-repo.md|C:\\Users\\|Pattern example in rule file"
     "FORBIDDEN|.agent/workflows/security-public-repo.md|internal-only|Workflow definition file"
     # Command files that reference patterns for documentation
     "FORBIDDEN|.claude/commands/interlock_public_safety_check.md|internal-only|Command help text"
-    "PII|.claude/commands/interlock_public_safety_check.md|/Users/|Example path in docs"
-    "PII|.claude/commands/interlock_public_safety_check.md|/home/|Example path in docs"
+    "FORBIDDEN|.claude/commands/interlock_public_safety_check.md|enforcement heuristics|Command help text"
+    "PII|.claude/commands/interlock_public_safety_check.md|/Users/<name>|Example path in docs"
+    "PII|.claude/commands/interlock_public_safety_check.md|/home/<name>|Example path in docs"
     "PII|.claude/commands/interlock_public_safety_check.md|C:/Users/|Example path in docs"
+    "PII|.claude/commands/interlock_public_safety_check.md|C:\\Users\\|Example path in docs"
     "PII|.claude/commands/interlock_public_safety_check.md|file:///|Example path in docs"
     # The safety scripts themselves contain patterns for scanning
     "SECRET|scripts/claude/public_safety_check.sh|PRIVATE KEY|Pattern definition"
@@ -96,44 +111,56 @@ GRANULAR_ALLOWLIST=(
     "FORBIDDEN|scripts/claude/public_safety_check.sh|private rules|Pattern definition"
     "FORBIDDEN|scripts/claude/public_safety_check.sh|internal-only|Pattern definition"
     "FORBIDDEN|scripts/claude/public_safety_check.sh|DO NOT PUBLISH|Pattern definition"
-    "PII|scripts/claude/public_safety_check.sh|/Users/|Pattern definition"
-    "PII|scripts/claude/public_safety_check.sh|/home/|Pattern definition"
+    "PII|scripts/claude/public_safety_check.sh|/Users/<name>|Pattern definition"
+    "PII|scripts/claude/public_safety_check.sh|/home/<name>|Pattern definition"
     "PII|scripts/claude/public_safety_check.sh|file:///|Pattern definition"
     "PII|scripts/claude/public_safety_check.sh|C:/Users/|Pattern definition"
+    "PII|scripts/claude/public_safety_check.sh|C:\\Users\\|Pattern definition"
     # PowerShell safety scanner
     "SECRET|tools/precommit_safety_scan.ps1|PRIVATE KEY|Pattern definition"
     "SECRET|tools/precommit_safety_scan.ps1|AKIA|Pattern definition"
     "FORBIDDEN|tools/precommit_safety_scan.ps1|internal-only|Pattern definition"
-    "PII|tools/precommit_safety_scan.ps1|/Users/|Pattern definition"
-    "PII|tools/precommit_safety_scan.ps1|/home/|Pattern definition"
+    "PII|tools/precommit_safety_scan.ps1|/Users/<name>|Pattern definition"
+    "PII|tools/precommit_safety_scan.ps1|/home/<name>|Pattern definition"
     "PII|tools/precommit_safety_scan.ps1|C:/Users/|Pattern definition"
-    # Claude settings contains deny patterns
+    "PII|tools/precommit_safety_scan.ps1|C:\\Users\\|Pattern definition"
+    # Claude settings contains deny patterns (all 5 PII patterns)
     "PII|.claude/settings.json|C:/Users/|Deny rule definition"
+    "PII|.claude/settings.json|C:\\Users\\|Deny rule definition"
+    "PII|.claude/settings.json|/Users/<name>|Deny rule definition"
+    "PII|.claude/settings.json|/home/<name>|Deny rule definition"
+    "PII|.claude/settings.json|file:///|Deny rule definition"
 )
 
 # Check if a finding matches the granular allowlist
+# ALL categories require (category + file + pattern) match - NO SPECIAL CASES
 is_allowlisted() {
     local category="$1"
     local file_path="$2"
-    local pattern="$3"
+    local pattern_id="$3"
+    local found_candidates=0
 
     for entry in "${GRANULAR_ALLOWLIST[@]}"; do
         local al_cat al_file al_pattern al_reason
         IFS='|' read -r al_cat al_file al_pattern al_reason <<< "$entry"
         
-        # Match: category must match, file must match
+        # Check category + file match first
         if [[ "$category" == "$al_cat" && "$file_path" == "$al_file" ]]; then
-            # For PII findings, we only check category + file (the specific pattern is in the file)
-            # For SECRET/FORBIDDEN, we check if the pattern substring matches
-            if [[ "$category" == "PII" ]]; then
-                log_msg "$ARTIFACT_DIR" "  [SKIP] Allowlisted: $category in $file_path ($al_reason)"
-                return 0
-            elif [[ "$pattern" == *"$al_pattern"* || "$al_pattern" == *"$pattern"* ]]; then
-                log_msg "$ARTIFACT_DIR" "  [SKIP] Allowlisted: $category in $file_path ($al_reason)"
+            found_candidates=1
+            # Pattern must match (pattern_id contains al_pattern OR al_pattern contains pattern_id)
+            if [[ "$pattern_id" == "$al_pattern" || "$pattern_id" == *"$al_pattern"* || "$al_pattern" == *"$pattern_id"* ]]; then
+                log_msg "$ARTIFACT_DIR" "  [SKIP] Allowlisted: $category in $file_path pattern='$pattern_id' ($al_reason)"
                 return 0
             fi
         fi
     done
+
+    # Debug output for allowlist misses (if candidates existed but didn't match)
+    if [[ $found_candidates -eq 1 ]]; then
+        echo "[DEBUG] Allowlist MISS for: category=$category file=$file_path pattern=$pattern_id" >> "${ARTIFACT_DIR}/allowlist_debug.txt"
+        echo "  Candidates checked but pattern didn't match any allowlist entry" >> "${ARTIFACT_DIR}/allowlist_debug.txt"
+    fi
+
     return 1
 }
 
@@ -142,7 +169,7 @@ record_safety_finding() {
     local category="$1"
     local message="$2"
     local target_file="$3"
-    local pattern="${4:-}"
+    local pattern_id="${4:-unknown}"
 
     # Normalize path for matching
     local norm
@@ -150,15 +177,15 @@ record_safety_finding() {
 
     # ARTIFACT findings are NEVER allowlisted (security-critical)
     if [[ "$category" != "ARTIFACT" ]]; then
-        if is_allowlisted "$category" "$norm" "$pattern"; then
+        if is_allowlisted "$category" "$norm" "$pattern_id"; then
             return 0
         fi
     fi
 
     local ts
     ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    echo "[${RUN_ID}] [${ts}] [${category}] ${message} in ${target_file}" >> "${ARTIFACT_DIR}/findings.txt"
-    log_err "$ARTIFACT_DIR" "[${category}] ${message} in ${target_file}"
+    echo "[${RUN_ID}] [${ts}] [${category}] ${message} (pattern: ${pattern_id}) in ${target_file}" >> "${ARTIFACT_DIR}/findings.txt"
+    log_err "$ARTIFACT_DIR" "[${category}] ${message} (pattern: ${pattern_id}) in ${target_file}"
 }
 
 # Scan ALL tracked files for maximum safety (no global skips)
@@ -168,11 +195,15 @@ while IFS= read -r f; do
     [[ "$f" == node_modules/* ]] && continue
     [[ "$f" == .git/* ]] && continue
     
-    # PII Check - Improved regexes for reliable matching
-    # Matches: file:/// | c:/Users/ | C:/Users/ | c:\Users\ | C:\Users\ | /Users/<name> | /home/<name>
-    if grep -q -E 'file:///|[cC]:/Users/|[cC]:\\Users\\|/Users/[^[:space:]/]+|/home/[^[:space:]/]+' "$f" 2>/dev/null; then
-         record_safety_finding "PII" "Absolute path detected" "$f" "path"
-    fi
+    # PII Check - Separate checks for each pattern with distinct identifiers
+    for pii_entry in "${PII_PATTERNS[@]}"; do
+        pattern_id=""
+        pattern_regex=""
+        IFS='|' read -r pattern_id pattern_regex <<< "$pii_entry"
+        if grep -q -E "$pattern_regex" "$f" 2>/dev/null; then
+            record_safety_finding "PII" "Absolute path detected" "$f" "$pattern_id"
+        fi
+    done
 
     # Secrets Check
     for p in "${SECRET_PATTERNS[@]}"; do
@@ -213,11 +244,15 @@ cat > "${ARTIFACT_DIR}/summary.md" << EOF
 **Run ID**: ${RUN_ID}
 
 ## Allowlist Model
-Per-match granular allowlist (category + file + pattern + reason).
+Per-match granular allowlist (category + file + pattern_id + reason).
+ALL categories require full match - NO file-level skipping.
 ARTIFACT findings are NEVER allowlisted.
 
 ## Findings
 $(if [ -s "${ARTIFACT_DIR}/findings.txt" ]; then cat "${ARTIFACT_DIR}/findings.txt"; else echo "None"; fi)
+
+## Debug Info
+$(if [ -s "${ARTIFACT_DIR}/allowlist_debug.txt" ]; then echo "See allowlist_debug.txt for miss details"; else echo "No allowlist misses"; fi)
 EOF
 
 log_msg "$ARTIFACT_DIR" "Public safety check complete: ${STATUS}"
