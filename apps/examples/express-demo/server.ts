@@ -1,10 +1,22 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 // Handle default export wrapping from TSX
 import * as InterlockPkg from '../../../packages/interlock-express/src/index.ts';
 const interlockExpress = (InterlockPkg as any).default?.interlockExpress || (InterlockPkg as any).interlockExpress;
 
 const app = express();
 const PORT = 3001; // Diff port than reference service
+
+// Rate limiting - CodeQL security requirement
+// Limit each IP to 100 requests per minute
+const limiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 100, // 100 requests per minute per IP
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please try again later' }
+});
+app.use(limiter);
 
 // Enable Interlock - E2E testing with LLM-appropriate thresholds
 app.use(interlockExpress({
