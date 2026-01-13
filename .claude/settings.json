@@ -55,6 +55,7 @@
         "./scripts/claude/**",
         "./.claude/**"
         "./.github/workflows/**"
+       
       ],
     
       "deny": [
