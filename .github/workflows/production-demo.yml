@@ -10,6 +10,10 @@ on:
       - main
   workflow_dispatch:
 
+# CodeQL requires explicit permissions
+permissions:
+  contents: read
+
 jobs:
   production-demo:
     name: Production Demo Comparison

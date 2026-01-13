@@ -19,6 +19,10 @@ on:
         required: false
         default: '1000'
 
+# CodeQL requires explicit permissions
+permissions:
+  contents: read
+
 jobs:
   real-faiss-test:
     name: Real FAISS Operations

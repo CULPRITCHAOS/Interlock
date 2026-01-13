@@ -12,6 +12,10 @@ on:
   pull_request:
     branches: [main]
 
+# CodeQL requires explicit permissions
+permissions:
+  contents: read
+
 jobs:
   sde-integration-tests:
     name: SDE Integration Tests

@@ -19,6 +19,10 @@ on:
         required: false
         default: '100'
 
+# CodeQL requires explicit permissions
+permissions:
+  contents: read
+
 jobs:
   real-pinecone-test:
     name: Real Pinecone API Test

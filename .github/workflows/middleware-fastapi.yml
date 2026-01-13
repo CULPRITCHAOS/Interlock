@@ -8,6 +8,10 @@ on:
       - 'apps/examples/fastapi-demo/**'
   workflow_dispatch:
 
+# CodeQL requires explicit permissions
+permissions:
+  contents: read
+
 jobs:
   verify-fastapi:
     runs-on: ubuntu-latest
