@@ -1,10 +1,37 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 // Handle default export wrapping from TSX
 import * as InterlockPkg from '../../../packages/interlock-express/src/index.ts';
 const interlockExpress = (InterlockPkg as any).default?.interlockExpress || (InterlockPkg as any).interlockExpress;
 
 const app = express();
 const PORT = 3001; // Diff port than reference service
+
+// Inline rate limiting - no external dependencies
+// Limit each IP to 100 requests per minute
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX = 100; // 100 requests per minute per IP
+
+const rateLimiter = (req: Request, res: Response, next: NextFunction): void => {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const record = rateLimitStore.get(ip);
+
+    if (!record || now > record.resetTime) {
+        rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+        next();
+        return;
+    }
+
+    if (record.count >= RATE_LIMIT_MAX) {
+        res.status(429).json({ error: 'Too many requests, please try again later' });
+        return;
+    }
+
+    record.count++;
+    next();
+};
+app.use(rateLimiter);
 
 // Enable Interlock - E2E testing with LLM-appropriate thresholds
 app.use(interlockExpress({
