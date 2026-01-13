@@ -54,7 +54,10 @@
         "./artifacts/claude/**",
         "./scripts/claude/**",
         "./.claude/**"
+        "./.github/workflows/**"
+       
       ],
+    
       "deny": [
         ".env",
         "**/secrets/**",
