@@ -54,12 +54,13 @@
         "./artifacts/claude/**",
         "./scripts/claude/**",
         "./.claude/**"
+        "./.github/workflows/**"
       ],
       "deny": [
         ".env",
         "**/secrets/**",
         "**/*.key",
-        ".github/workflows/**"
+     
       ],
       "description": "Write only to Claude artifacts and config, never secrets or CI"
     },
