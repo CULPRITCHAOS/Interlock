@@ -18,21 +18,21 @@
     "roi-calculator": "npx tsx scripts/roi-calculator.ts"
   },
   "dependencies": {
-    "@google/genai": "^1.33.0",
-    "@pinecone-database/pinecone": "^6.1.3",
+    "@google/genai": "^1.38.0",
+    "@pinecone-database/pinecone": "^6.1.4",
     "@types/express": "^5.0.6",
     "express": "^5.2.1",
-    "lucide-react": "^0.561.0",
+    "lucide-react": "^0.563.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "recharts": "^3.5.1"
+    "recharts": "^3.7.0"
   },
   "devDependencies": {
-    "@types/node": "^22.19.2",
+    "@types/node": "^22.19.7",
     "@vitejs/plugin-react": "^5.0.0",
     "tsx": "^4.19.0",
-    "typescript": "~5.8.2",
+    "typescript": "~5.9.3",
     "vite": "^6.2.0",
-    "vitest": "^4.0.16"
+    "vitest": "^4.0.18"
   }
 }
