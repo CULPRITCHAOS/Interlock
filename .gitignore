@@ -23,7 +23,18 @@ venv
 # Multi-agent coordination (local-only to prevent leaking sensitive task context)
 docs/MULTI_AGENT_COORD.md
 **/multi_agent_coord.md
-!multi_agent_coord.template.md
+multi_agent_coord.template.md
+
+# Operator/AI agent configuration (internal, not for public consumption)
+CLAUDE.md
+.claude/
+
+# Internal operator docs (not product-facing)
+docs/SECRET_INCIDENT_REPORT.md
+
+# Local hardware benchmark artifacts
+hardware_profile.json
+ab_bundle_ollama_gemma3-12b_run_*.zip
 
 # Editor directories and files
 .vscode/*
