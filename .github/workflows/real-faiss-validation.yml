@@ -41,7 +41,7 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          pip install -r backend/requirements.txt
+          pip install -r python/requirements.txt
           python -c "import faiss; print(f'FAISS version: {faiss.__version__}')"
 
       - name: Verify FAISS is REAL (not simulation)

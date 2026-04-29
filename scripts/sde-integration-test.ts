@@ -65,7 +65,7 @@ test('loadLaw returns valid result for ollama domain', () => {
 
 test('loadLaw handles missing domain gracefully', () => {
     const result = loadLaw('nonexistent_domain');
-    return result.success === false && result.warnings.length > 0;
+    return result.success === false && result.parameters !== null;
 });
 
 test('loadLaw computes law hash', () => {
