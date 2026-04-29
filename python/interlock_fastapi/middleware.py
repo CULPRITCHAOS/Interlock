@@ -1,77 +1,53 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from starlette.requests import Request
-import time
-import asyncio
+from datetime import datetime
 from .client import InterlockClient
 from .sink import IncidentSink
 
 class InterlockMiddleware(BaseHTTPMiddleware):
-    def __init__(
-        self, 
-        app, 
-        interlock_url: str = "http://localhost:3000",
-        log_file: str = "docs/LIVE_INCIDENTS.md",
-        dry_run: bool = False
-    ):
+    def __init__(self, app, interlock_url: str = "http://localhost:3000", log_file: str = "docs/LIVE_INCIDENTS.md", dry_run: bool = False, fail_closed: bool = True, dev_fail_open_override: bool = False):
         super().__init__(app)
-        self.client = InterlockClient(interlock_url)
+        self.client = InterlockClient(interlock_url, fail_closed=fail_closed, dev_fail_open_override=dev_fail_open_override)
         self.sink = IncidentSink(log_file)
         self.dry_run = dry_run
-        self.incident_buffer = {} # Simple state for debouncing LOGGING (not decision)
+        self.enforcement_count = 0
 
     async def dispatch(self, request: Request, call_next):
-        start_time = time.time()
-        
-        # 1. Ask Brain
-        decision = await self.client.get_decision({
-            "path": request.url.path,
-            "method": request.method
+        request_id = request.headers.get("x-request-id", f"req-{int(datetime.utcnow().timestamp()*1000)}")
+
+        if request.url.path.endswith('/stream'):
+            return JSONResponse(status_code=501, content={
+                "error": "Streaming enforcement unsupported without protocol adapter",
+                "request_id": request_id,
+                "todo": ["SSE/NDJSON fatal event then close", "WebSocket close code 1008", "raw/unknown transport abort"]
+            })
+
+        payload = {"path": request.url.path, "method": request.method, "request_id": request_id}
+        result = await self.client.get_decision(payload)
+        decision = result.get("decision", {})
+
+        if self.dry_run:
+            decision["mode"] = "SHADOW_ONLY"
+            if decision.get("action") in ["REFUSE", "BLOCK"]:
+                decision["action_taken"] = f"WOULD_{decision['action']}"
+
+        print("[Interlock Enforcement]", {
+            "law_hash": decision.get("law_hash"), "request_id": decision.get("request_id", request_id), "mode": decision.get("mode"),
+            "action": decision.get("action"), "action_taken": decision.get("action_taken"), "reason": decision.get("reason"),
+            "timestamp": decision.get("timestamp", datetime.utcnow().isoformat())
         })
 
-        # 2. Enforce Decision
-        if not decision.get("allowed", True):
-            refusal = decision["refusal"]
-            
-            # Log Incident (Safe Wrap)
-            # We must never crash the response generation just because logging failed.
+        action = decision.get("action", "ALLOW")
+        if action in ["REFUSE", "BLOCK", "DEGRADE"]:
+            if decision.get("mode") != "SHADOW_ONLY":
+                self.enforcement_count += 1
             try:
-                self.sink.log_event({
-                    "incident_id": refusal.get("incident_id"),
-                    "trigger": "Remote Refusal",
-                    "action": "Traffic Refusal",
-                    "failure_class": "Remote Decision",
-                    "confidence": refusal.get("confidence")
-                })
-            except Exception as e:
-                # If logging fails, we still return the 503.
-                # In production, we might emit to stderr or a fallback.
-                print(f"[Interlock Middleware] Logging failed: {e}")
+                self.sink.log_event({"incident_id": decision.get("request_id", request_id), "trigger": "Remote Decision", "action": action, "failure_class": "Runtime Enforcement", "confidence": 0.0})
+            except Exception:
+                pass
+            if decision.get("mode") != "SHADOW_ONLY":
+                return JSONResponse(status_code=decision.get("status_code", 503), content={"refused": True, "decision": decision})
 
-            if not self.dry_run:
-                return JSONResponse(
-                    status_code=503,
-                    content={
-                        "refused": True,
-                        "reason": refusal.get("reason"),
-                        "incident_id": refusal.get("incident_id"),
-                        "retry_after_ms": refusal.get("retry_after_ms")
-                    }
-                )
-            else:
-                print(f"[Interlock Shadow] Would Refuse: {refusal}")
-
-        # 3. Proceed
         response = await call_next(request)
-        
-        # Metric hook could go here (send latency back to Brain?)
-        # For Phase 3B "Remote Client", Brain monitors itself via its own adapter 
-        # acting as the Proxy/Sidecar or receiving distinct signals.
-        # But wait, if Brain is separate process, it doesn't see THIS request's latency 
-        # unless we send it back.
-        # The prompt says: "Do not re-implement hazard logic". 
-        # It implies the Brain uses its OWN internal state (from the Reference App load)
-        # OR we send metrics. 
-        # For "Phase 3B", we rely on the Brain's internal state (which we are mocking via Force/Lag).
-        
         return response
