@@ -61,21 +61,20 @@ jobs:
 
       - name: Install Python dependencies
         run: |
-          cd backend
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r python/requirements.txt
 
       - name: Run production simulation
         run: |
           echo "Running production simulation with scenario: ${{ github.event.inputs.workload_scenario || 'standard' }}"
 
-          # Run the simulation runner in production mode
-          npx tsx scripts/sim-runner.ts \
+          # Run the production simulation against the real stress harness
+          npx tsx scripts/stress-chamber.ts \
             --seed 123 \
-            --mode phase4 \
             --initial-size 50000 \
             --growth-steps 15 \
-            --vectors-per-step 10000
+            --vectors-per-step 10000 \
+            --protected
         env:
           SIMULATION_SCENARIO: ${{ github.event.inputs.workload_scenario || 'standard' }}
 

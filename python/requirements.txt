@@ -4,3 +4,4 @@ uvicorn
 httpx
 starlette
 requests
+faiss-cpu>=1.7.4

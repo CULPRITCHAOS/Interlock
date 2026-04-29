@@ -51,6 +51,8 @@ interface PineconeTestResults {
     };
     isRealPinecone: true;
     success: boolean;
+    actionTaken?: 'ALLOW' | 'REFUSE';
+    refusalReason?: string;
     error?: string;
 }
 
@@ -183,7 +185,25 @@ async function main() {
             const queryVector = Array.from({ length: DIMENSION }, () => Math.random() * 2 - 1);
 
             const start = Date.now();
-            await wrappedQuery(queryVector, 10);
+            try {
+                await wrappedQuery(queryVector, 10);
+            } catch (error: any) {
+                if (typeof error?.message === 'string' && error.message.includes('Interlock refusal: Confidence below quality floor')) {
+                    const adapterMetrics = adapter.observe();
+                    results.adapterMetrics = {
+                        latencyP95Ms: adapterMetrics.latencyP95Ms,
+                        confidenceScore: adapterMetrics.confidenceScore,
+                        operationCount: adapterMetrics.operationCount
+                    };
+                    results.actionTaken = 'REFUSE';
+                    results.refusalReason = error.message;
+                    results.success = true;
+                    console.log(`  Refusal observed at query ${i + 1}/${QUERY_COUNT}: ${error.message}`);
+                    console.log(`  Confidence ${(adapterMetrics.confidenceScore * 100).toFixed(1)}% below floor - enforcement confirmed`);
+                    break;
+                }
+                throw error;
+            }
             const latency = Date.now() - start;
 
             queryLatencies.push(latency);
@@ -194,25 +214,27 @@ async function main() {
         }
 
         // Calculate latency percentiles
-        queryLatencies.sort((a, b) => a - b);
-        const p50 = queryLatencies[Math.floor(queryLatencies.length * 0.5)];
-        const p95 = queryLatencies[Math.floor(queryLatencies.length * 0.95)];
-        const p99 = queryLatencies[Math.floor(queryLatencies.length * 0.99)];
-        const avg = queryLatencies.reduce((a, b) => a + b, 0) / queryLatencies.length;
+        if (queryLatencies.length > 0) {
+            queryLatencies.sort((a, b) => a - b);
+            const p50 = queryLatencies[Math.floor(queryLatencies.length * 0.5)];
+            const p95 = queryLatencies[Math.floor(queryLatencies.length * 0.95)];
+            const p99 = queryLatencies[Math.floor(queryLatencies.length * 0.99)];
+            const avg = queryLatencies.reduce((a, b) => a + b, 0) / queryLatencies.length;
 
-        results.queryLatencies = {
-            p50Ms: p50,
-            p95Ms: p95,
-            p99Ms: p99,
-            avgMs: Math.round(avg * 100) / 100
-        };
+            results.queryLatencies = {
+                p50Ms: p50,
+                p95Ms: p95,
+                p99Ms: p99,
+                avgMs: Math.round(avg * 100) / 100
+            };
 
-        console.log();
-        console.log('Query Latencies:');
-        console.log(`  P50: ${p50}ms`);
-        console.log(`  P95: ${p95}ms`);
-        console.log(`  P99: ${p99}ms`);
-        console.log(`  Avg: ${avg.toFixed(2)}ms`);
+            console.log();
+            console.log('Query Latencies:');
+            console.log(`  P50: ${p50}ms`);
+            console.log(`  P95: ${p95}ms`);
+            console.log(`  P99: ${p99}ms`);
+            console.log(`  Avg: ${avg.toFixed(2)}ms`);
+        }
 
         // Get adapter metrics
         const adapterMetrics = adapter.observe();
@@ -232,7 +254,10 @@ async function main() {
         // Uncomment to delete after test:
         // await index.deleteAll();
 
-        results.success = true;
+        if (!results.actionTaken) {
+            results.actionTaken = 'ALLOW';
+            results.success = true;
+        }
 
         console.log();
         console.log('='.repeat(60));
