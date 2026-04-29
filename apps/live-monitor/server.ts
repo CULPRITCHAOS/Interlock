@@ -151,24 +151,34 @@ app.post('/interlock/decision', (req, res) => {
     const shouldRefuse = adapter.shouldRefuse();
     const confidence = adapter.getConfidence();
 
+    const requestId = req.body?.request_id || `req-${Date.now()}`;
     if (shouldRefuse) {
         res.json({
-            allowed: false,
-            refusal: {
-                reason: "Interlock refusal: Confidence below quality floor",
-                retry_after_ms: 5000,
-                // In generic mode, we might generate ID here or let client handle it.
-                // For now, Brain is authority.
-                incident_id: "remote-" + Date.now(),
-                confidence
-            }
+            decision: {
+                mode: 'ENFORCE',
+                action: 'REFUSE',
+                reason: 'Interlock refusal: Confidence below quality floor',
+                law_hash: 'live-monitor-law',
+                request_id: requestId,
+                action_taken: 'REFUSED',
+                status_code: 503,
+                timestamp: new Date().toISOString()
+            },
+            metadata: { confidence }
         });
     } else {
         res.json({
-            allowed: true,
-            metadata: {
-                confidence
-            }
+            decision: {
+                mode: 'ENFORCE',
+                action: 'ALLOW',
+                reason: 'Policy allows request',
+                law_hash: 'live-monitor-law',
+                request_id: requestId,
+                action_taken: 'ALLOWED',
+                status_code: 200,
+                timestamp: new Date().toISOString()
+            },
+            metadata: { confidence }
         });
     }
 });
