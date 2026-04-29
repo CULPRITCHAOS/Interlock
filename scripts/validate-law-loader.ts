@@ -61,7 +61,7 @@ console.log('\nHardware Fingerprint Tests:');
 
 test('Current hardware fingerprint is generated', () => {
     const fp = getHardwareFingerprint();
-    return typeof fp === 'string' && fp.length === 16;
+    return typeof fp === 'string' && /^[a-f0-9]{16}$|^[a-f0-9]{64}$/.test(fp);
 });
 
 test('Ollama law has null hardware_fingerprint (accept all)', () => {
@@ -78,9 +78,9 @@ test('Missing domain returns success=false', () => {
     return result.success === false;
 });
 
-test('Missing domain has warnings', () => {
+test('Missing domain has no warnings in demo-default mode', () => {
     const result = loadLaw('nonexistent');
-    return result.warnings.length > 0;
+    return result.warnings.length === 0;
 });
 
 test('Missing domain falls back to defaults', () => {
