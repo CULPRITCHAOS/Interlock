@@ -53,6 +53,16 @@ export function recordRequest(collector: MetricsCollector, latencyMs: number, is
 }
 
 /**
+ * Reset a collector in place so references held by middleware remain valid.
+ */
+export function resetMetricsCollector(collector: MetricsCollector): void {
+    collector.latencies.length = 0;
+    collector.errorCount = 0;
+    collector.requestCount = 0;
+    collector.windowStart = new Date();
+}
+
+/**
  * Calculate P95 latency from array of latencies
  */
 function calculateP95(latencies: number[]): number {
@@ -130,7 +140,7 @@ export function startHealthWindowEmitter(options: HealthWindowOptions): {
         parseInt(process.env.INTERLOCK_HEALTH_WINDOW_MS || '', 10) ||
         DEFAULT_HEALTH_WINDOW_MS;
 
-    let collector = createMetricsCollector();
+    const collector = createMetricsCollector();
     const sink = getJsonlSink();
 
     const interval = setInterval(() => {
@@ -138,8 +148,8 @@ export function startHealthWindowEmitter(options: HealthWindowOptions): {
         const event = buildHealthWindowEvent(collector, options.domain, options.thresholds);
         sink.emit(event);
 
-        // Reset collector for next window
-        collector = createMetricsCollector();
+        // Reset collector for next window without invalidating middleware references
+        resetMetricsCollector(collector);
     }, intervalMs);
 
     console.log(`[Interlock] Health window emitter started (interval: ${intervalMs}ms)`);

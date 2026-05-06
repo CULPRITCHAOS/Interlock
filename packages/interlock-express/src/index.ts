@@ -7,6 +7,7 @@ import { startHealthWindowEmitter, recordRequest, MetricsCollector } from './hea
 import { emitInterventionEvent } from './intervention-emitter';
 import { loadLaw } from '../../../services/law-loader';
 import { Domain } from '../../../services/events.types';
+import { initKernelStamp } from '../../../services/kernel/eventStamp';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 
@@ -31,6 +32,7 @@ export interface InterlockOptions {
     incident_file?: string;
     domain?: Domain;
     enable_sde_telemetry?: boolean;
+    workload?: { model_id: string; provider: string };
 }
 
 declare global { namespace Express { interface Request { interlock?: { monitor: ConfidenceMonitor; failureInjector: FailureInjector; } } } }
@@ -61,6 +63,7 @@ export function interlockExpress(options: InterlockOptions = {}) {
     const sink: IncidentSink = new FileIncidentSink(logFile);
 
     if (enableSdeTelemetry) {
+        initKernelStamp(options.workload ?? { model_id: 'gemma3:1b', provider: domain });
         const emitter = startHealthWindowEmitter({ domain, thresholds: { latency_threshold_ms: latencyThresholdMs, error_threshold_pct: errorThresholdPct } });
         metricsCollector = emitter.collector;
         healthWindowStopper = emitter.stop;
