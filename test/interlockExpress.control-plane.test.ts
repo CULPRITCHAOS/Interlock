@@ -6,10 +6,39 @@ import { join } from 'node:path';
 import type { Server } from 'node:http';
 import { interlockExpress, stopSdeTelemetry } from '../packages/interlock-express/src/index.ts';
 
+const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 100;
+
+function rateLimiter(
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction
+): void {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const record = rateLimitStore.get(ip);
+
+    if (!record || now > record.resetTime) {
+        rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+        next();
+        return;
+    }
+
+    if (record.count >= RATE_LIMIT_MAX) {
+        res.status(429).json({ error: 'Too many requests' });
+        return;
+    }
+
+    record.count++;
+    next();
+}
+
 describe('interlockExpress control plane paths', () => {
     let server: Server | null = null;
 
     afterEach(async () => {
+        rateLimitStore.clear();
         stopSdeTelemetry();
         if (server) {
             await new Promise<void>((resolve, reject) => {
@@ -23,6 +52,7 @@ describe('interlockExpress control plane paths', () => {
         const app = express();
         const tmp = mkdtempSync(join(tmpdir(), 'interlock-control-plane-'));
 
+        app.use(rateLimiter);
         app.use(interlockExpress({
             control_plane_paths: ['/admin/inject-failure'],
             enable_sde_telemetry: false,
