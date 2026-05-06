@@ -3,7 +3,7 @@ import { ConfidenceMonitor } from '../../../adapters/pinecone/confidence_monitor
 import { LatencyProbe } from '../../../adapters/pinecone/latency_probe';
 import { FailureInjector } from '../../../adapters/pinecone/failure_injector';
 import { FileIncidentSink, IncidentSink } from './sink';
-import { startHealthWindowEmitter, recordRequest, MetricsCollector } from './health-window';
+import { startHealthWindowEmitter, recordRequest, resetMetricsCollector, MetricsCollector } from './health-window';
 import { emitInterventionEvent } from './intervention-emitter';
 import { loadLaw } from '../../../services/law-loader';
 import { Domain } from '../../../services/events.types';
@@ -42,7 +42,17 @@ export interface InterlockOptions {
     control_plane_paths?: string[];
 }
 
-declare global { namespace Express { interface Request { interlock?: { monitor: ConfidenceMonitor; failureInjector: FailureInjector; } } } }
+declare global {
+    namespace Express {
+        interface Request {
+            interlock?: {
+                monitor: ConfidenceMonitor;
+                failureInjector: FailureInjector;
+                resetRuntimeState: () => void;
+            }
+        }
+    }
+}
 let incidentId = 0;
 let activeIncident: { start: number, events: any[] } | null = null;
 let recoveryWindowStart: number | null = null;
@@ -69,6 +79,15 @@ export function interlockExpress(options: InterlockOptions = {}) {
     const monitor = new ConfidenceMonitor(latencyProbe, failureInjector, qualityFloor, latencyThresholdMs);
     const sink: IncidentSink = new FileIncidentSink(logFile);
     const controlPlanePaths = new Set(options.control_plane_paths ?? []);
+    const resetRuntimeState = () => {
+        failureInjector.disableInjection();
+        failureInjector.clear();
+        latencyProbe.clear();
+        monitor.reset();
+        activeIncident = null;
+        recoveryWindowStart = null;
+        if (metricsCollector) resetMetricsCollector(metricsCollector);
+    };
 
     if (enableSdeTelemetry) {
         initKernelStamp(
@@ -112,7 +131,7 @@ export function interlockExpress(options: InterlockOptions = {}) {
         }
 
         if (controlPlanePaths.has(req.path)) {
-            req.interlock = { monitor, failureInjector };
+            req.interlock = { monitor, failureInjector, resetRuntimeState };
             return next();
         }
 
@@ -130,7 +149,7 @@ export function interlockExpress(options: InterlockOptions = {}) {
         });
 
         monitor.update();
-        req.interlock = { monitor, failureInjector };
+        req.interlock = { monitor, failureInjector, resetRuntimeState };
 
         const requestId = (req.headers['x-request-id'] as string) || `req-${Date.now()}`;
         const decision: EnforcementDecision = monitor.shouldRefuse() ? {

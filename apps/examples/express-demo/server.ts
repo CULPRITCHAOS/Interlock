@@ -93,9 +93,7 @@ app.post('/admin/inject-failure', (req, res) => {
             req.interlock.failureInjector.enableInjection(1.0);
             res.json({ status: 'injected', mode: 'FORCE_ERROR' });
         } else if (mode === 'RESET') {
-            req.interlock.failureInjector.disableInjection();
-            req.interlock.failureInjector.clear();
-            req.interlock.monitor.reset();
+            req.interlock.resetRuntimeState();
             res.json({ status: 'reset' });
         } else {
             res.status(400).json({ error: 'Unknown mode' });
