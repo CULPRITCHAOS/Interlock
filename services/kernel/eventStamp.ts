@@ -87,12 +87,22 @@ export function getCachedKernel(): KernelLoadResult | null {
 
 /**
  * Stamp an event with kernel provenance.
- * Adds 'kernel' field to any event object.
+ * Adds SDE provenance fields to any event object.
  */
-export function stampEvent<T extends Record<string, any>>(event: T): T & { kernel: KernelStamp } {
+export function stampEvent<T extends Record<string, any>>(event: T): T & {
+    kernel: KernelStamp;
+    physics_hash: string;
+    workload: KernelStamp['workload'];
+    hardware_fingerprint: string;
+} {
+    const stamp = getKernelStamp();
+
     return {
         ...event,
-        kernel: getKernelStamp()
+        kernel: stamp,
+        physics_hash: event.physics_hash ?? stamp.physics_hash ?? 'none',
+        workload: event.workload ?? stamp.workload,
+        hardware_fingerprint: event.hardware_fingerprint ?? stamp.hardware_fingerprint ?? 'unknown'
     };
 }
 

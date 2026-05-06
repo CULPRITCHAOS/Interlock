@@ -15,6 +15,7 @@ import {
     mapToSDEActionType,
     mapToSDEState
 } from '../../../services/events.types.ts';
+import { stampEvent } from '../../../services/kernel/eventStamp.ts';
 import { getJsonlSink } from './jsonl-sink.ts';
 
 export interface InterventionEventData {
@@ -46,7 +47,7 @@ export interface InterventionEventData {
  * Build and emit an intervention event
  */
 export function emitInterventionEvent(data: InterventionEventData): void {
-    const event: InterventionEvent = {
+    const event = stampEvent({
         event_type: 'intervention',
         schema_version: '1.0.0',
         timestamp: new Date().toISOString(),
@@ -68,7 +69,7 @@ export function emitInterventionEvent(data: InterventionEventData): void {
             probe_attempts: data.recovery.probeAttempts,
             final_state: mapToSDEState(data.recovery.finalState)
         }
-    };
+    }) as InterventionEvent;
 
     if (data.context) {
         event.context = {

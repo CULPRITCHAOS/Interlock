@@ -35,10 +35,12 @@ def log_event(event):
             "law_hash": "ae234c4f2b3f322b",         # From user's log
             "quality_level": "L1-Hardware-Validated",
             "domain": DOMAIN,
+            "hardware_fingerprint": "unknown",
             "workload": {"model_id": MODEL_ID, "provider": "ollama"}
         },
         "physics_hash": "716ee688f5f25589", # From user's log
-        "workload": {"model_id": MODEL_ID, "provider": "ollama"}
+        "workload": {"model_id": MODEL_ID, "provider": "ollama"},
+        "hardware_fingerprint": event.get("hardware_fingerprint", "unknown")
     }
     with open(LOG_PATH, "a") as f:
         f.write(json.dumps(stamped_event) + "\n")
