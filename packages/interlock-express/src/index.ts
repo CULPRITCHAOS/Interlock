@@ -33,6 +33,11 @@ export interface InterlockOptions {
     domain?: Domain;
     enable_sde_telemetry?: boolean;
     workload?: { model_id: string; provider: string };
+    /**
+     * Explicit local/demo control-plane paths that must remain reachable even
+     * when data-plane traffic is being refused. Defaults to no bypass.
+     */
+    control_plane_paths?: string[];
 }
 
 declare global { namespace Express { interface Request { interlock?: { monitor: ConfidenceMonitor; failureInjector: FailureInjector; } } } }
@@ -61,6 +66,7 @@ export function interlockExpress(options: InterlockOptions = {}) {
     const failureInjector = new FailureInjector();
     const monitor = new ConfidenceMonitor(latencyProbe, failureInjector, qualityFloor, latencyThresholdMs);
     const sink: IncidentSink = new FileIncidentSink(logFile);
+    const controlPlanePaths = new Set(options.control_plane_paths ?? []);
 
     if (enableSdeTelemetry) {
         initKernelStamp(options.workload ?? { model_id: 'gemma3:1b', provider: domain });
@@ -98,6 +104,11 @@ export function interlockExpress(options: InterlockOptions = {}) {
                 error: 'Streaming enforcement unsupported without protocol adapter',
                 enforcement_todo: ['SSE/NDJSON fatal event then close', 'WebSocket close code 1008', 'raw/unknown transport abort']
             });
+        }
+
+        if (controlPlanePaths.has(req.path)) {
+            req.interlock = { monitor, failureInjector };
+            return next();
         }
 
         const startTime = Date.now();
