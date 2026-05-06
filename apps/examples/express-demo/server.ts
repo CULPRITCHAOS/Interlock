@@ -35,6 +35,7 @@ app.use(rateLimiter);
 
 // Enable Interlock - E2E testing with LLM-appropriate thresholds
 app.use(interlockExpress({
+    control_plane_paths: ['/admin/inject-failure'],
     quality_floor: 0.3,        // Low floor for LLM testing (0.3)
     dry_run: false,            // REAL Ollama calls
     latency_threshold_ms: 10000,  // 10s threshold for LLM workloads
@@ -93,6 +94,7 @@ app.post('/admin/inject-failure', (req, res) => {
             res.json({ status: 'injected', mode: 'FORCE_ERROR' });
         } else if (mode === 'RESET') {
             req.interlock.failureInjector.disableInjection();
+            req.interlock.failureInjector.clear();
             req.interlock.monitor.reset();
             res.json({ status: 'reset' });
         } else {
