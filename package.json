@@ -30,6 +30,7 @@
   "devDependencies": {
     "@types/node": "^22.19.2",
     "@vitejs/plugin-react": "^5.0.0",
+    "express-rate-limit": "^8.5.1",
     "tsx": "^4.19.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0",

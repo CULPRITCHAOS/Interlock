@@ -1,4 +1,5 @@
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { afterEach, describe, expect, it } from 'vitest';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -10,33 +11,12 @@ import { buildHealthWindowEvent, createMetricsCollector, recordRequest } from '.
 import { initKernelStamp } from '../services/kernel/eventStamp.ts';
 import { loadLaw } from '../services/law-loader.ts';
 
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW_MS = 60_000;
-const RATE_LIMIT_MAX = 100;
-
-function rateLimiter(
-    req: express.Request,
-    res: express.Response,
-    next: express.NextFunction
-): void {
-    const ip = req.ip || req.socket.remoteAddress || 'unknown';
-    const now = Date.now();
-    const record = rateLimitStore.get(ip);
-
-    if (!record || now > record.resetTime) {
-        rateLimitStore.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
-        next();
-        return;
-    }
-
-    if (record.count >= RATE_LIMIT_MAX) {
-        res.status(429).json({ error: 'Too many requests' });
-        return;
-    }
-
-    record.count++;
-    next();
-}
+const rateLimiter = rateLimit({
+    windowMs: 60_000,
+    limit: 100,
+    standardHeaders: true,
+    legacyHeaders: false
+});
 
 describe('runtime law event stamp alignment', () => {
     let server: Server | null = null;
@@ -46,7 +26,6 @@ describe('runtime law event stamp alignment', () => {
     const originalKernelPath = process.env.COGNITIVE_KERNEL_PATH;
 
     afterEach(async () => {
-        rateLimitStore.clear();
         stopSdeTelemetry();
         if (server) {
             await new Promise<void>((resolve, reject) => {
