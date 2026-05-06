@@ -8,6 +8,8 @@ import { emitInterventionEvent } from './intervention-emitter';
 import { loadLaw } from '../../../services/law-loader';
 import { Domain } from '../../../services/events.types';
 import { initKernelStamp } from '../../../services/kernel/eventStamp';
+import type { RuntimeLawProvenance } from '../../../services/kernel/eventStamp';
+import { resetJsonlSink } from './jsonl-sink';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 
@@ -69,7 +71,10 @@ export function interlockExpress(options: InterlockOptions = {}) {
     const controlPlanePaths = new Set(options.control_plane_paths ?? []);
 
     if (enableSdeTelemetry) {
-        initKernelStamp(options.workload ?? { model_id: 'gemma3:1b', provider: domain });
+        initKernelStamp(
+            options.workload ?? { model_id: 'gemma3:1b', provider: domain },
+            buildRuntimeLawProvenance(domain, lawResult)
+        );
         const emitter = startHealthWindowEmitter({ domain, thresholds: { latency_threshold_ms: latencyThresholdMs, error_threshold_pct: errorThresholdPct } });
         metricsCollector = emitter.collector;
         healthWindowStopper = emitter.stop;
@@ -165,10 +170,31 @@ export function interlockExpress(options: InterlockOptions = {}) {
     };
 }
 
+function buildRuntimeLawProvenance(domain: Domain, lawResult: ReturnType<typeof loadLaw>): RuntimeLawProvenance {
+    const law = lawResult.law as any;
+    const packetId =
+        law?.evidence?.packet_id ||
+        law?.source?.packet_id ||
+        law?.source?.proposal_id ||
+        law?.proposal_id;
+    const qualityLevel =
+        law?.evidence?.quality_level ||
+        law?.source?.quality_level ||
+        law?.quality_level;
+
+    return {
+        domain,
+        law_hash: lawResult.success ? lawResult.lawHash : 'default',
+        packet_id: packetId,
+        quality_level: qualityLevel
+    };
+}
+
 export function stopSdeTelemetry(): void {
     if (healthWindowStopper) {
         healthWindowStopper();
         healthWindowStopper = null;
     }
     metricsCollector = null;
+    resetJsonlSink();
 }

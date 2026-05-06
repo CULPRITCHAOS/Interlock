@@ -59,3 +59,7 @@ export function getJsonlSink(): JsonlEventSink {
     }
     return singletonSink;
 }
+
+export function resetJsonlSink(): void {
+    singletonSink = null;
+}

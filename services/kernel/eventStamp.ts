@@ -34,10 +34,18 @@ export interface KernelStamp {
     invalid?: boolean;
 }
 
+export interface RuntimeLawProvenance {
+    domain: string;
+    law_hash?: string;
+    packet_id?: string;
+    quality_level?: string;
+}
+
 // ============= Cached Kernel State =============
 
 let cachedKernel: KernelLoadResult | null = null;
 let cachedStamp: KernelStamp | null = null;
+let warnedLawHashConflict = false;
 
 /**
  * Initialize kernel and cache stamp for event emission.
@@ -45,11 +53,33 @@ let cachedStamp: KernelStamp | null = null;
  * 
  * @param workload Optional workload identity to stamp (e.g. { model_id: 'gemma3:12b' })
  */
-export function initKernelStamp(workload?: { model_id: string; provider: string }): KernelStamp {
+export function initKernelStamp(
+    workload?: { model_id: string; provider: string },
+    runtimeLaw?: RuntimeLawProvenance
+): KernelStamp {
     cachedKernel = loadKernel();
     // Use the newly exported computePhysicsHash
 
     const baseStamp = getKernelProvenance(cachedKernel);
+    const runtimeLawHash = runtimeLaw?.law_hash;
+    const runtimePacketId = runtimeLaw?.packet_id || (
+        runtimeLawHash ? `runtime-law-${runtimeLawHash}` : undefined
+    );
+
+    if (
+        runtimeLawHash &&
+        baseStamp.law_hash &&
+        baseStamp.law_hash !== 'unknown' &&
+        baseStamp.law_hash !== 'default' &&
+        baseStamp.law_hash !== runtimeLawHash &&
+        !warnedLawHashConflict
+    ) {
+        console.warn(
+            `[Interlock] Runtime law hash ${runtimeLawHash} differs from kernel law_hash ` +
+            `${baseStamp.law_hash}; event stamps will use runtime law hash.`
+        );
+        warnedLawHashConflict = true;
+    }
 
     const physicsHash = cachedKernel.success ? computePhysicsHash(cachedKernel.physics) : 'none';
 
@@ -58,6 +88,10 @@ export function initKernelStamp(workload?: { model_id: string; provider: string 
 
     cachedStamp = {
         ...baseStamp,
+        domain: runtimeLaw?.domain ?? baseStamp.domain,
+        law_hash: runtimeLawHash || safeStampValue(baseStamp.law_hash, 'default'),
+        packet_id: runtimePacketId || safeStampValue(baseStamp.packet_id, 'none'),
+        quality_level: runtimeLaw?.quality_level || safeStampValue(baseStamp.quality_level, 'L0-Observed'),
         physics_hash: physicsHash,
         workload: workload,
         hardware_fingerprint: hardwareStamp.hardware_fingerprint,
@@ -65,6 +99,11 @@ export function initKernelStamp(workload?: { model_id: string; provider: string 
     };
 
     return cachedStamp;
+}
+
+function safeStampValue(value: string | undefined, fallback: string): string {
+    if (!value || value === 'unknown') return fallback;
+    return value;
 }
 
 /**
