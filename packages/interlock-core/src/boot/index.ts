@@ -122,6 +122,7 @@ export function loadKernel(domain?: string): KernelLoadResult {
                 schema_version: profile.schema_version,
                 packet_id: sourceInfo.packet_id ?? 'unknown',
                 law_hash: sourceInfo.law_hash ?? 'unknown',
+                hardware_fingerprint: sourceInfo.hardware_fingerprint ?? (profile as any).hardware_fingerprint ?? 'unknown',
                 quality_level: sourceInfo.quality_level,
                 domain: domain || sourceInfo.domain,
                 timestamp: sourceInfo.timestamp
@@ -162,6 +163,7 @@ export function loadKernel(domain?: string): KernelLoadResult {
             schema_version: 'unknown',
             packet_id: 'none',
             law_hash: 'default',
+            hardware_fingerprint: 'unknown',
             missing: true
         },
         warnings: ['Kernel not found, using SAFE MODE defaults'],
@@ -369,10 +371,20 @@ export function stampEvent<T extends Record<string, unknown>>(event: T): T & {
     kernel: KernelStamp;
     adapter?: AdapterStamp;
     physics_hash?: string;
+    hardware_fingerprint: string;
 } {
+    const kernel = cachedStamp ?? {
+        schema_version: 'unknown',
+        packet_id: 'none',
+        law_hash: 'default',
+        hardware_fingerprint: 'unknown',
+        missing: true
+    };
+
     return {
         ...event,
-        kernel: cachedStamp ?? { schema_version: 'unknown', packet_id: 'none', law_hash: 'default', missing: true },
+        kernel,
+        hardware_fingerprint: (event.hardware_fingerprint as string | undefined) ?? kernel.hardware_fingerprint ?? 'unknown',
         ...(cachedAdapterStamp && { adapter: cachedAdapterStamp }),
         ...(cachedPhysicsHash && { physics_hash: cachedPhysicsHash })
     };

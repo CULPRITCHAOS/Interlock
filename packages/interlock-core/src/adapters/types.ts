@@ -209,6 +209,7 @@ export interface KernelStamp {
     schema_version: string;
     packet_id: string;
     law_hash: string;
+    hardware_fingerprint?: string;
     quality_level?: string;
     domain?: string;
     timestamp?: string;

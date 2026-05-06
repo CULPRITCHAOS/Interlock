@@ -31,7 +31,25 @@ interface EventBase {
     schema_version: '1.0.0';
     timestamp: string; // ISO 8601
     domain: Domain;
+    kernel: SDEKernelStamp;
+    physics_hash?: string;
+    workload?: SDEWorkload;
     hardware_fingerprint: string;
+}
+
+export interface SDEWorkload {
+    model_id: string;
+    provider?: string;
+}
+
+export interface SDEKernelStamp {
+    packet_id: string;
+    law_hash: string;
+    schema_version: string;
+    hardware_fingerprint: string;
+    quality_level?: string;
+    domain?: string;
+    timestamp?: string;
 }
 
 // ============= Intervention Event =============

@@ -10,6 +10,7 @@ import {
     Domain,
     getHardwareFingerprint
 } from '../../../services/events.types.ts';
+import { stampEvent } from '../../../services/kernel/eventStamp.ts';
 import { getJsonlSink } from './jsonl-sink.ts';
 
 const DEFAULT_HEALTH_WINDOW_MS = 5000; // 5 seconds
@@ -86,7 +87,7 @@ export function buildHealthWindowEvent(
         ? collector.errorCount / collector.requestCount
         : 0;
 
-    return {
+    const event = {
         event_type: 'health_window',
         schema_version: '1.0.0',
         timestamp: now.toISOString(),
@@ -114,6 +115,8 @@ export function buildHealthWindowEvent(
                 : 'Threshold exceeded'
         } : undefined
     };
+
+    return stampEvent(event) as HealthWindowEvent;
 }
 
 /**

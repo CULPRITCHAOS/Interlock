@@ -93,6 +93,30 @@ if (fs.existsSync(GOLDEN_FIXTURE_PATH)) {
                 return typeof event.hardware_fingerprint === 'string' && event.hardware_fingerprint.length > 0;
             });
 
+            test(`Golden fixture line ${i + 1} has kernel.packet_id`, () => {
+                return typeof event.kernel?.packet_id === 'string' && event.kernel.packet_id.length > 0;
+            });
+
+            test(`Golden fixture line ${i + 1} has kernel.law_hash`, () => {
+                return typeof event.kernel?.law_hash === 'string' && event.kernel.law_hash.length > 0;
+            });
+
+            test(`Golden fixture line ${i + 1} has kernel.schema_version`, () => {
+                return typeof event.kernel?.schema_version === 'string' && event.kernel.schema_version.length > 0;
+            });
+
+            test(`Golden fixture line ${i + 1} has recommended physics_hash`, () => {
+                return typeof event.physics_hash === 'string' && event.physics_hash.length > 0;
+            });
+
+            test(`Golden fixture line ${i + 1} has recommended workload.model_id`, () => {
+                return typeof event.workload?.model_id === 'string' && event.workload.model_id.length > 0;
+            });
+
+            test(`Golden fixture line ${i + 1} has recommended kernel.hardware_fingerprint`, () => {
+                return typeof event.kernel?.hardware_fingerprint === 'string' && event.kernel.hardware_fingerprint.length > 0;
+            });
+
             test(`Golden fixture line ${i + 1} has ISO timestamp`, () => {
                 const ts = event.timestamp;
                 return typeof ts === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(ts);

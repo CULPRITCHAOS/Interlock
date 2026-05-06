@@ -48,9 +48,12 @@ async function main() {
             schema_version: kernel.schema_version,
             packet_id: kernel.source?.packet_id || 'unknown',
             law_hash: kernel.source?.law_hash || 'unknown',
+            hardware_fingerprint: kernel.hardware_fingerprint || kernel.compute_limits?.hardware_fingerprint || 'unknown',
             quality_level: kernel.source?.quality_level,
             domain: kernel.source?.domain
         },
+        physics_hash: kernel.source?.law_hash || 'demo',
+        workload: { model_id: 'gemma3:1b', provider: 'ollama' },
         effective_config: {
             latencyThresholdMs: kernel.physics?.max_safe_latency_ms || 500,
             errorThresholdRate: kernel.physics?.error_threshold_rate || (kernel.physics?.error_threshold_pct / 100) || 0.05,
@@ -80,8 +83,10 @@ async function main() {
     // Create a sample stamped health_window event
     const healthEvent = {
         event_type: 'health_window',
+        schema_version: '1.0.0',
         timestamp: new Date().toISOString(),
         domain: 'ollama',
+        hardware_fingerprint: bootEvent.kernel.hardware_fingerprint,
         window: {
             start: new Date(Date.now() - 60000).toISOString(),
             end: new Date().toISOString(),
@@ -99,7 +104,8 @@ async function main() {
         },
         // Kernel stamp
         kernel: bootEvent.kernel,
-        physics_hash: 'demo'
+        physics_hash: bootEvent.physics_hash,
+        workload: bootEvent.workload
     };
 
     fs.appendFileSync(eventLogPath, JSON.stringify(healthEvent) + '\n');

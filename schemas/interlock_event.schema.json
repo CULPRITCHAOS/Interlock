@@ -19,6 +19,7 @@
                 "schema_version",
                 "timestamp",
                 "domain",
+                "kernel",
                 "hardware_fingerprint",
                 "trigger",
                 "action",
@@ -51,6 +52,15 @@
                 },
                 "hardware_fingerprint": {
                     "type": "string"
+                },
+                "kernel": {
+                    "$ref": "#/definitions/kernel_stamp"
+                },
+                "physics_hash": {
+                    "type": "string"
+                },
+                "workload": {
+                    "$ref": "#/definitions/workload"
                 },
                 "trigger": {
                     "type": "object",
@@ -164,6 +174,7 @@
                 "schema_version",
                 "timestamp",
                 "domain",
+                "kernel",
                 "hardware_fingerprint",
                 "window",
                 "metrics",
@@ -196,6 +207,15 @@
                 },
                 "hardware_fingerprint": {
                     "type": "string"
+                },
+                "kernel": {
+                    "$ref": "#/definitions/kernel_stamp"
+                },
+                "physics_hash": {
+                    "type": "string"
+                },
+                "workload": {
+                    "$ref": "#/definitions/workload"
                 },
                 "window": {
                     "type": "object",
@@ -266,6 +286,56 @@
                             "type": "string"
                         }
                     }
+                }
+            }
+        },
+        "kernel_stamp": {
+            "type": "object",
+            "required": [
+                "packet_id",
+                "law_hash",
+                "schema_version"
+            ],
+            "properties": {
+                "packet_id": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "law_hash": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "schema_version": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "hardware_fingerprint": {
+                    "type": "string"
+                },
+                "quality_level": {
+                    "type": "string"
+                },
+                "domain": {
+                    "type": "string"
+                },
+                "timestamp": {
+                    "type": "string",
+                    "format": "date-time"
+                }
+            }
+        },
+        "workload": {
+            "type": "object",
+            "required": [
+                "model_id"
+            ],
+            "properties": {
+                "model_id": {
+                    "type": "string",
+                    "minLength": 1
+                },
+                "provider": {
+                    "type": "string"
                 }
             }
         }
