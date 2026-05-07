@@ -133,6 +133,9 @@ export function loadLaw(domain: string): LoadLawResult {
         // Otherwise treat as Full Law if 'parameters' exists
         else if (law.parameters) {
             params.latency_threshold_ms = law.parameters.latency_threshold_ms ?? DEFAULT_LAW_PARAMETERS.latency_threshold_ms;
+            params.cold_start_grace_requests = law.parameters.cold_start_grace_requests ?? DEFAULT_LAW_PARAMETERS.cold_start_grace_requests;
+            params.cold_start_grace_ms = law.parameters.cold_start_grace_ms ?? DEFAULT_LAW_PARAMETERS.cold_start_grace_ms;
+            params.steady_state_latency_threshold_ms = law.parameters.steady_state_latency_threshold_ms ?? params.latency_threshold_ms;
             params.error_threshold_pct = law.parameters.error_threshold_pct ?? DEFAULT_LAW_PARAMETERS.error_threshold_pct;
             params.recovery_timeout_ms = law.parameters.recovery_timeout_ms ?? DEFAULT_LAW_PARAMETERS.recovery_timeout_ms;
             params.probe_interval_ms = law.parameters.probe_interval_ms ?? DEFAULT_LAW_PARAMETERS.probe_interval_ms;
@@ -140,10 +143,26 @@ export function loadLaw(domain: string): LoadLawResult {
             params.decay_rate = law.parameters.decay_rate ?? DEFAULT_LAW_PARAMETERS.decay_rate;
         }
 
+        params.steady_state_latency_threshold_ms = params.steady_state_latency_threshold_ms ?? params.latency_threshold_ms;
+        params.cold_start_grace_requests = Math.floor(params.cold_start_grace_requests ?? 0);
+        params.cold_start_grace_ms = Math.floor(params.cold_start_grace_ms ?? 0);
+
         // Bounds checking
         if (params.latency_threshold_ms < 10 || params.latency_threshold_ms > 60000) {
             warnings.push(`latency_threshold_ms out of bounds, clamping.`);
             params.latency_threshold_ms = Math.max(10, Math.min(60000, params.latency_threshold_ms));
+        }
+        if (params.steady_state_latency_threshold_ms < 10 || params.steady_state_latency_threshold_ms > 60000) {
+            warnings.push(`steady_state_latency_threshold_ms out of bounds, clamping.`);
+            params.steady_state_latency_threshold_ms = Math.max(10, Math.min(60000, params.steady_state_latency_threshold_ms));
+        }
+        if (params.cold_start_grace_requests < 0 || params.cold_start_grace_requests > 100) {
+            warnings.push(`cold_start_grace_requests out of bounds, clamping.`);
+            params.cold_start_grace_requests = Math.max(0, Math.min(100, params.cold_start_grace_requests));
+        }
+        if (params.cold_start_grace_ms < 0 || params.cold_start_grace_ms > 600000) {
+            warnings.push(`cold_start_grace_ms out of bounds, clamping.`);
+            params.cold_start_grace_ms = Math.max(0, Math.min(600000, params.cold_start_grace_ms));
         }
         if (params.confidence_floor < 0 || params.confidence_floor > 1) {
             warnings.push(`confidence_floor out of bounds, clamping.`);
@@ -203,7 +222,7 @@ export function mapLawToCircuitBreakerConfig(params: LawParameters): Partial<{
     hazardThreshold: number;
 }> {
     return {
-        latencyThresholdMs: params.latency_threshold_ms,
+        latencyThresholdMs: params.steady_state_latency_threshold_ms ?? params.latency_threshold_ms,
         // Map error_threshold_pct to hazardThreshold (inverse relationship)
         hazardThreshold: 1 - params.error_threshold_pct
     };

@@ -10,6 +10,7 @@ import { Domain } from '../../../services/events.types';
 import { initKernelStamp } from '../../../services/kernel/eventStamp';
 import type { RuntimeLawProvenance } from '../../../services/kernel/eventStamp';
 import { resetJsonlSink } from './jsonl-sink';
+import { RuntimeGraceTracker } from './runtime-grace';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 
@@ -69,7 +70,7 @@ export function interlockExpress(options: InterlockOptions = {}) {
     const enableSdeTelemetry = options.enable_sde_telemetry ?? true;
     const lawResult = loadLaw(domain);
     const qualityFloor = options.quality_floor ?? lawResult.parameters.confidence_floor ?? 0.5;
-    const latencyThresholdMs = lawResult.parameters.latency_threshold_ms || 500;
+    const latencyThresholdMs = lawResult.parameters.steady_state_latency_threshold_ms ?? lawResult.parameters.latency_threshold_ms ?? 500;
     const errorThresholdPct = lawResult.parameters.error_threshold_pct || 0.05;
     const failureClass = options.failure_class || 'Forced application error (non-user, non-network)';
     const logFile = options.incident_file || path.resolve(process.cwd(), 'docs/LIVE_INCIDENTS.md');
@@ -77,6 +78,11 @@ export function interlockExpress(options: InterlockOptions = {}) {
     const latencyProbe = new LatencyProbe();
     const failureInjector = new FailureInjector();
     const monitor = new ConfidenceMonitor(latencyProbe, failureInjector, qualityFloor, latencyThresholdMs);
+    const runtimeGrace = new RuntimeGraceTracker({
+        coldStartGraceRequests: lawResult.parameters.cold_start_grace_requests ?? 0,
+        coldStartGraceMs: lawResult.parameters.cold_start_grace_ms ?? 0,
+        steadyStateLatencyThresholdMs: latencyThresholdMs
+    });
     const sink: IncidentSink = new FileIncidentSink(logFile);
     const controlPlanePaths = new Set(options.control_plane_paths ?? []);
     const resetRuntimeState = () => {
@@ -84,6 +90,7 @@ export function interlockExpress(options: InterlockOptions = {}) {
         failureInjector.clear();
         latencyProbe.clear();
         monitor.reset();
+        runtimeGrace.reset();
         activeIncident = null;
         recoveryWindowStart = null;
         if (metricsCollector) resetMetricsCollector(metricsCollector);
@@ -94,7 +101,11 @@ export function interlockExpress(options: InterlockOptions = {}) {
             options.workload ?? { model_id: 'gemma3:1b', provider: domain },
             buildRuntimeLawProvenance(domain, lawResult)
         );
-        const emitter = startHealthWindowEmitter({ domain, thresholds: { latency_threshold_ms: latencyThresholdMs, error_threshold_pct: errorThresholdPct } });
+        const emitter = startHealthWindowEmitter({
+            domain,
+            thresholds: { latency_threshold_ms: latencyThresholdMs, error_threshold_pct: errorThresholdPct },
+            getRuntimeGraceState: () => runtimeGrace.snapshotNow()
+        });
         metricsCollector = emitter.collector;
         healthWindowStopper = emitter.stop;
     }
@@ -135,17 +146,22 @@ export function interlockExpress(options: InterlockOptions = {}) {
             return next();
         }
 
+        const graceState = runtimeGrace.startRequest();
         const startTime = Date.now();
         res.on('finish', () => {
             const duration = Date.now() - startTime;
-            latencyProbe.record({ timestamp: Date.now(), latencyMs: duration, operation: 'query' });
+            const isError = res.statusCode >= 500 && res.statusCode !== 503;
+            const shouldSuppressLatencyProbe = graceState.grace_active && !isError && res.statusCode < 500;
+            if (!shouldSuppressLatencyProbe) {
+                latencyProbe.record({ timestamp: Date.now(), latencyMs: duration, operation: 'query' });
+            }
             if (metricsCollector) {
-                const isError = res.statusCode >= 500 && res.statusCode !== 503;
-                if (!(dryRun && (res.statusCode === 503 || res.statusCode === 429))) recordRequest(metricsCollector, duration, isError);
+                if (!(dryRun && (res.statusCode === 503 || res.statusCode === 429))) recordRequest(metricsCollector, duration, isError, graceState);
             }
             if (res.statusCode >= 500 && res.statusCode !== 503) {
                 failureInjector.recordSignal({ timestamp: Date.now(), type: 'error', severity: 'high', message: `HTTP ${res.statusCode}` });
             }
+            runtimeGrace.finishRequest();
         });
 
         monitor.update();
@@ -168,7 +184,7 @@ export function interlockExpress(options: InterlockOptions = {}) {
                 activeIncident = { start: Date.now(), events: [] };
                 sink.logEvent({ incidentId: String(incidentId).padStart(3, '0'), trigger: 'Confidence < Quality Floor', action: 'Traffic Refusal', details: 'Initial refusal triggered', recoveryTime: 0, confidence: monitor.getConfidence(), failureClass });
                 if (enableSdeTelemetry) {
-                    emitInterventionEvent({ domain, trigger: { interlockTrigger: 'confidence_floor_breach', thresholdMs: latencyThresholdMs, observedMs: latencyProbe.getStats().meanMs || 0, confidence: monitor.getConfidence() }, action: { interlockAction: 'refuse', priorState: 'closed', newState: 'open' }, recovery: { timeMs: 0, probeAttempts: 0, finalState: 'open' }, context: { qualityFloorHit: true } });
+                    emitInterventionEvent({ domain, trigger: { interlockTrigger: 'confidence_floor_breach', thresholdMs: latencyThresholdMs, observedMs: latencyProbe.getStats().meanMs || 0, confidence: monitor.getConfidence() }, action: { interlockAction: 'refuse', priorState: 'closed', newState: 'open' }, recovery: { timeMs: 0, probeAttempts: 0, finalState: 'open' }, context: { qualityFloorHit: true }, grace: graceState });
                 }
             }
             recoveryWindowStart = null;
@@ -179,7 +195,7 @@ export function interlockExpress(options: InterlockOptions = {}) {
                 const duration = (Date.now() - activeIncident.start) / 1000;
                 const recoveryTimeMs = Date.now() - activeIncident.start;
                 sink.logEvent({ incidentId: `${String(incidentId).padStart(3, '0')}-A`, trigger: 'Recovery', action: 'Traffic Refusal / Degraded Mode', details: 'System refused traffic to prevent collapse', recoveryTime: duration, confidence: monitor.getConfidence(), failureClass });
-                if (enableSdeTelemetry) emitInterventionEvent({ domain, trigger: { interlockTrigger: 'recovery', thresholdMs: latencyThresholdMs, observedMs: latencyProbe.getStats().meanMs || 0, confidence: monitor.getConfidence() }, action: { interlockAction: 'circuit_close', priorState: 'open', newState: 'closed' }, recovery: { timeMs: recoveryTimeMs, probeAttempts: 1, finalState: 'closed' } });
+                if (enableSdeTelemetry) emitInterventionEvent({ domain, trigger: { interlockTrigger: 'recovery', thresholdMs: latencyThresholdMs, observedMs: latencyProbe.getStats().meanMs || 0, confidence: monitor.getConfidence() }, action: { interlockAction: 'circuit_close', priorState: 'open', newState: 'closed' }, recovery: { timeMs: recoveryTimeMs, probeAttempts: 1, finalState: 'closed' }, grace: graceState });
                 activeIncident = null; recoveryWindowStart = null;
             }
         }
