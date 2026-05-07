@@ -12,6 +12,7 @@ import {
 } from '../../../services/events.types.ts';
 import { stampEvent } from '../../../services/kernel/eventStamp.ts';
 import { getJsonlSink } from './jsonl-sink.ts';
+import type { RuntimeGraceSnapshot } from './runtime-grace.ts';
 
 const DEFAULT_HEALTH_WINDOW_MS = 5000; // 5 seconds
 
@@ -22,6 +23,7 @@ export interface HealthWindowOptions {
         latency_threshold_ms: number;
         error_threshold_pct: number;
     };
+    getRuntimeGraceState?: () => RuntimeGraceSnapshot;
 }
 
 export interface MetricsCollector {
@@ -29,6 +31,7 @@ export interface MetricsCollector {
     errorCount: number;
     requestCount: number;
     windowStart: Date;
+    graceState: RuntimeGraceSnapshot | null;
 }
 
 /**
@@ -39,17 +42,21 @@ export function createMetricsCollector(): MetricsCollector {
         latencies: [],
         errorCount: 0,
         requestCount: 0,
-        windowStart: new Date()
+        windowStart: new Date(),
+        graceState: null
     };
 }
 
 /**
  * Record a request in the metrics collector
  */
-export function recordRequest(collector: MetricsCollector, latencyMs: number, isError: boolean): void {
+export function recordRequest(collector: MetricsCollector, latencyMs: number, isError: boolean, graceState?: RuntimeGraceSnapshot): void {
     collector.latencies.push(latencyMs);
     collector.requestCount++;
     if (isError) collector.errorCount++;
+    if (graceState && (graceState.grace_active || !collector.graceState)) {
+        collector.graceState = graceState;
+    }
 }
 
 /**
@@ -60,6 +67,7 @@ export function resetMetricsCollector(collector: MetricsCollector): void {
     collector.errorCount = 0;
     collector.requestCount = 0;
     collector.windowStart = new Date();
+    collector.graceState = null;
 }
 
 /**
@@ -86,7 +94,8 @@ function calculateMax(latencies: number[]): number {
 export function buildHealthWindowEvent(
     collector: MetricsCollector,
     domain: Domain,
-    thresholds: { latency_threshold_ms: number; error_threshold_pct: number }
+    thresholds: { latency_threshold_ms: number; error_threshold_pct: number },
+    runtimeGraceState?: RuntimeGraceSnapshot
 ): HealthWindowEvent {
     const now = new Date();
     const durationMs = now.getTime() - collector.windowStart.getTime();
@@ -97,12 +106,21 @@ export function buildHealthWindowEvent(
         ? collector.errorCount / collector.requestCount
         : 0;
 
+    const graceState = collector.graceState ?? runtimeGraceState;
+
     const event = {
         event_type: 'health_window',
         schema_version: '1.0.0',
         timestamp: now.toISOString(),
         domain,
         hardware_fingerprint: getHardwareFingerprint(),
+        runtime_phase: graceState?.runtime_phase,
+        grace_active: graceState?.grace_active,
+        grace_reason: graceState?.grace_reason,
+        grace_request_index: graceState?.grace_request_index,
+        grace_elapsed_ms: graceState?.grace_elapsed_ms,
+        active_latency_threshold_ms: graceState?.active_latency_threshold_ms,
+        steady_state_latency_threshold_ms: graceState?.steady_state_latency_threshold_ms,
         window: {
             start: collector.windowStart.toISOString(),
             end: now.toISOString(),
@@ -116,7 +134,9 @@ export function buildHealthWindowEvent(
         },
         thresholds: {
             latency_threshold_ms: thresholds.latency_threshold_ms,
-            error_threshold_pct: thresholds.error_threshold_pct
+            error_threshold_pct: thresholds.error_threshold_pct,
+            active_latency_threshold_ms: graceState?.active_latency_threshold_ms,
+            steady_state_latency_threshold_ms: graceState?.steady_state_latency_threshold_ms
         },
         margin: latencyP95 > 0 ? {
             latency_headroom_ms: thresholds.latency_threshold_ms - latencyP95,
@@ -145,7 +165,7 @@ export function startHealthWindowEmitter(options: HealthWindowOptions): {
 
     const interval = setInterval(() => {
         // Build and emit the health window event
-        const event = buildHealthWindowEvent(collector, options.domain, options.thresholds);
+        const event = buildHealthWindowEvent(collector, options.domain, options.thresholds, options.getRuntimeGraceState?.());
         sink.emit(event);
 
         // Reset collector for next window without invalidating middleware references

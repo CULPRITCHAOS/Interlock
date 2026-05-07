@@ -17,6 +17,7 @@ import {
 } from '../../../services/events.types.ts';
 import { stampEvent } from '../../../services/kernel/eventStamp.ts';
 import { getJsonlSink } from './jsonl-sink.ts';
+import type { RuntimeGraceSnapshot } from './runtime-grace.ts';
 
 export interface InterventionEventData {
     domain: Domain;
@@ -41,6 +42,7 @@ export interface InterventionEventData {
         trustDecayRate?: number;
         windowDurationMs?: number;
     };
+    grace?: RuntimeGraceSnapshot;
 }
 
 /**
@@ -53,6 +55,13 @@ export function emitInterventionEvent(data: InterventionEventData): void {
         timestamp: new Date().toISOString(),
         domain: data.domain,
         hardware_fingerprint: getHardwareFingerprint(),
+        runtime_phase: data.grace?.runtime_phase,
+        grace_active: data.grace?.grace_active,
+        grace_reason: data.grace?.grace_reason,
+        grace_request_index: data.grace?.grace_request_index,
+        grace_elapsed_ms: data.grace?.grace_elapsed_ms,
+        active_latency_threshold_ms: data.grace?.active_latency_threshold_ms,
+        steady_state_latency_threshold_ms: data.grace?.steady_state_latency_threshold_ms,
         trigger: {
             type: mapToSDETriggerType(data.trigger.interlockTrigger),
             threshold_ms: data.trigger.thresholdMs,

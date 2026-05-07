@@ -53,6 +53,29 @@
                 "hardware_fingerprint": {
                     "type": "string"
                 },
+                "runtime_phase": {
+                    "$ref": "#/definitions/runtime_phase"
+                },
+                "grace_active": {
+                    "type": "boolean"
+                },
+                "grace_reason": {
+                    "type": "string"
+                },
+                "grace_request_index": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "grace_elapsed_ms": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "active_latency_threshold_ms": {
+                    "type": "number"
+                },
+                "steady_state_latency_threshold_ms": {
+                    "type": "number"
+                },
                 "kernel": {
                     "$ref": "#/definitions/kernel_stamp"
                 },
@@ -208,6 +231,29 @@
                 "hardware_fingerprint": {
                     "type": "string"
                 },
+                "runtime_phase": {
+                    "$ref": "#/definitions/runtime_phase"
+                },
+                "grace_active": {
+                    "type": "boolean"
+                },
+                "grace_reason": {
+                    "type": "string"
+                },
+                "grace_request_index": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "grace_elapsed_ms": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "active_latency_threshold_ms": {
+                    "type": "number"
+                },
+                "steady_state_latency_threshold_ms": {
+                    "type": "number"
+                },
                 "kernel": {
                     "$ref": "#/definitions/kernel_stamp"
                 },
@@ -272,6 +318,12 @@
                             "type": "number"
                         },
                         "error_threshold_pct": {
+                            "type": "number"
+                        },
+                        "active_latency_threshold_ms": {
+                            "type": "number"
+                        },
+                        "steady_state_latency_threshold_ms": {
                             "type": "number"
                         }
                     }
@@ -338,6 +390,15 @@
                     "type": "string"
                 }
             }
+        },
+        "runtime_phase": {
+            "type": "string",
+            "enum": [
+                "cold_start",
+                "steady_state",
+                "post_reset",
+                "unknown"
+            ]
         }
     }
 }

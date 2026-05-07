@@ -35,6 +35,13 @@ interface EventBase {
     physics_hash?: string;
     workload?: SDEWorkload;
     hardware_fingerprint: string;
+    runtime_phase?: 'cold_start' | 'steady_state' | 'post_reset' | 'unknown';
+    grace_active?: boolean;
+    grace_reason?: string;
+    grace_request_index?: number;
+    grace_elapsed_ms?: number;
+    active_latency_threshold_ms?: number;
+    steady_state_latency_threshold_ms?: number;
 }
 
 export interface SDEWorkload {
@@ -105,6 +112,8 @@ export interface HealthMetrics {
 export interface HealthThresholds {
     latency_threshold_ms: number;
     error_threshold_pct: number;
+    active_latency_threshold_ms?: number;
+    steady_state_latency_threshold_ms?: number;
 }
 
 export interface HealthMargin {

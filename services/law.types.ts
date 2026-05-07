@@ -13,6 +13,15 @@ export interface LawParameters {
     /** Latency threshold in milliseconds */
     latency_threshold_ms: number;
 
+    /** Optional bounded startup grace request count */
+    cold_start_grace_requests?: number;
+
+    /** Optional bounded startup grace duration */
+    cold_start_grace_ms?: number;
+
+    /** Optional steady-state threshold once startup grace expires */
+    steady_state_latency_threshold_ms?: number;
+
     /** Error rate threshold as percentage (0.05 = 5%) */
     error_threshold_pct: number;
 
@@ -64,6 +73,8 @@ export interface LawFile {
 
 export const DEFAULT_LAW_PARAMETERS: LawParameters = {
     latency_threshold_ms: 500,
+    cold_start_grace_requests: 0,
+    cold_start_grace_ms: 0,
     error_threshold_pct: 0.05,
     recovery_timeout_ms: 60000,
     probe_interval_ms: 5000,
