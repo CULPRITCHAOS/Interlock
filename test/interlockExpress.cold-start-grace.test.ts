@@ -14,6 +14,9 @@ const rateLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false
 });
+const TEST_SLOW_DELAY_MS = 40;
+const TEST_WAIT_FOR_GRACE_EXPIRY_MS = 10;
+const TEST_EVENT_POLL_MS = 20;
 
 describe('interlockExpress bounded cold-start grace', () => {
     let server: Server | null = null;
@@ -43,7 +46,7 @@ describe('interlockExpress bounded cold-start grace', () => {
 
     it('preserves default threshold poisoning behavior when grace fields are absent', async () => {
         const app = await startApp(makeLaw({ latency_threshold_ms: 20, confidence_floor: 0.5 }));
-        const slow = await postJson(`${app.baseUrl}/work?delayMs=40`, {});
+        const slow = await postJson(`${app.baseUrl}/work-slow`, {});
         expect(slow.status).toBe(200);
 
         const refused = await postJson(`${app.baseUrl}/work`, {});
@@ -60,7 +63,7 @@ describe('interlockExpress bounded cold-start grace', () => {
             confidence_floor: 0.5
         }));
 
-        const coldSlow = await postJson(`${app.baseUrl}/work?delayMs=40`, {});
+        const coldSlow = await postJson(`${app.baseUrl}/work-slow`, {});
         expect(coldSlow.status).toBe(200);
 
         const nextHealthy = await postJson(`${app.baseUrl}/work`, {});
@@ -76,10 +79,10 @@ describe('interlockExpress bounded cold-start grace', () => {
             confidence_floor: 0.5
         }));
 
-        expect((await postJson(`${app.baseUrl}/work?delayMs=40`, {})).status).toBe(200);
+        expect((await postJson(`${app.baseUrl}/work-slow`, {})).status).toBe(200);
         expect((await postJson(`${app.baseUrl}/work`, {})).status).toBe(200);
 
-        const postGraceSlow = await postJson(`${app.baseUrl}/work?delayMs=40`, {});
+        const postGraceSlow = await postJson(`${app.baseUrl}/work-slow`, {});
         expect(postGraceSlow.status).toBe(200);
 
         const refused = await postJson(`${app.baseUrl}/work`, {});
@@ -95,9 +98,9 @@ describe('interlockExpress bounded cold-start grace', () => {
             confidence_floor: 0.5
         }));
 
-        await delay(10);
+        await delay(TEST_WAIT_FOR_GRACE_EXPIRY_MS);
 
-        expect((await postJson(`${app.baseUrl}/work?delayMs=40`, {})).status).toBe(200);
+        expect((await postJson(`${app.baseUrl}/work-slow`, {})).status).toBe(200);
         const refused = await postJson(`${app.baseUrl}/work`, {});
         expect(refused.status).toBe(503);
     });
@@ -129,7 +132,7 @@ describe('interlockExpress bounded cold-start grace', () => {
             confidence_floor: 0.5
         }), { telemetry: true });
 
-        expect((await postJson(`${app.baseUrl}/work?delayMs=40`, {})).status).toBe(200);
+        expect((await postJson(`${app.baseUrl}/work-slow`, {})).status).toBe(200);
 
         const events = await readEventsEventually(app.eventsPath, events =>
             events.some(event => event.event_type === 'health_window' && event.metrics?.request_count > 0)
@@ -156,13 +159,13 @@ describe('interlockExpress bounded cold-start grace', () => {
             confidence_floor: 0.5
         }), { controlPlane: true });
 
-        expect((await postJson(`${app.baseUrl}/work?delayMs=40`, {})).status).toBe(200);
+        expect((await postJson(`${app.baseUrl}/work-slow`, {})).status).toBe(200);
         expect((await postJson(`${app.baseUrl}/work`, {})).status).toBe(200);
 
         const reset = await postJson(`${app.baseUrl}/admin/inject-failure`, { mode: 'RESET' });
         expect(reset.status).toBe(200);
 
-        expect((await postJson(`${app.baseUrl}/work?delayMs=40`, {})).status).toBe(200);
+        expect((await postJson(`${app.baseUrl}/work-slow`, {})).status).toBe(200);
         const refused = await postJson(`${app.baseUrl}/work`, {});
         expect(refused.status).toBe(503);
     });
@@ -204,9 +207,12 @@ describe('interlockExpress bounded cold-start grace', () => {
             return res.status(400).json({ error: 'Unknown mode' });
         });
 
-        app.post('/work', async (req, res) => {
-            const delayMs = Number(req.query.delayMs || 0);
-            if (delayMs > 0) await delay(delayMs);
+        app.post('/work', (_req, res) => {
+            res.json({ status: 'done' });
+        });
+
+        app.post('/work-slow', async (_req, res) => {
+            await delay(TEST_SLOW_DELAY_MS);
             res.json({ status: 'done' });
         });
 
@@ -258,7 +264,7 @@ async function readEventsEventually(eventsPath: string, predicate: (events: any[
     for (let i = 0; i < 50; i++) {
         const events = readEvents(eventsPath);
         if (predicate(events)) return events;
-        await delay(20);
+        await delay(TEST_EVENT_POLL_MS);
     }
     return readEvents(eventsPath);
 }
