@@ -133,4 +133,4 @@ AI agents must run `tools/precommit_safety_scan.ps1` before commits.
 
 ## License
 
-MIT. See [LICENSE](./LICENSE).
+MIT. See [LICENSE](./LICENSE)..
