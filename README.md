@@ -2,7 +2,7 @@
 
 # INTERLOCK
 
-Interlock is a circuit-breaker + evidence layer for AI infrastructure. It monitors runtime signals (confidence/latency/failure), refuses or degrades when the system is outside safe bounds, and writes verifiable forensic logs.
+Interlock is a circuit-breaker + evidence layer for AI infrastructure. It monitors runtime signals (confidence/latency/failure), refuses or degrades when the system is outside safe bounds, and writes verifiable forensic logs. 
 
 ## What it does
 
