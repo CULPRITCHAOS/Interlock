@@ -43,10 +43,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
@@ -188,7 +188,7 @@ jobs:
 
       - name: Upload certification artifacts
         if: steps.check.outputs.should_run == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: adapter-certification-${{ matrix.adapter }}-${{ github.run_number }}
           path: results/certification/${{ matrix.adapter }}/**
@@ -206,7 +206,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: results/certification
         continue-on-error: true
@@ -260,7 +260,7 @@ jobs:
           echo "*Workflow: adapter-certification.yml*" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload combined summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: adapter-certification-summary-${{ github.run_number }}
           path: results/certification/**

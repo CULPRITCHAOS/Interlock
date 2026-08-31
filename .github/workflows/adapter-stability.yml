@@ -39,10 +39,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: 'npm'
@@ -144,7 +144,7 @@ jobs:
 
       - name: Upload stability artifacts
         if: steps.check.outputs.should_run == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: adapter-stability-${{ matrix.adapter }}-${{ github.run_number }}
           path: results/adapter-stability/${{ matrix.adapter }}/**
@@ -162,7 +162,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: results/adapter-stability
         continue-on-error: true
@@ -211,7 +211,7 @@ jobs:
           echo "*Workflow: adapter-stability.yml*" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload combined summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: adapter-stability-summary-${{ github.run_number }}
           path: results/adapter-stability/**
