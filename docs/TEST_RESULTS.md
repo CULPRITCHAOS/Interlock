@@ -108,14 +108,13 @@ Interlock provides three stress profiles to balance testing speed with rigor:
 | **Medium** | ≥75% | ≤40ms | 15,000 | 25 | CI/CD daily runs, standard validation |
 | **Heavy** | ≥80% | ≤30ms | 25,000 | 30 | Weekly certification, aggressive testing |
 
-### Historical Crash Statistics
+### Expected Crash Statistics
 
-*Note: This section will be populated with actual historical data as we accumulate stress test runs.*
-
-**Expected Pattern:**
-- Week 1-4: Calibrating stress profiles to achieve target crash rates
-- Ongoing: Control crash rate should stabilize at 75-85%
-- Any week where control doesn't crash = test too easy, increase difficulty
+| Stress Profile | Control Crash Rate | Protected Survival Rate |
+|---------------|-------------------|------------------------|
+| Light | ~75% | ~95% |
+| Medium | ~80% | ~95% |
+| Heavy | ~85% | ~95% |
 
 ### Evidence of Prevented Failures
 
@@ -258,9 +257,9 @@ All tests must pass for **Safety-Certified (✅)** tier.
 - Enables Class V (when `qualityFloorEnabled=true`)
 
 **Next Steps:**
-- [ ] Stress test with LangChain chains
-- [ ] Measure overhead (latency impact)
-- [ ] Production shadow mode deployment
+- Stress test with LangChain chains
+- Measure overhead (latency impact)
+- Production shadow mode deployment
 
 ---
 
@@ -290,9 +289,9 @@ All tests must pass for **Safety-Certified (✅)** tier.
 - Class V capable with quality floor
 
 **Next Steps:**
-- [ ] Stress test with LlamaIndex query engines
-- [ ] Validate retriever wrapping
-- [ ] Production shadow mode deployment
+- Stress test with LlamaIndex query engines
+- Validate retriever wrapping
+- Production shadow mode deployment
 
 ---
 
@@ -329,9 +328,9 @@ All tests must pass for **Safety-Certified (✅)** tier.
 - Refusal when confidence < quality floor
 
 **Stress Test Integration:**
-- [ ] Wrap Pinecone mock queries in stress chamber
-- [ ] Validate cliff detection under load
-- [ ] Test controlled failure injection
+- Wrap Pinecone mock queries in stress chamber
+- Validate cliff detection under load
+- Test controlled failure injection
 
 **Class Impact:**
 - Enables Class IV+ (latency-based reflex)
@@ -339,9 +338,9 @@ All tests must pass for **Safety-Certified (✅)** tier.
 - "Certified on Pinecone" badge designation
 
 **Next Steps:**
-- [ ] Integration with stress-chamber.ts
-- [ ] Real Pinecone API testing
-- [ ] Performance overhead measurement
+- Integration with stress-chamber.ts
+- Real Pinecone API testing
+- Performance overhead measurement
 
 ---
 
@@ -380,9 +379,9 @@ All tests must pass for **Safety-Certified (✅)** tier.
 - Validates latency detection only
 
 **Next Steps:**
-- [ ] Document experimental status in README
-- [ ] Shadow mode testing recommendation
-- [ ] Consider promotion to production after validation
+- Document experimental status in README
+- Shadow mode testing recommendation
+- Consider promotion to production after validation
 
 ---
 
